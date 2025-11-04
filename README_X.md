@@ -598,6 +598,11 @@ README_DEPLOY.md
 
 
 ---
+Home page
 <img width="450" height="818" alt="image" src="https://github.com/user-attachments/assets/4a0230e7-94c1-432c-a4e6-c22781cbd106" />
+pricing page
+<img width="981" height="746" alt="image" src="https://github.com/user-attachments/assets/91032320-8850-43f3-b7b8-1025d73d8dfa" />
+Divination Tools
+<img width="563" height="886" alt="image" src="https://github.com/user-attachments/assets/7fdec39b-33bb-4c00-b09a-33bd914ab088" />
 
 
