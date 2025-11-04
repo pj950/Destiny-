@@ -386,6 +386,7 @@ OPENAI_API_KEY=sk-proj-...
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_... # or sk_live_... for production
+STRIPE_WEBHOOK_SECRET=whsec_... # from Stripe CLI or webhook endpoint settings
 STRIPE_API_VERSION=2024-06-20
 
 # Site URL
@@ -406,6 +407,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) | `eyJhbGc...` |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for AI interpretations | `sk-proj-...` |
 | `STRIPE_SECRET_KEY` | Yes | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
+| `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret for verifying webhook events | `whsec_...` |
 | `STRIPE_API_VERSION` | No | Stripe API version (defaults to 2024-06-20) | `2024-06-20` |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Your site URL for redirects | `https://yourdomain.com` |
 
@@ -525,18 +527,79 @@ For the report generation feature to work with real payments:
 3. Copy the **Price ID** (starts with `price_`)
 4. Update your code in `/pages/api/reports/generate.ts` to use this price ID
 
-### Step 7.3: Stripe Webhooks (Post-MVP)
+### Step 7.3: Stripe Webhooks
 
-For production, you should set up Stripe webhooks:
+The application uses Stripe webhooks to finalize the report purchase flow after successful payment.
 
-1. Navigate to **Developers** > **Webhooks**
+#### Development Testing with Stripe CLI
+
+For local development, use the Stripe CLI to forward webhook events:
+
+1. **Install Stripe CLI**: Follow instructions at [stripe.com/docs/stripe-cli](https://stripe.com/docs/stripe-cli)
+
+2. **Login to Stripe CLI**:
+   ```bash
+   stripe login
+   ```
+
+3. **Forward webhook events to your local server**:
+   ```bash
+   stripe listen --forward-to localhost:3000/api/stripe/webhook
+   ```
+
+4. **Copy the webhook signing secret**: The CLI will display a webhook signing secret (starts with `whsec_`). Add it to your `.env.local`:
+   ```env
+   STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+   ```
+
+5. **Test with a real checkout**: 
+   - Start your Next.js app: `pnpm dev`
+   - Create a chart and initiate report generation
+   - Complete the Stripe checkout (use test card `4242 4242 4242 4242`)
+   - Watch the Stripe CLI forward the `checkout.session.completed` event
+   - Verify a job is created/updated in the `jobs` table with `status='pending'`
+
+6. **Test with Stripe CLI trigger** (optional):
+   ```bash
+   stripe trigger checkout.session.completed
+   ```
+
+#### Production Setup
+
+For production deployment:
+
+1. Navigate to **Developers** > **Webhooks** in Stripe Dashboard
 2. Click **"Add endpoint"**
 3. Endpoint URL: `https://yourdomain.com/api/stripe/webhook`
 4. Select events to listen for:
    - `checkout.session.completed`
-5. Copy the **Signing secret** and add to environment variables
+5. Copy the **Signing secret** and add to your environment variables as `STRIPE_WEBHOOK_SECRET`
+6. Deploy your application with the new environment variable
 
-**Note**: Webhook handler is not included in MVP. You'll need to implement `/pages/api/stripe/webhook.ts` for production.
+#### How the Webhook Works
+
+1. User completes Stripe checkout
+2. Stripe sends `checkout.session.completed` event to your webhook endpoint
+3. Webhook validates the signature using `STRIPE_WEBHOOK_SECRET`
+4. Webhook extracts `chart_id` from session metadata
+5. Webhook finds the job by `checkout_session_id` in metadata
+6. If job exists, updates it to `status='pending'` and adds `payment_confirmed: true`
+7. If job doesn't exist (edge case), creates a new job
+8. Webhook implements idempotency by storing `last_webhook_event_id` to prevent duplicate processing
+9. Background worker picks up pending jobs and generates reports
+
+#### Event Mapping
+
+| Stripe Event | Action | Database Update |
+|--------------|--------|-----------------|
+| `checkout.session.completed` | Payment successful | Update job to `status='pending'`, add `payment_confirmed: true` in metadata |
+
+#### Security Features
+
+- **Signature Verification**: All webhook events are verified using Stripe's signature
+- **Idempotency**: Duplicate events are detected and ignored using `last_webhook_event_id`
+- **Quick Response**: Webhook returns 200 status quickly to avoid timeouts
+- **Error Logging**: All errors are logged with `[Webhook]` prefix for debugging
 
 ---
 
@@ -607,7 +670,8 @@ Before going live, ensure you've completed:
 ### Third-Party Services
 - [ ] OpenAI API key is valid and has credits
 - [ ] Stripe integration is tested (use test mode first)
-- [ ] Stripe webhook is configured (if implemented)
+- [ ] Stripe webhook endpoint is configured in Stripe Dashboard
+- [ ] STRIPE_WEBHOOK_SECRET is set correctly in production environment
 
 ### Testing
 - [ ] End-to-end user flow tested (profile → chart → report)
