@@ -43,22 +43,25 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 - [x] `lib/supabase.ts` — Export both `supabase` (anon) and `supabaseService` (service role) clients
 
 ### Database Schema
-- [ ] Create `profiles` table
+- [x] Create `profiles` table
   - Schema: `id`, `user_id`, `name`, `birth_local`, `birth_timezone`, `gender`, `lat`, `lon`, `created_at`
   - See `README.md` for full SQL schema
-- [ ] Create `charts` table
+  - SQL migration: `/supabase/migrations/20241104000001_create_tables.sql`
+- [x] Create `charts` table
   - Schema: `id`, `profile_id`, `chart_json`, `wuxing_scores`, `ai_summary`, `created_at`
-- [ ] Create `jobs` table
-  - Schema: `id`, `user_id`, `chart_id`, `job_type`, `status`, `result_url`, `created_at`, `updated_at`
-- [ ] Create indexes
-  - `idx_profiles_user_id`, `idx_charts_profile_id`, `idx_jobs_status`
+- [x] Create `jobs` table
+  - Schema: `id`, `user_id`, `chart_id`, `job_type`, `status`, `result_url`, `created_at`
+- [x] Create indexes
+  - `idx_profiles_user_id`, `idx_charts_profile_id`, `idx_jobs_chart_id`, `idx_jobs_status`, `idx_jobs_user_id`
 
 ### Storage
-- [ ] Create `reports` bucket in Supabase Storage
+- [x] Create `reports` bucket in Supabase Storage
   - Set to public access or configure appropriate policies
+  - SQL migration: `/supabase/migrations/20241104000003_create_storage.sql`
 
 ### Row Level Security (RLS)
-- [ ] Minimal RLS policies for MVP (service role bypasses RLS)
+- [x] Minimal RLS policies for MVP (service role bypasses RLS)
+  - SQL migration: `/supabase/migrations/20241104000002_enable_rls.sql`
   - Note: In production, implement proper RLS policies per table
 
 ---
@@ -114,11 +117,11 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [x] MVP limitations clearly documented
   - [x] Environment variables table with descriptions
 
-- [ ] `README_DEPLOY.md` (Optional) — Detailed deployment guide
-  - Step-by-step Supabase SQL/RLS/storage setup
-  - Worker deployment options (cron jobs, serverless, Railway, etc.)
-  - Production environment variable checklist
-  - Stripe webhook configuration
+- [x] `README_DEPLOY.md` — Detailed deployment guide
+  - [x] Step-by-step Supabase SQL/RLS/storage setup
+  - [x] Worker deployment options (cron jobs, serverless, Railway, etc.)
+  - [x] Production environment variable checklist
+  - [x] Stripe webhook configuration notes
 
 ### Type Definitions
 - [x] `types/` directory — TypeScript type definitions (if applicable)
