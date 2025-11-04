@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "worker": "tsx --env-file=.env.local worker/worker.ts"
   },
   "dependencies": {
@@ -28,9 +30,11 @@
     "@types/luxon": "^3.3.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.21",
+    "@vitest/ui": "^4.0.6",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^4.0.6"
   }
 }
