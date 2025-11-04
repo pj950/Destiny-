@@ -383,6 +383,8 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 # OpenAI
 OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL_SUMMARY=gpt-4o-mini # optional, for AI summaries
+OPENAI_REPORT_MODEL=gpt-4o # optional, for deep reports
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_... # or sk_live_... for production
@@ -406,6 +408,8 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key | `eyJhbGc...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) | `eyJhbGc...` |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for AI interpretations | `sk-proj-...` |
+| `OPENAI_MODEL_SUMMARY` | No | OpenAI model for AI summaries (defaults to gpt-4o-mini) | `gpt-4o-mini` |
+| `OPENAI_REPORT_MODEL` | No | OpenAI model for deep report generation (defaults to gpt-4o) | `gpt-4o` |
 | `STRIPE_SECRET_KEY` | Yes | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret for verifying webhook events | `whsec_...` |
 | `STRIPE_API_VERSION` | No | Stripe API version (defaults to 2024-06-20) | `2024-06-20` |
@@ -413,53 +417,277 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 
 ---
 
-## 5. Deploy Next.js Application
+## 5. Deploy Next.js Application to Vercel (Recommended)
 
-### Option A: Deploy to Vercel (Recommended)
+### Prerequisites
 
-#### Step 5.1: Push Code to GitHub
+Before deploying to Vercel, ensure you have:
+
+- ✅ **GitHub Account**: Your code should be pushed to a GitHub repository
+- ✅ **Vercel Account**: Sign up at [vercel.com](https://vercel.com) (free for personal projects)
+- ✅ **Supabase Project**: Completed Steps 1-3 above (database, RLS, storage)
+- ✅ **API Keys Ready**: 
+  - Supabase credentials (URL, anon key, service role key)
+  - OpenAI API key with credits
+  - Stripe secret key and webhook secret
+
+### Step 5.1: Push Code to GitHub
+
+If you haven't already pushed your code to GitHub:
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit"
+git commit -m "Initial commit - Eastern Destiny MVP"
+git branch -M main
 git remote add origin https://github.com/yourusername/eastern-destiny.git
 git push -u origin main
 ```
 
-#### Step 5.2: Connect to Vercel
+### Step 5.2: Import Project to Vercel
 
-1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click **"New Project"**
-3. Import your GitHub repository
-4. Configure project:
+1. Go to [vercel.com](https://vercel.com) and sign in with GitHub
+2. Click **"Add New..."** → **"Project"**
+3. Find and import your `eastern-destiny` repository
+   - If it's not visible, click **"Adjust GitHub App Permissions"** to grant access
+4. Configure project settings:
    - **Framework Preset**: Next.js (should auto-detect)
    - **Root Directory**: `./` (leave default)
-   - **Build Command**: `npm run build` (or `pnpm build`)
-   - **Output Directory**: `.next` (should auto-detect)
+   - **Build Command**: `npm run build` (default, can override if needed)
+   - **Output Directory**: `.next` (auto-detected)
+   - **Install Command**: `npm install` (default)
 
-#### Step 5.3: Add Environment Variables
+### Step 5.3: Configure Environment Variables
 
-In the Vercel project settings:
+This is the most critical step. Add all environment variables before deploying.
 
-1. Navigate to **Settings** > **Environment Variables**
-2. Add all environment variables from Step 4.2 above
-3. Set them for **Production**, **Preview**, and **Development** environments
+1. In the Vercel import screen, scroll down to **"Environment Variables"**
+2. Add each variable below:
+
+#### Required Environment Variables
+
+| Variable Name | Value | Environment | Description |
+|---------------|-------|-------------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxxx.supabase.co` | Production, Preview, Development | Your Supabase project URL (from Supabase Settings > API) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase anonymous/public key (from Supabase Settings > API) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase service role key - **KEEP SECRET** (from Supabase Settings > API) |
+| `OPENAI_API_KEY` | `sk-proj-...` | Production, Preview, Development | OpenAI API key for AI interpretations (from OpenAI dashboard) |
+| `STRIPE_SECRET_KEY` | `sk_test_...` or `sk_live_...` | Production, Preview, Development | Stripe secret key for payments (use `sk_test_` for testing) |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Production, Preview, Development | Stripe webhook signing secret (see Step 5.6 below) |
+| `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Production, Preview, Development | Your Vercel deployment URL (update after first deploy) |
+
+#### Optional Environment Variables (with defaults)
+
+| Variable Name | Default Value | Environment | Description |
+|---------------|---------------|-------------|-------------|
+| `OPENAI_MODEL_SUMMARY` | `gpt-4o-mini` | Production, Preview, Development | OpenAI model for AI interpretations (cost optimization) |
+| `OPENAI_REPORT_MODEL` | `gpt-4o` | Production, Preview, Development | OpenAI model for deep report generation (higher quality) |
+| `STRIPE_API_VERSION` | `2024-06-20` | Production, Preview, Development | Stripe API version to use |
+
+**Important Notes**:
+- ⚠️ For each variable, select **Production**, **Preview**, and **Development** environments
+- ⚠️ Leave `STRIPE_WEBHOOK_SECRET` blank initially - you'll add it after deployment (Step 5.6)
+- ⚠️ Use `sk_test_` Stripe keys for Preview/Development, `sk_live_` for Production
+- ⚠️ `NEXT_PUBLIC_SITE_URL` should be updated after first deployment with your actual Vercel URL
+
+### Step 5.4: Deploy
+
+1. Click **"Deploy"** at the bottom of the import screen
+2. Vercel will:
+   - Clone your repository
+   - Install dependencies (`npm install`)
+   - Run build command (`npm run build`)
+   - Deploy your application
+3. Wait for the build to complete (typically 2-3 minutes)
+4. Once complete, you'll see: **"Congratulations! Your project has been deployed."**
+
+### Step 5.5: Update NEXT_PUBLIC_SITE_URL
+
+After your first deployment:
+
+1. Copy your production URL (e.g., `https://eastern-destiny.vercel.app`)
+2. Go to **Settings** > **Environment Variables**
+3. Edit `NEXT_PUBLIC_SITE_URL`:
+   - **Production**: `https://eastern-destiny.vercel.app`
+   - **Preview**: `https://eastern-destiny-git-{branch}.vercel.app` (or use production URL)
+   - **Development**: `http://localhost:3000`
 4. Click **"Save"**
+5. Trigger a redeploy:
+   - Go to **Deployments**
+   - Click **"..."** on latest deployment
+   - Select **"Redeploy"**
 
-#### Step 5.4: Deploy
+### Step 5.6: Configure Stripe Webhook
 
-1. Click **"Deploy"**
-2. Wait for the build to complete (2-3 minutes)
-3. Once deployed, visit your production URL
+The Stripe webhook is required for payment confirmation and report generation.
 
-### Option B: Deploy to Other Platforms
+#### Step 5.6.1: Add Webhook Endpoint in Stripe
 
-You can also deploy to:
-- **Netlify**: Similar to Vercel, supports Next.js
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
+2. Navigate to **Developers** > **Webhooks**
+3. Click **"Add endpoint"**
+4. Configure endpoint:
+   - **Endpoint URL**: `https://eastern-destiny.vercel.app/api/stripe/webhook` (use your actual Vercel URL)
+   - **Description**: `Eastern Destiny - Checkout completed`
+   - **Events to listen to**: Click **"Select events"**
+     - ✅ Check `checkout.session.completed`
+   - **API version**: Match your `STRIPE_API_VERSION` (e.g., `2024-06-20`)
+5. Click **"Add endpoint"**
+
+#### Step 5.6.2: Get Webhook Signing Secret
+
+1. After creating the endpoint, click on it to view details
+2. Reveal and copy the **Signing secret** (starts with `whsec_`)
+3. Go to your Vercel project: **Settings** > **Environment Variables**
+4. Update `STRIPE_WEBHOOK_SECRET`:
+   - Paste the signing secret as the value
+   - Select **Production**, **Preview**, and **Development**
+   - Click **"Save"**
+5. Redeploy your application (see Step 5.5)
+
+#### Step 5.6.3: Test Webhook (Optional)
+
+1. In Stripe Dashboard, go to **Developers** > **Webhooks**
+2. Click on your webhook endpoint
+3. Click **"Send test webhook"**
+4. Select `checkout.session.completed`
+5. Click **"Send test webhook"**
+6. Verify the webhook was received successfully (check response status)
+
+### Step 5.7: Post-Deployment Verification
+
+After deployment, verify everything is working:
+
+#### Test 1: Homepage
+- Visit your production URL (e.g., `https://eastern-destiny.vercel.app`)
+- Verify the homepage loads without errors
+- Check browser console for any JavaScript errors
+
+#### Test 2: Profile Creation
+1. Fill out the birth information form on the homepage
+2. Submit the form
+3. Verify you're redirected to `/compute` page
+4. Check that profile data is saved in Supabase:
+   - Go to Supabase dashboard
+   - Navigate to **Table Editor** > **profiles**
+   - Confirm new row exists
+
+#### Test 3: BaZi Chart Computation
+1. On the `/compute` page, click **"Compute Chart"** (or it should auto-compute)
+2. Verify the Four Pillars (Year, Month, Day, Hour) are displayed
+3. Check that chart data is saved in Supabase:
+   - Navigate to **Table Editor** > **charts**
+   - Confirm new row exists with `chart_json` and `wuxing_scores`
+
+#### Test 4: AI Summary
+1. On the chart page, click **"Get AI Interpretation"** (if available)
+2. Wait for AI summary to generate (up to 30 seconds)
+3. Verify AI summary is displayed
+4. Check that `ai_summary` column is populated in `charts` table
+
+#### Test 5: Pricing Page
+- Visit `/pricing` page
+- Verify pricing information displays correctly
+- Check Stripe integration (if clicking generate report button)
+
+#### Test 6: API Health Check
+Test critical API routes:
+
+```bash
+# Test profile creation (replace with your Vercel URL)
+curl -X POST https://your-app.vercel.app/api/profiles \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","birth_local":"1990-01-01T12:00:00","birth_timezone":"UTC","gender":"male"}'
+
+# Should return: {"id": "...", "name": "Test", ...}
+```
+
+### Step 5.8: Monitor Logs
+
+Vercel provides real-time logging for debugging:
+
+1. Go to your Vercel project dashboard
+2. Click on **Deployments**
+3. Click on the latest deployment
+4. View tabs:
+   - **Building**: Build logs (useful for build errors)
+   - **Runtime Logs**: Function execution logs (useful for API debugging)
+   - **Function Logs**: Per-function logs
+
+**Tip**: Filter logs by function (e.g., `/api/profiles`) for easier debugging
+
+### Step 5.9: Custom Domain (Optional)
+
+To use a custom domain instead of `.vercel.app`:
+
+1. Go to **Settings** > **Domains**
+2. Click **"Add"**
+3. Enter your domain (e.g., `easterndestiny.com`)
+4. Follow Vercel's instructions to:
+   - Add DNS records (A, CNAME)
+   - Verify domain ownership
+5. Update `NEXT_PUBLIC_SITE_URL` environment variable
+6. Update Stripe webhook URL in Stripe Dashboard
+
+### Troubleshooting Vercel Deployment
+
+#### Build Fails: "Module not found"
+
+**Cause**: Missing dependency in `package.json`
+
+**Solution**:
+```bash
+npm install <missing-package>
+git add package.json package-lock.json
+git commit -m "Add missing dependency"
+git push
+```
+
+#### Build Fails: "Type error"
+
+**Cause**: TypeScript compilation errors
+
+**Solution**:
+1. Run locally: `npm run build`
+2. Fix TypeScript errors
+3. Commit and push
+
+#### Runtime Error: "SUPABASE_SERVICE_ROLE_KEY is not defined"
+
+**Cause**: Environment variable not set
+
+**Solution**:
+1. Go to **Settings** > **Environment Variables**
+2. Verify all required variables are set
+3. Redeploy
+
+#### API Timeout: "Function execution timeout"
+
+**Cause**: API route exceeds Vercel's timeout (10s on Hobby, 60s on Pro)
+
+**Solution**:
+- OpenAI calls can take 20-30 seconds
+- Upgrade to Vercel Pro for 60s timeout
+- Or implement client-side polling for long operations
+
+#### Stripe Webhook: "No signatures found"
+
+**Cause**: `STRIPE_WEBHOOK_SECRET` is incorrect or missing
+
+**Solution**:
+1. Re-check signing secret in Stripe Dashboard
+2. Update environment variable in Vercel
+3. Ensure no extra spaces or line breaks in secret
+4. Redeploy
+
+### Alternative Deployment Options
+
+While Vercel is recommended, you can also deploy to:
+
+- **Netlify**: Similar to Vercel, supports Next.js (use Netlify adapter)
 - **Railway**: Supports Next.js and can host the worker in the same project
-- **Render**: Good for full-stack apps
-- **fly.io**: Docker-based deployments
+- **Render**: Good for full-stack apps with background workers
+- **fly.io**: Docker-based deployments with global edge network
 
 Refer to each platform's documentation for Next.js deployment instructions.
 
@@ -467,43 +695,149 @@ Refer to each platform's documentation for Next.js deployment instructions.
 
 ## 6. Deploy Background Worker
 
-The background worker (`worker/worker.ts`) processes async jobs like report generation.
+The background worker (`worker/worker.ts`) processes async jobs like report generation. Since Vercel is a serverless platform, it cannot run long-running background processes. You have several options:
 
-### Option A: Deploy Worker to Railway
+### Option A: Vercel Cron Jobs (Recommended for Vercel deployments)
+
+Vercel Cron Jobs allow you to run scheduled tasks. This requires a Vercel Pro plan.
+
+#### Step 6.1: Create Worker API Route
+
+Create a new file `/pages/api/cron/process-jobs.ts`:
+
+```typescript
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { supabaseService } from '@/lib/supabase';
+// Import worker logic here or create a shared function
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Verify cron secret to prevent unauthorized access
+  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    // Process pending jobs (copy logic from worker/worker.ts)
+    const { data: jobs, error } = await supabaseService
+      .from('jobs')
+      .select('*')
+      .eq('status', 'pending')
+      .eq('job_type', 'deep_report')
+      .limit(10);
+
+    if (error) throw error;
+
+    // Process each job...
+    // (Implement worker logic here)
+
+    res.status(200).json({ processed: jobs?.length || 0 });
+  } catch (error) {
+    console.error('[Cron Worker]', error);
+    res.status(500).json({ error: 'Worker failed' });
+  }
+}
+```
+
+#### Step 6.2: Configure Cron Schedule
+
+Update `vercel.json` to add cron configuration:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-jobs",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}
+```
+
+This runs the worker every 5 minutes.
+
+#### Step 6.3: Add CRON_SECRET Environment Variable
+
+1. Go to Vercel project **Settings** > **Environment Variables**
+2. Add `CRON_SECRET` with a random secret value (e.g., generate with `openssl rand -hex 32`)
+3. Set for **Production**, **Preview**, and **Development**
+4. Deploy
+
+**Note**: Vercel Cron Jobs are only available on Pro plans ($20/month). For Hobby plans, use Option B or C.
+
+### Option B: External Cron Service (Free alternative)
+
+Use a free external cron service to trigger your worker API endpoint:
+
+#### Step 6.1: Create Worker API Route
+
+Same as Option A - create `/pages/api/cron/process-jobs.ts`
+
+#### Step 6.2: Choose a Cron Service
+
+Popular free options:
+- **cron-job.org**: Free, up to 50 jobs, 1-minute intervals
+- **EasyCron**: Free tier available
+- **UptimeRobot**: Free tier with 5-minute intervals
+
+#### Step 6.3: Configure Cron Job
+
+1. Sign up for a cron service (e.g., cron-job.org)
+2. Create a new cron job:
+   - **URL**: `https://your-app.vercel.app/api/cron/process-jobs`
+   - **Interval**: Every 5 minutes
+   - **HTTP Method**: GET or POST
+   - **Headers**: `Authorization: Bearer YOUR_CRON_SECRET`
+3. Save and enable the cron job
+
+### Option C: Deploy Worker to Railway (Separate service)
+
+If you need a continuously running worker:
 
 1. Go to [railway.app](https://railway.app) and sign in
-2. Create a new project
-3. Connect your GitHub repository
-4. Add a new service:
+2. Create a new project from your GitHub repository
+3. Add a new service:
    - **Service name**: `eastern-destiny-worker`
-   - **Start command**: `node -r esbuild-register worker/worker.ts`
-5. Add environment variables (same as Next.js app)
-6. Deploy
+   - **Build command**: `npm install`
+   - **Start command**: `npm run worker`
+4. Add environment variables (same as your Vercel deployment):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `OPENAI_API_KEY`
+   - `OPENAI_REPORT_MODEL` (optional)
+   - `STRIPE_SECRET_KEY`
+5. Deploy
 
-### Option B: Deploy Worker as a Cron Job
+**Cost**: Railway has a free tier with 500 hours/month, then $5/month after.
 
-If your worker is lightweight and doesn't need to run continuously:
-
-1. **Vercel Cron Jobs** (requires Pro plan):
-   - Create `/pages/api/cron/worker.ts`
-   - Configure `vercel.json` with cron schedule
-   - Vercel will call the API route on schedule
-
-2. **External Cron Services**:
-   - Use services like Cron-job.org or EasyCron
-   - Set up a cron to call your worker API endpoint
-
-### Option C: Run Worker Locally
+### Option D: Run Worker Locally (MVP Testing)
 
 For MVP testing, you can run the worker locally:
 
 ```bash
-# Terminal 1: Run Next.js app
-pnpm dev
+# Terminal 1: Run Next.js app (deployed on Vercel)
+# (No need to run locally if using Vercel deployment)
 
-# Terminal 2: Run worker
-node -r esbuild-register worker/worker.ts
+# Terminal 2: Run worker locally, connected to production Supabase
+npm run worker
 ```
+
+Create a `.env.local` file with production credentials:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+OPENAI_API_KEY=sk-proj-...
+OPENAI_REPORT_MODEL=gpt-4o
+```
+
+**Security Note**: Only run the worker locally during MVP testing. In production, use Options A, B, or C.
+
+### Recommendation
+
+- **For Vercel Pro users**: Use Option A (Vercel Cron)
+- **For Vercel Hobby users**: Use Option B (External Cron) or Option C (Railway)
+- **For MVP testing**: Use Option D (Local worker)
 
 ---
 

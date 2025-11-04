@@ -1,5 +1,7 @@
 # Eastern Destiny — V1 TypeScript MVP
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/eastern-destiny)
+
 Eastern Destiny is a lightweight MVP project that provides Chinese BaZi (八字) fortune-telling calculations with AI-powered interpretations. This project demonstrates integration of modern web technologies with traditional Chinese astrology.
 
 ## Overview

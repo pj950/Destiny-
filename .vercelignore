@@ -1,0 +1,22 @@
+# Development and testing files
+*.test.ts
+*.spec.ts
+vitest.config.ts
+dev-test.log
+
+# Documentation
+docs/
+PLAN_SUPABASE_AUTH.md
+README_X.md
+TASKS.md
+UI_REDESIGN_SUMMARY.md
+
+# Worker (not deployed to Vercel, runs separately)
+worker/
+
+# Supabase migrations (applied manually in Supabase dashboard)
+supabase/
+
+# Development dependencies
+.git/
+.github/
