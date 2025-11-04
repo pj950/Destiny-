@@ -13,6 +13,7 @@ This application allows users to:
 ## Table of Contents
 
 - [Overview](#overview)
+- [Features](#features)
 - [Demo](#demo)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
@@ -29,32 +30,59 @@ This application allows users to:
 - [Support](#support)
 - [Roadmap](#roadmap)
 
+## Features
+
+Eastern Destiny provides a complete BaZi fortune-telling experience with modern technology:
+
+- 🎯 **Profile Creation** - Input birth information with accurate timezone handling
+- 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
+- 🤖 **AI Interpretation** - Get instant AI-powered insights using OpenAI GPT models
+- 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports
+- 📄 **Report Generation** - Background worker generates comprehensive fortune reports
+- 📱 **Modern UI** - Responsive design with Tailwind CSS
+- 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL database
+
 ## Demo
 
-### Homepage (/)
-![Homepage with birth input form and hero section](public/images/home.png)
+Explore the main pages of Eastern Destiny:
 
-The homepage features a beautiful hero section with a prominent call-to-action form where users can input their birth details to compute their BaZi chart. It includes sections highlighting key features, services, and benefits of the platform.
+### 🏠 Homepage ([/](http://localhost:3000/))
 
-### Pricing Page (/pricing)
-![Pricing page showing different subscription tiers](public/images/pricing%20page.png)
+![Homepage with birth input form and hero section](./public/images/home.png)
 
-The pricing page displays three tiers: Basic (free), Professional (¥199), and Master (¥599/year). Each tier clearly shows included features, with the Professional tier highlighted as the most popular option. Users can purchase detailed fortune reports via Stripe.
+The homepage features a beautiful hero section with a prominent call-to-action form where users can input their birth details (date, time, timezone) to compute their BaZi chart. It includes sections highlighting key features, services, and benefits of the platform with a modern, visually appealing design.
 
-### Divination Tools Page (/tools)
-![Tools page showcasing various divination features](public/images/Divination%20Tools.png)
+### 💰 Pricing Page ([/pricing](http://localhost:3000/pricing))
 
-The tools page provides an overview of all available divination tools, including BaZi chart calculation, AI interpretation, detailed reports, and upcoming features like annual fortune analysis, marriage compatibility, and auspicious date selection.
+![Pricing page showing different subscription tiers](./public/images/pricing%20page.png)
+
+The pricing page displays three tiers: **Basic** (free trial), **Professional** (¥199 one-time), and **Master** (¥599/year subscription). Each tier clearly shows included features such as BaZi chart computation, AI interpretations, and detailed reports. The Professional tier is highlighted as the most popular option. Users can purchase detailed fortune reports securely via Stripe.
+
+### 🔮 Divination Tools Page ([/tools](http://localhost:3000/tools))
+
+![Tools page showcasing various divination features](./public/images/Divination%20Tools.png)
+
+The tools page provides a comprehensive overview of all available divination tools and features. It showcases current capabilities including BaZi chart calculation, AI interpretation, and detailed report generation, as well as upcoming features like annual fortune analysis (流年运势), marriage compatibility matching (合婚配对), and auspicious date selection (择日宜忌).
+
+### Navigation Overview
+
+The application follows a simple navigation structure:
+
+- **[/](/)** - Homepage with birth input form and hero section
+- **[/compute](/compute)** - Chart computation page with JSON output and AI summary
+- **[/dashboard](/dashboard)** - User dashboard showing recent charts and report status
+- **[/pricing](/pricing)** - Pricing tiers and subscription options
+- **[/tools](/tools)** - Overview of divination tools and features
 
 ### Other Pages
 
-![Compute results page showing chart JSON and AI summary](public/images/compute.svg)
+![Compute results page showing chart JSON and AI summary](./public/images/compute.svg)
 
-Compute: See the computed Four Pillars and a short AI summary.
+**Compute Page**: View the computed Four Pillars (year, month, day, hour) with detailed chart data in JSON format, along with a concise AI-generated summary of your BaZi chart.
 
-![Dashboard with recent charts and report status](public/images/dashboard.svg)
+![Dashboard with recent charts and report status](./public/images/dashboard.svg)
 
-Dashboard: Review recent charts, AI summaries, and report status/downloads.
+**Dashboard**: Review your recent charts, AI summaries, and check the status of report generation jobs. Download completed reports from the Supabase storage bucket.
 
 ## Tech Stack
 
