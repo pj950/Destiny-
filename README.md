@@ -177,7 +177,20 @@ The worker provides detailed console logs for debugging:
 [Worker] Worker finished successfully
 ```
 
-### 6. Build for Production
+### 6. Run Tests
+
+```bash
+pnpm test
+# or
+npm test
+
+# Watch mode for development
+pnpm test:watch
+# or
+npm run test:watch
+```
+
+### 7. Build for Production
 
 ```bash
 pnpm build
@@ -191,9 +204,12 @@ pnpm start
 ├── components/          # React components
 │   ├── ChartView.tsx   # Chart display component
 │   └── ReportCard.tsx  # Report download card
+├── docs/               # Documentation
+│   └── bazi-algorithm.md  # BaZi algorithm documentation
 ├── lib/                # Utility libraries
 │   ├── supabase.ts     # Supabase client configuration
-│   └── bazi.ts         # BaZi calculation logic
+│   ├── bazi.ts         # BaZi calculation logic
+│   └── bazi.test.ts    # BaZi unit tests
 ├── pages/              # Next.js pages (Pages Router)
 │   ├── _app.tsx        # App wrapper
 │   ├── index.tsx       # Homepage
@@ -213,13 +229,23 @@ pnpm start
 ├── next.config.js      # Next.js configuration
 ├── tailwind.config.js  # Tailwind CSS configuration
 ├── tsconfig.json       # TypeScript configuration
+├── vitest.config.ts    # Vitest configuration
 └── package.json        # Dependencies
 ```
 
 ## Key Features & Implementation
 
 ### BaZi Calculation
-The `lib/bazi.ts` module provides basic BaZi (Four Pillars) calculation using the `solarlunar` library for Chinese calendar conversion. This is a **simplified implementation** for MVP purposes. For production use, replace with more accurate Gan-Zhi (干支) calculation logic.
+The `lib/bazi.ts` module provides accurate BaZi (Four Pillars) calculation with proper Heavenly Stems (天干) and Earthly Branches (地支) derivation. It includes:
+
+- **Accurate Gan-Zhi Calculation**: Proper derivation for year, month, day, and hour pillars using the `solarlunar` library for Chinese calendar conversion
+- **Hour Pillar Computation**: Implements the "Five Rat Formula" (五鼠遁) to derive hour stems based on day stems
+- **Timezone Handling**: Correctly handles timezone conversion and DST
+- **Five Elements Balance**: Computes Wuxing (五行) scores from all eight characters including hidden stems
+- **Configurable Weights**: Supports custom weights for stems, branches, and hidden stems
+- **Edge Case Handling**: Properly handles midnight boundaries, lunar month transitions, and other edge cases
+
+See [docs/bazi-algorithm.md](docs/bazi-algorithm.md) for detailed algorithm documentation and limitations.
 
 ### AI Interpretation
 Uses OpenAI's GPT-4o-mini model (configurable via `OPENAI_MODEL_SUMMARY`) to generate short interpretations (150-200 characters) of BaZi charts. Premium reports can use GPT-4o for longer, more detailed analysis.
