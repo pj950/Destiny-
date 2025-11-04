@@ -31,9 +31,22 @@ This application allows users to:
 
 ## Demo
 
-![Homepage with birth input form](public/images/home.svg)
+### Homepage (/)
+![Homepage with birth input form and hero section](public/images/home.png)
 
-Homepage: Input birth details and compute your BaZi chart.
+The homepage features a beautiful hero section with a prominent call-to-action form where users can input their birth details to compute their BaZi chart. It includes sections highlighting key features, services, and benefits of the platform.
+
+### Pricing Page (/pricing)
+![Pricing page showing different subscription tiers](public/images/pricing%20page.png)
+
+The pricing page displays three tiers: Basic (free), Professional (¥199), and Master (¥599/year). Each tier clearly shows included features, with the Professional tier highlighted as the most popular option. Users can purchase detailed fortune reports via Stripe.
+
+### Divination Tools Page (/tools)
+![Tools page showcasing various divination features](public/images/Divination%20Tools.png)
+
+The tools page provides an overview of all available divination tools, including BaZi chart calculation, AI interpretation, detailed reports, and upcoming features like annual fortune analysis, marriage compatibility, and auspicious date selection.
+
+### Other Pages
 
 ![Compute results page showing chart JSON and AI summary](public/images/compute.svg)
 

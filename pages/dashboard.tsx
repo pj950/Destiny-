@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
+import Card from '../components/Card'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -142,67 +145,72 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-8 min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">我的命盘</h2>
-          <Link href="/" className="text-blue-600 hover:text-blue-700 underline">
-            创建新命盘
-          </Link>
-        </div>
-
-        {!charts.length && (
-          <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-600 mb-4">您还没有创建任何命盘</p>
-            <Link href="/" className="text-blue-600 hover:text-blue-700 underline">
-              立即创建
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <div className="flex-grow p-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900">我的命盘</h2>
+            <Link href="/" className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition-all shadow-lg hover:shadow-xl font-semibold">
+              创建新命盘
             </Link>
           </div>
-        )}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {charts.map((chart) => (
-            <div key={chart.id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  命盘 #{chart.id.slice(0, 8)}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  创建于: {new Date(chart.created_at).toLocaleString('zh-CN')}
-                </p>
-              </div>
+          {!charts.length && (
+            <Card className="p-12 text-center">
+              <div className="text-6xl mb-4">📊</div>
+              <p className="text-gray-600 text-lg mb-6">您还没有创建任何命盘</p>
+              <Link href="/" className="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg transition-all shadow-lg hover:shadow-xl font-semibold">
+                立即创建第一个命盘
+              </Link>
+            </Card>
+          )}
 
-              {chart.ai_summary && (
-                <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-                  <p className="text-sm text-gray-700 line-clamp-3">
-                    {chart.ai_summary}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {charts.map((chart) => (
+              <Card key={chart.id} hover className="p-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    命盘 #{chart.id.slice(0, 8)}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    创建于: {new Date(chart.created_at).toLocaleString('zh-CN')}
                   </p>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Link 
-                  href={`/chart/${chart.id}`}
-                  className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors"
-                >
-                  查看命盘
-                </Link>
+                {chart.ai_summary && (
+                  <div className="mb-4 p-3 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-700 line-clamp-3">
+                      {chart.ai_summary}
+                    </p>
+                  </div>
+                )}
 
-                <div className="pt-2 border-t border-gray-200">
-                  {getJobStatus(chart.id) || (
-                    <Link 
-                      href={`/chart/${chart.id}#report`}
-                      className="text-sm text-gray-600 hover:text-gray-900 underline"
-                    >
-                      购买深度报告
-                    </Link>
-                  )}
+                <div className="space-y-2">
+                  <Link 
+                    href={`/chart/${chart.id}`}
+                    className="block w-full text-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2 px-4 rounded-lg transition-all font-semibold"
+                  >
+                    查看命盘
+                  </Link>
+
+                  <div className="pt-2 border-t border-gray-200">
+                    {getJobStatus(chart.id) || (
+                      <Link 
+                        href={`/chart/${chart.id}#report`}
+                        className="text-sm text-indigo-600 hover:text-indigo-800 underline block text-center"
+                      >
+                        购买深度报告
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }
