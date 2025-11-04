@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Eastern Destiny dashboard screenshot</title>
+  <desc id="desc">Mock screenshot placeholder showing a dashboard listing recent charts and report download links.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="100%" stop-color="#0b1225"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="40" y="60" font-family="Inter, Arial, sans-serif" font-size="32" fill="#e5e7eb">仪表盘 · Dashboard</text>
+  <g transform="translate(40,100)">
+    <rect x="0" y="0" width="1200" height="520" rx="12" fill="#0f172a" stroke="#334155"/>
+    <text x="20" y="40" font-family="Inter, Arial, sans-serif" font-size="18" fill="#cbd5e1">最近的命盘</text>
+    <rect x="20" y="60" width="1160" height="60" rx="8" fill="#111827" stroke="#374151"/>
+    <text x="40" y="98" font-family="Menlo, Consolas, monospace" font-size="14" fill="#94a3b8">庚午/辛巳/庚辰/壬午 · 2024-05-01 · AI摘要已生成 · 报告：可下载</text>
+    <rect x="20" y="130" width="1160" height="60" rx="8" fill="#111827" stroke="#374151"/>
+    <text x="40" y="168" font-family="Menlo, Consolas, monospace" font-size="14" fill="#94a3b8">辛未/乙酉/甲子/丙寅 · 2024-05-02 · AI摘要已生成 · 报告：处理中</text>
+    <rect x="20" y="200" width="1160" height="60" rx="8" fill="#111827" stroke="#374151"/>
+    <text x="40" y="238" font-family="Menlo, Consolas, monospace" font-size="14" fill="#94a3b8">戊辰/庚午/丁丑/乙卯 · 2024-05-03 · AI摘要已生成 · 报告：未购买</text>
+  </g>
+  <text x="640" y="680" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#9ca3af">Placeholder image generated for documentation</text>
+</svg>

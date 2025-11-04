@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Eastern Destiny compute results screenshot</title>
+  <desc id="desc">Mock screenshot placeholder showing computed BaZi chart JSON and an AI short summary card.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="40" y="60" font-family="Inter, Arial, sans-serif" font-size="32" fill="#e5e7eb">试算结果 · Compute Results</text>
+  <rect x="40" y="100" width="760" height="520" rx="12" fill="#f3f4f6" stroke="#e5e7eb"/>
+  <text x="60" y="140" font-family="Menlo, Consolas, monospace" font-size="16" fill="#111827">{ "bazi": { "year": "庚午", "month": "辛巳", "day": "庚辰", "hour": "壬午" }, ... }</text>
+  <rect x="820" y="100" width="420" height="260" rx="12" fill="#fff" stroke="#e5e7eb"/>
+  <text x="840" y="140" font-family="Inter, Arial, sans-serif" font-size="18" fill="#111827">AI 短解读</text>
+  <text x="840" y="170" font-family="Inter, Arial, sans-serif" font-size="14" fill="#374151">根据四柱五行平衡，近期事业宜稳中求进...</text>
+  <rect x="820" y="380" width="420" height="240" rx="12" fill="#111827" stroke="#374151"/>
+  <text x="1030" y="510" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" fill="#e5e7eb">生成深度报告 →</text>
+  <text x="640" y="680" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#9ca3af">Placeholder image generated for documentation</text>
+</svg>
