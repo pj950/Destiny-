@@ -13,7 +13,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   const { chart_id } = req.body
   
+  // Input validation
+  if (!chart_id || typeof chart_id !== 'string') {
+    return res.status(400).json({ ok: false, message: 'chart_id is required' })
+  }
+  
   try {
+    // Server-side validation: verify chart exists before creating checkout
+    const { data: chart, error: chartError } = await supabaseService
+      .from('charts')
+      .select('id, profile_id')
+      .eq('id', chart_id)
+      .single()
+    
+    if (chartError || !chart) {
+      return res.status(404).json({ ok: false, message: 'Chart not found' })
+    }
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',

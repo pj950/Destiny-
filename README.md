@@ -55,6 +55,7 @@ Required environment variables:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key | `eyJhbGc...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) | `eyJhbGc...` |
 | `OPENAI_API_KEY` | OpenAI API key for AI interpretations | `sk-proj-...` |
+| `OPENAI_MODEL_SUMMARY` | OpenAI model for chart summaries (optional, defaults to gpt-4o-mini) | `gpt-4o-mini` or `gpt-4o` |
 | `STRIPE_SECRET_KEY` | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
 | `STRIPE_API_VERSION` | Stripe API version (optional, defaults to 2024-06-20) | `2024-06-20` |
 | `NEXT_PUBLIC_SITE_URL` | Your site URL for redirects | `http://localhost:3000` |
@@ -166,13 +167,129 @@ pnpm start
 The `lib/bazi.ts` module provides basic BaZi (Four Pillars) calculation using the `solarlunar` library for Chinese calendar conversion. This is a **simplified implementation** for MVP purposes. For production use, replace with more accurate Gan-Zhi (干支) calculation logic.
 
 ### AI Interpretation
-Uses OpenAI's GPT-4o-mini model to generate short interpretations (150-200 characters) of BaZi charts. Premium reports use GPT-4o for longer, more detailed analysis.
+Uses OpenAI's GPT-4o-mini model (configurable via `OPENAI_MODEL_SUMMARY`) to generate short interpretations (150-200 characters) of BaZi charts. Premium reports can use GPT-4o for longer, more detailed analysis.
 
 ### Payment Processing
-Stripe Checkout integration for purchasing detailed fortune reports. After successful payment, a job is created in the database for async processing by the worker.
+Stripe Checkout integration for purchasing detailed fortune reports. After successful payment, a job is created in the database for async processing by the worker. The Stripe API version is configurable via `STRIPE_API_VERSION` (defaults to 2024-06-20).
 
 ### Background Jobs
 The `worker/worker.ts` script polls the `jobs` table for pending report generation tasks and processes them asynchronously.
+
+## API Endpoints
+
+### POST `/api/profiles`
+Create a new user profile with birth information.
+
+**Request body:**
+```json
+{
+  "name": "John Doe",
+  "birth_local": "1990-01-15T08:30:00Z",
+  "birth_timezone": "Asia/Shanghai",
+  "gender": "male",
+  "lat": 31.2304,
+  "lon": 121.4737
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "profile_id": "uuid-here"
+}
+```
+
+**MVP Note:** No authentication required. Profiles are created anonymously with `user_id: null`.
+
+### POST `/api/charts/compute`
+Compute a BaZi chart for a given profile.
+
+**Request body:**
+```json
+{
+  "profile_id": "uuid-here"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "chart": { /* chart data */ },
+  "chart_id": "uuid-here"
+}
+```
+
+### GET `/api/my/charts`
+Retrieve recent charts. Returns the latest N charts (default: 20, max: 100).
+
+**Query parameters:**
+- `profile_id` (optional): Filter charts by profile ID
+- `limit` (optional): Number of charts to return (1-100)
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/my/charts?profile_id=uuid-here&limit=10"
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "charts": [
+    {
+      "id": "uuid",
+      "profile_id": "uuid",
+      "chart_json": { /* chart data */ },
+      "wuxing_scores": { /* scores */ },
+      "ai_summary": "AI interpretation text",
+      "created_at": "2024-01-15T08:30:00Z"
+    }
+  ]
+}
+```
+
+**MVP Note:** Without authentication, this endpoint returns charts based on optional `profile_id` filter. In production, this should be filtered by authenticated user.
+
+### POST `/api/ai/interpret`
+Generate AI interpretation for a chart.
+
+**Request body:**
+```json
+{
+  "chart_id": "uuid-here",
+  "question": "What does this chart say about career?"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "summary": "AI-generated interpretation text in Chinese"
+}
+```
+
+### POST `/api/reports/generate`
+Create a Stripe checkout session for purchasing a detailed report.
+
+**Request body:**
+```json
+{
+  "chart_id": "uuid-here"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "url": "https://checkout.stripe.com/..."
+}
+```
+
+**Note:** Validates chart existence before creating checkout session.
 
 ## Deployment
 
