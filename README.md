@@ -10,6 +10,39 @@ This application allows users to:
 - Purchase detailed fortune reports via Stripe
 - View and manage their generated charts
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Demo](#demo)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Environment Setup](#environment-setup)
+- [Project Structure](#project-structure)
+- [Key Features & Implementation](#key-features--implementation)
+- [API Overview](#api-overview)
+- [Deployment](#deployment)
+- [Development](#development)
+- [Run Tests](#6-run-tests)
+- [MVP Limitations](#mvp-limitations)
+- [License](#license)
+- [Support](#support)
+- [Roadmap](#roadmap)
+
+## Demo
+
+![Homepage with birth input form](public/images/home.svg)
+
+Homepage: Input birth details and compute your BaZi chart.
+
+![Compute results page showing chart JSON and AI summary](public/images/compute.svg)
+
+Compute: See the computed Four Pillars and a short AI summary.
+
+![Dashboard with recent charts and report status](public/images/dashboard.svg)
+
+Dashboard: Review recent charts, AI summaries, and report status/downloads.
+
 ## Tech Stack
 
 - **Framework**: Next.js 13 (Pages Router)
@@ -58,6 +91,7 @@ Required environment variables:
 | `OPENAI_MODEL_SUMMARY` | OpenAI model for chart summaries (optional, defaults to gpt-4o-mini) | `gpt-4o-mini` or `gpt-4o` |
 | `OPENAI_REPORT_MODEL` | OpenAI model for detailed reports (optional, defaults to gpt-4o) | `gpt-4o` or `gpt-4o-mini` |
 | `STRIPE_SECRET_KEY` | Stripe secret key for payments (use test keys in development) | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret used to verify webhooks | `whsec_...` |
 | `STRIPE_API_VERSION` | Stripe API version (optional, defaults to 2024-06-20) | `2024-06-20` |
 | `NEXT_PUBLIC_SITE_URL` | Your site URL for redirects | `http://localhost:3000` |
 
@@ -197,6 +231,16 @@ pnpm build
 pnpm start
 ```
 
+## Environment Setup
+
+- Copy the sample env file and fill values: `cp .env.example .env.local`
+- Required keys: Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY), OpenAI (OPENAI_API_KEY, optional OPENAI_MODEL_SUMMARY/OPENAI_REPORT_MODEL), Stripe (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, optional STRIPE_API_VERSION), and NEXT_PUBLIC_SITE_URL
+- See the detailed guides below:
+  - [Supabase Setup](#supabase-setup)
+  - [Stripe Configuration](#stripe-configuration)
+  - [OpenAI Setup](#openai-setup)
+- The background worker uses the same `.env.local` file when run with `pnpm worker`
+
 ## Project Structure
 
 ```
@@ -220,6 +264,9 @@ pnpm start
 │       ├── charts/compute.ts     # Compute BaZi charts
 │       ├── ai/interpret.ts       # AI interpretation
 │       ├── reports/generate.ts   # Generate paid reports
+│       ├── my/charts.ts          # List recent charts
+│       ├── my/jobs.ts            # List recent jobs
+│       ├── stripe/webhook.ts     # Stripe webhook handler
 │       └── jobs/[id].ts          # Job status endpoint
 ├── styles/
 │   └── globals.css     # Global styles with Tailwind directives
@@ -256,7 +303,17 @@ Stripe Checkout integration for purchasing detailed fortune reports. After succe
 ### Background Jobs
 The `worker/worker.ts` script polls the `jobs` table for pending report generation tasks and processes them asynchronously.
 
-## API Endpoints
+## API Overview
+
+Key routes:
+- POST `/api/profiles` — Create profile
+- POST `/api/charts/compute` — Compute BaZi chart
+- GET `/api/my/charts` — List recent charts
+- GET `/api/my/jobs` — List recent jobs (optional filter by chart_id)
+- GET `/api/jobs/[id]` — Get single job by ID
+- POST `/api/ai/interpret` — Generate AI summary and store it
+- POST `/api/reports/generate` — Create Stripe Checkout session
+- POST `/api/stripe/webhook` — Stripe webhook (server-to-server, signature verified)
 
 ### POST `/api/profiles`
 Create a new user profile with birth information.
@@ -371,6 +428,48 @@ Create a Stripe checkout session for purchasing a detailed report.
 ```
 
 **Note:** Validates chart existence before creating checkout session.
+
+### GET `/api/my/jobs`
+List recent jobs. Returns the latest N jobs (default: 50, max: 100).
+
+**Query parameters:**
+- `chart_id` (optional): Filter jobs by chart ID
+- `limit` (optional): Number of jobs to return (1-100)
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/my/jobs?chart_id=uuid-here&limit=10"
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "jobs": [
+    {
+      "id": "uuid",
+      "chart_id": "uuid",
+      "job_type": "deep_report",
+      "status": "pending",
+      "result_url": null,
+      "metadata": { "checkout_session_id": "cs_test_..." },
+      "created_at": "2024-01-15T08:30:00Z",
+      "updated_at": "2024-01-15T08:40:00Z"
+    }
+  ]
+}
+```
+
+### GET `/api/jobs/[id]`
+Get a single job by ID with status and result URL (if available).
+
+**Example:**
+```bash
+curl "http://localhost:3000/api/jobs/uuid-here"
+```
+
+### POST `/api/stripe/webhook`
+Stripe webhook handler for `checkout.session.completed` events. Validates signature using `STRIPE_WEBHOOK_SECRET` and creates/updates jobs idempotently. This is a server-to-server endpoint triggered by Stripe; do not call it from the browser.
 
 ## Deployment
 
@@ -510,8 +609,8 @@ For high-volume usage:
 1. Create a Stripe account at [stripe.com](https://stripe.com)
 2. Get your API keys from the Stripe dashboard
 3. **Important**: Use test keys (`sk_test_...`) in development, not live keys
-4. Configure webhook endpoints for payment confirmation (not included in MVP)
-5. Set `STRIPE_API_VERSION` in environment variables if you need a specific version
+4. Configure a webhook endpoint pointing to `/api/stripe/webhook` and set `STRIPE_WEBHOOK_SECRET` (use Stripe CLI locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`)
+5. Optionally set `STRIPE_API_VERSION` in environment variables (defaults to 2024-06-20)
 
 ### OpenAI Setup
 
@@ -529,12 +628,12 @@ This is an MVP (Minimum Viable Product) with the following known limitations:
 - **Security risk**: In production, implement proper authentication and RLS policies
 
 ### BaZi Calculation
-- **Simplified logic**: The BaZi calculation in `lib/bazi.ts` is a placeholder with basic Gan-Zhi mapping
-- **Not production-ready**: Replace with accurate Chinese astrology algorithms for real use
+- Accurate Four Pillars and Five Elements computation, including hidden stems and hour stems via the Five Rat Formula (五鼠遁)
+- Covered by unit tests in `lib/bazi.test.ts`; still an MVP and not a substitute for professional reading
 
 ### Payment Flow
-- **No webhook handler**: Payment confirmation relies on manual checking, no automated webhook processing
-- **Race conditions**: Job creation happens before payment confirmation
+- Stripe webhook handler implemented at `/api/stripe/webhook` with signature verification and idempotent updates
+- Jobs are created at checkout and also ensured by the webhook; idempotent updates prevent duplicate processing
 
 ### Error Handling
 - **Minimal validation**: Input validation is basic
@@ -622,6 +721,10 @@ SELECT * FROM jobs WHERE id = 'your-job-id';
 ```bash
 curl "YOUR_RESULT_URL"
 ```
+
+## Roadmap
+
+See [TASKS.md](TASKS.md) for planned enhancements and open tasks.
 
 ## Contributing
 

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Eastern Destiny homepage screenshot</title>
+  <desc id="desc">Mock screenshot placeholder showing the homepage with an input form for name, birth datetime, and timezone, and a Compute button.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1f2937"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="240" y="160" width="800" height="400" rx="16" fill="#111827" stroke="#4b5563" stroke-width="2"/>
+  <text x="640" y="220" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="36" fill="#e5e7eb">Eastern Destiny — 免费试算</text>
+  <g transform="translate(300,260)">
+    <rect x="0" y="0" width="680" height="56" rx="8" fill="#374151"/>
+    <text x="20" y="36" font-family="Inter, Arial, sans-serif" font-size="20" fill="#cbd5e1">姓名 (可选)</text>
+    <rect x="0" y="76" width="680" height="56" rx="8" fill="#374151"/>
+    <text x="20" y="112" font-family="Inter, Arial, sans-serif" font-size="20" fill="#cbd5e1">1990-01-01T08:00</text>
+    <rect x="0" y="152" width="680" height="56" rx="8" fill="#374151"/>
+    <text x="20" y="188" font-family="Inter, Arial, sans-serif" font-size="20" fill="#cbd5e1">Asia/Shanghai</text>
+    <rect x="0" y="228" width="680" height="56" rx="8" fill="#4f46e5"/>
+    <text x="340" y="264" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="20" fill="#e5e7eb">立即试算 (Compute)</text>
+  </g>
+  <text x="640" y="680" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="14" fill="#9ca3af">Placeholder image generated for documentation</text>
+</svg>
