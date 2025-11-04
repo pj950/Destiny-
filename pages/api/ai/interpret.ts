@@ -2,6 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import OpenAI from 'openai'
 import { supabaseService } from '../../../lib/supabase'
 
+// Guard: Check for required environment variables
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY environment variable is not configured. Please set it in your .env.local file.')
+}
+
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY,
   timeout: 30000 // 30 second timeout
@@ -60,17 +65,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (err: any) {
     // Better error handling for different error types
     if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-      return res.status(504).json({ ok: false, message: 'OpenAI request timed out' })
+      return res.status(504).json({ 
+        ok: false, 
+        message: 'OpenAI request timed out after 30 seconds. Please try again.' 
+      })
     }
     
     if (err.status === 401) {
-      return res.status(500).json({ ok: false, message: 'OpenAI authentication failed' })
+      return res.status(500).json({ 
+        ok: false, 
+        message: 'OpenAI authentication failed. Please verify your OPENAI_API_KEY is valid.' 
+      })
     }
     
     if (err.status === 429) {
-      return res.status(429).json({ ok: false, message: 'OpenAI rate limit exceeded' })
+      return res.status(429).json({ 
+        ok: false, 
+        message: 'OpenAI rate limit exceeded. Please try again later or upgrade your OpenAI plan.' 
+      })
     }
     
-    return res.status(500).json({ ok: false, message: err.message || 'AI interpretation failed' })
+    if (err.status === 500) {
+      return res.status(500).json({ 
+        ok: false, 
+        message: 'OpenAI service error. Please try again later.' 
+      })
+    }
+    
+    return res.status(500).json({ 
+      ok: false, 
+      message: `AI interpretation failed: ${err.message || 'Unknown error'}` 
+    })
   }
 }

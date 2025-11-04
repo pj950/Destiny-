@@ -2,9 +2,14 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import Stripe from 'stripe'
 
+// Guard: Check for required environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is not configured. Please set it in your .env.local file.')
+}
+
 const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2024-06-20') as Stripe.LatestApiVersion
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { 
   apiVersion: stripeApiVersion 
 })
 
@@ -53,11 +58,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         chart_id, 
         job_type: 'deep_report', 
         status: 'pending', 
-        result_url: null 
+        result_url: null,
+        metadata: { checkout_session_id: session.id }
       }])
       
     res.json({ ok: true, url: session.url })
   } catch (err: any) {
-    res.status(500).json({ ok: false, message: err.message })
+    // Better error handling for Stripe errors
+    if (err.type === 'StripeAuthenticationError') {
+      return res.status(500).json({ 
+        ok: false, 
+        message: 'Stripe authentication failed. Please verify your STRIPE_SECRET_KEY is valid.' 
+      })
+    }
+    
+    if (err.type === 'StripeInvalidRequestError') {
+      return res.status(500).json({ 
+        ok: false, 
+        message: `Stripe request error: ${err.message}` 
+      })
+    }
+    
+    if (err.type === 'StripeAPIError' || err.type === 'StripeConnectionError') {
+      return res.status(500).json({ 
+        ok: false, 
+        message: 'Stripe service temporarily unavailable. Please try again later.' 
+      })
+    }
+    
+    return res.status(500).json({ 
+      ok: false, 
+      message: `Payment checkout creation failed: ${err.message || 'Unknown error'}` 
+    })
   }
 }

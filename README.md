@@ -56,7 +56,8 @@ Required environment variables:
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) | `eyJhbGc...` |
 | `OPENAI_API_KEY` | OpenAI API key for AI interpretations | `sk-proj-...` |
 | `OPENAI_MODEL_SUMMARY` | OpenAI model for chart summaries (optional, defaults to gpt-4o-mini) | `gpt-4o-mini` or `gpt-4o` |
-| `STRIPE_SECRET_KEY` | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
+| `OPENAI_REPORT_MODEL` | OpenAI model for detailed reports (optional, defaults to gpt-4o) | `gpt-4o` or `gpt-4o-mini` |
+| `STRIPE_SECRET_KEY` | Stripe secret key for payments (use test keys in development) | `sk_test_...` |
 | `STRIPE_API_VERSION` | Stripe API version (optional, defaults to 2024-06-20) | `2024-06-20` |
 | `NEXT_PUBLIC_SITE_URL` | Your site URL for redirects | `http://localhost:3000` |
 
@@ -98,6 +99,7 @@ CREATE TABLE jobs (
   job_type TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   result_url TEXT,
+  metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -321,8 +323,9 @@ The `worker/worker.ts` script needs to run separately for async job processing:
 
 1. Create a Stripe account at [stripe.com](https://stripe.com)
 2. Get your API keys from the Stripe dashboard
-3. Configure webhook endpoints for payment confirmation (not included in MVP)
-4. Set `STRIPE_API_VERSION` in environment variables if you need a specific version
+3. **Important**: Use test keys (`sk_test_...`) in development, not live keys
+4. Configure webhook endpoints for payment confirmation (not included in MVP)
+5. Set `STRIPE_API_VERSION` in environment variables if you need a specific version
 
 ### OpenAI Setup
 

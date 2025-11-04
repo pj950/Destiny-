@@ -81,6 +81,7 @@ CREATE TABLE jobs (
   job_type TEXT NOT NULL,  -- e.g., 'report_generation'
   status TEXT NOT NULL CHECK (status IN ('pending', 'processing', 'done', 'failed')),
   result_url TEXT NULL,  -- URL to generated report (if applicable)
+  metadata JSONB NULL,  -- Additional job metadata (e.g., checkout_session_id)
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -248,6 +249,26 @@ Click **"Run"** to execute the migration.
 **Expected Result**: You should see a success message. Verify the storage bucket:
 - Navigate to **Storage** in the left sidebar
 - You should see a bucket named `reports` (marked as public)
+
+#### Migration 4: Add Metadata Column to Jobs
+
+Copy and paste the contents of `/supabase/migrations/20241104000004_add_jobs_metadata.sql`:
+
+```sql
+-- Migration: Add metadata column to jobs table
+-- Created: 2024-11-04
+-- Description: Adds metadata JSONB column to store additional job information like checkout_session_id
+
+ALTER TABLE jobs ADD COLUMN metadata JSONB NULL;
+
+COMMENT ON COLUMN jobs.metadata IS 'Additional job metadata (e.g., checkout_session_id for payment tracking)';
+```
+
+Click **"Run"** to execute the migration.
+
+**Expected Result**: You should see a success message. Verify the column was added:
+- Navigate to **Table Editor** > **jobs** in the left sidebar
+- You should see a new `metadata` column of type `jsonb`
 
 ---
 
