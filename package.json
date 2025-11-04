@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker": "tsx --env-file=.env.local worker/worker.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.29.0",
@@ -29,6 +30,7 @@
     "@types/react": "^18.2.21",
     "eslint": "9.39.1",
     "eslint-config-next": "16.0.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.5.0"
   }
 }
