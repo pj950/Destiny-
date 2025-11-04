@@ -124,7 +124,60 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser. You should see the homepage with Tailwind styles applied.
 
-### 5. Build for Production
+### 5. Run Background Worker (Optional)
+
+The background worker processes async jobs for report generation. To run it locally:
+
+```bash
+pnpm worker
+# or
+npm run worker
+```
+
+**Requirements:**
+- All environment variables must be set in `.env.local`
+- Supabase `reports` storage bucket must exist and be configured as public
+- The worker will process pending jobs and exit when the queue is empty
+
+**How it works:**
+1. Fetches up to 5 pending jobs with `job_type='deep_report'`
+2. For each job:
+   - Marks it as `processing`
+   - Fetches the associated chart data
+   - Generates a detailed report using OpenAI (model: `OPENAI_REPORT_MODEL`)
+   - Uploads the report to Supabase Storage (`reports` bucket)
+   - Marks the job as `done` with `result_url`
+3. Failed jobs are marked as `failed` with error details in metadata
+4. Rate limiting: 1 second delay between jobs to avoid overwhelming OpenAI
+
+**Logs:**
+The worker provides detailed console logs for debugging:
+- Job processing status
+- OpenAI API calls
+- Storage uploads
+- Success/failure messages
+
+**Example output:**
+```
+[Worker] Starting worker...
+[Worker] Using OpenAI model: gpt-4o
+[Worker] Fetching pending jobs...
+[Worker] Found 2 pending job(s)
+[Worker] Processing job abc123...
+[Worker] Job abc123 marked as processing
+[Worker] Fetching chart xyz789...
+[Worker] Chart xyz789 fetched successfully
+[Worker] Generating report with OpenAI (model: gpt-4o)...
+[Worker] Report generated (1234 characters)
+[Worker] Uploading report to storage bucket 'reports' as abc123.txt...
+[Worker] Report uploaded successfully
+[Worker] Public URL: https://your-project.supabase.co/storage/v1/object/public/reports/abc123.txt
+[Worker] Job abc123 completed successfully ✓
+[Worker] Processed 2 job(s)
+[Worker] Worker finished successfully
+```
+
+### 6. Build for Production
 
 ```bash
 pnpm build
@@ -295,7 +348,7 @@ Create a Stripe checkout session for purchasing a detailed report.
 
 ## Deployment
 
-### Vercel (Recommended)
+### Vercel (Recommended for Web App)
 
 1. Push your code to GitHub
 2. Connect your repository to Vercel
@@ -304,13 +357,120 @@ Create a Stripe checkout session for purchasing a detailed report.
 
 **Important**: Ensure `SUPABASE_SERVICE_ROLE_KEY` and other sensitive keys are added as environment variables in Vercel, not committed to your repository.
 
-### Background Worker
+### Background Worker Deployment
 
-The `worker/worker.ts` script needs to run separately for async job processing:
+The `worker/worker.ts` script processes async jobs for report generation and needs to run separately from the web application.
 
-- **Option 1**: Deploy as a separate cron job or scheduled function
-- **Option 2**: Use Vercel Cron Jobs (requires Pro plan)
-- **Option 3**: Use external services like Railway, Render, or fly.io
+#### Worker Requirements
+
+The worker requires these environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key for admin access
+- `OPENAI_API_KEY` - OpenAI API key for report generation
+- `OPENAI_REPORT_MODEL` - (Optional) OpenAI model to use (defaults to `gpt-4o`)
+
+The worker also expects:
+- A Supabase storage bucket named `reports` configured with public access
+- Jobs table with pending jobs of type `deep_report`
+
+#### Deployment Options
+
+**Option 1: Cron Job / Scheduled Task (Recommended)**
+
+Deploy the worker as a scheduled task that runs periodically (e.g., every 5 minutes):
+
+```bash
+# Run every 5 minutes via cron
+*/5 * * * * cd /path/to/project && npm run worker >> /var/log/worker.log 2>&1
+```
+
+**Option 2: Continuous Service**
+
+Run the worker as a continuous service using a process manager like PM2:
+
+```bash
+# Install PM2
+npm install -g pm2
+
+# Create a worker script that runs in a loop
+# worker-loop.sh:
+#!/bin/bash
+while true; do
+  npm run worker
+  sleep 300  # Wait 5 minutes between runs
+done
+
+# Start with PM2
+pm2 start worker-loop.sh --name "bazi-worker"
+pm2 save
+```
+
+**Option 3: External Services**
+
+Deploy the worker on platforms that support background jobs:
+
+- **Railway**: Deploy as a standalone service with cron triggers
+- **Render**: Use Render's Cron Jobs feature (runs worker on schedule)
+- **Fly.io**: Deploy as a separate app with scheduled runs
+- **Heroku**: Use Heroku Scheduler add-on
+- **AWS Lambda**: Set up as a scheduled Lambda function
+- **Google Cloud Run Jobs**: Deploy as a scheduled Cloud Run job
+
+**Option 4: Vercel Cron Jobs (Pro Plan)**
+
+If you have Vercel Pro, you can use Vercel Cron Jobs:
+
+1. Create `pages/api/cron/process-jobs.ts`:
+```typescript
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Verify cron secret for security
+  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  
+  try {
+    const { stdout, stderr } = await execAsync('npm run worker')
+    return res.status(200).json({ ok: true, stdout, stderr })
+  } catch (error) {
+    return res.status(500).json({ error: 'Worker failed' })
+  }
+}
+```
+
+2. Add to `vercel.json`:
+```json
+{
+  "crons": [{
+    "path": "/api/cron/process-jobs",
+    "schedule": "*/5 * * * *"
+  }]
+}
+```
+
+#### Monitoring and Logs
+
+- The worker logs all activity to stdout/stderr
+- For production, pipe logs to a logging service (Datadog, LogDNA, CloudWatch, etc.)
+- Monitor job status in your Supabase database:
+  ```sql
+  SELECT status, COUNT(*) FROM jobs GROUP BY status;
+  SELECT * FROM jobs WHERE status = 'failed' ORDER BY updated_at DESC LIMIT 10;
+  ```
+
+#### Scaling Considerations
+
+For high-volume usage:
+- Run multiple worker instances (ensure they don't process the same jobs)
+- Use a proper job queue (BullMQ, AWS SQS, etc.)
+- Implement job locking to prevent race conditions
+- Add retries for failed jobs
+- Monitor OpenAI rate limits and adjust `DELAY_BETWEEN_JOBS_MS` in worker code
 
 ### Supabase Setup
 
@@ -361,6 +521,29 @@ This is an MVP (Minimum Viable Product) with the following known limitations:
 
 ## Development
 
+### Running Locally
+
+**Web Application:**
+```bash
+pnpm dev
+# App runs on http://localhost:3000
+```
+
+**Background Worker:**
+```bash
+pnpm worker
+# Processes pending jobs and exits
+```
+
+For continuous worker development, you can run it in watch mode or set up a loop:
+```bash
+# Option 1: Manual re-runs after each change
+pnpm worker
+
+# Option 2: Loop for continuous processing (in a separate terminal)
+while true; do pnpm worker; sleep 60; done
+```
+
 ### Linting
 ```bash
 pnpm lint
@@ -370,6 +553,48 @@ pnpm lint
 TypeScript will check types during build. For continuous checking:
 ```bash
 pnpm tsc --watch
+```
+
+### Testing the Worker Locally
+
+1. Ensure all environment variables are set in `.env.local`
+2. Create a test job in your database:
+```sql
+-- Create a test profile
+INSERT INTO profiles (name, birth_local, birth_timezone, gender)
+VALUES ('Test User', '1990-01-15T08:30:00', 'Asia/Shanghai', 'male')
+RETURNING id;
+
+-- Create a test chart (replace profile_id with the ID from above)
+INSERT INTO charts (profile_id, chart_json, wuxing_scores)
+VALUES (
+  'your-profile-id',
+  '{"year":"庚午","month":"戊寅","day":"甲子","hour":"丙寅"}'::jsonb,
+  '{"wood":2,"fire":3,"earth":1,"metal":1,"water":1}'::jsonb
+)
+RETURNING id;
+
+-- Create a test job (replace chart_id with the ID from above)
+INSERT INTO jobs (chart_id, job_type, status)
+VALUES ('your-chart-id', 'deep_report', 'pending')
+RETURNING id;
+```
+
+3. Run the worker:
+```bash
+pnpm worker
+```
+
+4. Check the output in the console and verify the report was uploaded to the `reports` bucket
+
+5. Verify the job status was updated:
+```sql
+SELECT * FROM jobs WHERE id = 'your-job-id';
+```
+
+6. Test the public URL returned in `result_url`:
+```bash
+curl "YOUR_RESULT_URL"
 ```
 
 ## Contributing
