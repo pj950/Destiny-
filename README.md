@@ -40,7 +40,8 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🎯 **Profile Creation** - Input birth information with accurate timezone handling
 - 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using OpenAI GPT models
-- 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports
+- 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
+- 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
 - 📱 **Modern UI** - Responsive design with Tailwind CSS and custom design system
 - 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL database
@@ -155,6 +156,12 @@ The pricing page displays three tiers: **Basic** (free trial), **Professional** 
 
 The tools page provides a comprehensive overview of all available divination tools and features. It showcases current capabilities including BaZi chart calculation, AI interpretation, and detailed report generation, as well as upcoming features like annual fortune analysis (流年运势), marriage compatibility matching (合婚配对), and auspicious date selection (择日宜忌).
 
+### 🏮 Prayer Lamps Page ([/lamps](http://localhost:3000/lamps))
+
+The Prayer Lamps (祈福点灯) feature allows users to purchase and light virtual prayer lamps for blessings and good fortune. Each lamp costs $19.90 and features beautiful lighting effects when purchased. The page displays four unique lamps (福运灯, 安康灯, 财源灯, 事业灯) with glowing animations and persistent state. Users can securely purchase lamps via Stripe checkout, and the lit status is saved in the database.
+
+**Note**: For demo purposes, Stripe should be in test mode. Use test card numbers provided by Stripe for testing the purchase flow.
+
 ### Navigation Overview
 
 The application follows a simple navigation structure:
@@ -162,6 +169,7 @@ The application follows a simple navigation structure:
 - **[/](/)** - Homepage with birth input form and hero section
 - **[/compute](/compute)** - Chart computation page with JSON output and AI summary
 - **[/dashboard](/dashboard)** - User dashboard showing recent charts and report status
+- **[/lamps](/lamps)** - Prayer Lamps page for purchasing and lighting virtual lamps
 - **[/pricing](/pricing)** - Pricing tiers and subscription options
 - **[/tools](/tools)** - Overview of divination tools and features
 
@@ -270,10 +278,45 @@ CREATE TABLE jobs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Lamps table (for Prayer Lamps feature)
+CREATE TABLE lamps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NULL,  -- NULL for MVP (no auth), references auth.users(id) in production
+  lamp_key TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL CHECK (status IN ('unlit', 'lit')) DEFAULT 'unlit',
+  checkout_session_id TEXT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert initial lamp records
+INSERT INTO lamps (lamp_key, status) VALUES 
+  ('p1', 'unlit'),
+  ('p2', 'unlit'),
+  ('p3', 'unlit'),
+  ('p4', 'unlit');
+
+-- Create trigger to automatically update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$ language 'plpgsql';
+
+CREATE TRIGGER update_lamps_updated_at 
+    BEFORE UPDATE ON lamps 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Create indexes for better query performance
 CREATE INDEX idx_profiles_user_id ON profiles(user_id);
 CREATE INDEX idx_charts_profile_id ON charts(profile_id);
 CREATE INDEX idx_jobs_status ON jobs(status);
+CREATE INDEX idx_lamps_lamp_key ON lamps(lamp_key);
+CREATE INDEX idx_lamps_status ON lamps(status);
+CREATE INDEX idx_lamps_checkout_session_id ON lamps(checkout_session_id);
 ```
 
 **Storage Setup**: Create a storage bucket named `reports` in Supabase and set it to public access (or configure appropriate policies).
@@ -602,6 +645,48 @@ curl "http://localhost:3000/api/jobs/uuid-here"
 
 ### POST `/api/stripe/webhook`
 Stripe webhook handler for `checkout.session.completed` events. Validates signature using `STRIPE_WEBHOOK_SECRET` and creates/updates jobs idempotently. This is a server-to-server endpoint triggered by Stripe; do not call it from the browser.
+
+### GET `/api/lamps/status`
+Retrieve current status of all prayer lamps.
+
+**Response:**
+```json
+[
+  {
+    "lamp_key": "p1",
+    "status": "unlit"
+  },
+  {
+    "lamp_key": "p2", 
+    "status": "lit"
+  },
+  {
+    "lamp_key": "p3",
+    "status": "unlit"
+  },
+  {
+    "lamp_key": "p4",
+    "status": "unlit"
+  }
+]
+```
+
+### POST `/api/lamps/checkout`
+Create a Stripe checkout session for purchasing a prayer lamp.
+
+**Request body:**
+```json
+{
+  "lamp_key": "p1"
+}
+```
+
+**Response:**
+```json
+{
+  "url": "https://checkout.stripe.com/pay/cs_test_..."
+}
+```
 
 ## Deployment
 
