@@ -40,6 +40,7 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🎯 **Profile Creation** - Input birth information with accurate timezone handling
 - 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using Google Gemini 2.5 Pro
+- 🎲 **Daily Fortune** - Draw daily fortune sticks with AI interpretation (one per day)
 - 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
 - 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
@@ -296,6 +297,26 @@ INSERT INTO lamps (lamp_key, status) VALUES
   ('p3', 'unlit'),
   ('p4', 'unlit');
 
+-- Fortunes table (for Daily Fortune feature)
+CREATE TABLE fortunes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NULL,  -- NULL for MVP (no auth), references auth.users(id) in production
+  draw_date DATE NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('事业', '财富', '感情', '健康', '学业')),
+  stick_id INTEGER NOT NULL,
+  stick_text TEXT NOT NULL,
+  stick_level TEXT NOT NULL CHECK (stick_level IN ('上上', '上吉', '中吉', '下吉', '凶')),
+  ai_analysis TEXT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_fortunes_user_id ON fortunes(user_id);
+CREATE INDEX idx_fortunes_draw_date ON fortunes(draw_date);
+CREATE INDEX idx_fortunes_category ON fortunes(category);
+CREATE UNIQUE INDEX idx_fortunes_unique_daily ON fortunes(user_id, draw_date) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_fortunes_unique_daily_anonymous ON fortunes(draw_date) WHERE user_id IS NULL;
+
 -- Create trigger to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $
@@ -317,6 +338,11 @@ CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_lamps_lamp_key ON lamps(lamp_key);
 CREATE INDEX idx_lamps_status ON lamps(status);
 CREATE INDEX idx_lamps_checkout_session_id ON lamps(checkout_session_id);
+CREATE INDEX idx_fortunes_user_id ON fortunes(user_id);
+CREATE INDEX idx_fortunes_draw_date ON fortunes(draw_date);
+CREATE INDEX idx_fortunes_category ON fortunes(category);
+CREATE UNIQUE INDEX idx_fortunes_unique_daily ON fortunes(user_id, draw_date) WHERE user_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_fortunes_unique_daily_anonymous ON fortunes(draw_date) WHERE user_id IS NULL;
 ```
 
 **Storage Setup**: Create a storage bucket named `reports` in Supabase and set it to public access (or configure appropriate policies).
@@ -434,6 +460,7 @@ pnpm start
 │   ├── index.tsx       # Homepage
 │   ├── compute.tsx     # Chart computation page
 │   ├── dashboard.tsx   # User dashboard
+│   ├── fortune.tsx     # Daily Fortune page
 │   └── api/            # API routes
 │       ├── profiles.ts           # Create user profiles
 │       ├── charts/compute.ts     # Compute BaZi charts
@@ -442,7 +469,9 @@ pnpm start
 │       ├── my/charts.ts          # List recent charts
 │       ├── my/jobs.ts            # List recent jobs
 │       ├── stripe/webhook.ts     # Stripe webhook handler
-│       └── jobs/[id].ts          # Job status endpoint
+│       ├── jobs/[id].ts          # Job status endpoint
+│       ├── fortune/today.ts      # Get today's fortune
+│       └── fortune/draw.ts       # Draw daily fortune
 ├── styles/
 │   └── globals.css     # Global styles with Tailwind directives
 ├── worker/
@@ -489,6 +518,8 @@ Key routes:
 - POST `/api/ai/interpret` — Generate AI summary and store it
 - POST `/api/reports/generate` — Create Stripe Checkout session
 - POST `/api/stripe/webhook` — Stripe webhook (server-to-server, signature verified)
+- GET `/api/fortune/today` — Get today's fortune draw (if exists)
+- POST `/api/fortune/draw` — Draw a daily fortune stick with AI interpretation
 
 ### POST `/api/profiles`
 Create a new user profile with birth information.
@@ -688,6 +719,103 @@ Create a Stripe checkout session for purchasing a prayer lamp.
 }
 ```
 
+### GET `/api/fortune/today`
+Retrieve today's fortune draw if it exists.
+
+**Response (if fortune exists):**
+```json
+{
+  "ok": true,
+  "hasFortune": true,
+  "fortune": {
+    "id": "uuid",
+    "category": "事业",
+    "stick_id": 15,
+    "stick_text": "贵人相助，化险为夷",
+    "stick_level": "上上",
+    "ai_analysis": "详细的AI解读...",
+    "created_at": "2024-11-06T08:30:00Z"
+  }
+}
+```
+
+**Response (if no fortune today):**
+```json
+{
+  "ok": true,
+  "hasFortune": false
+}
+```
+
+### POST `/api/fortune/draw`
+Draw a daily fortune stick with AI interpretation. One draw per day per user (MVP: per session).
+
+**Request body:**
+```json
+{
+  "category": "事业"
+}
+```
+
+**Valid categories:** `事业`, `财富`, `感情`, `健康`, `学业`
+
+**Response:**
+```json
+{
+  "ok": true,
+  "fortune": {
+    "id": "uuid",
+    "category": "事业",
+    "stick_id": 15,
+    "stick_text": "贵人相助，化险为夷",
+    "stick_level": "上上",
+    "ai_analysis": "详细的AI解读...",
+    "created_at": "2024-11-06T08:30:00Z"
+  }
+}
+```
+
+**Error response (if already drawn today):**
+```json
+{
+  "ok": false,
+  "message": "今日已抽签，请明天再来",
+  "fortune": { ... }
+}
+```
+
+## Daily Fortune Feature
+
+The Daily Fortune (每日一签) feature allows users to draw one fortune stick per day with AI-powered interpretation.
+
+### How It Works
+
+1. **Category Selection**: Users choose from 5 categories - 事业 (Career), 财富 (Wealth), 感情 (Love), 健康 (Health), 学业 (Studies)
+2. **Drawing Process**: Animated fortune stick drawing with shake and fall effects
+3. **Fortune Levels**: 100 unique fortune sticks with 5 levels:
+   - 上上 (Best) - 20 sticks
+   - 上吉 (Good) - 25 sticks  
+   - 中吉 (Medium) - 25 sticks
+   - 下吉 (Low) - 20 sticks
+   - 凶 (Bad) - 10 sticks
+4. **AI Interpretation**: Google Gemini 2.5 Pro provides detailed analysis of each fortune
+5. **One-Per-Day**: Users can only draw once per day (MVP: per session, no auth required)
+
+### Technical Implementation
+
+- **Database**: `fortunes` table stores daily draws with AI analysis
+- **Rate Limiting**: Enforced at database level with unique constraints on `(user_id, draw_date)`
+- **AI Integration**: Uses same Gemini model as other features (`GEMINI_MODEL_SUMMARY`)
+- **State Machine**: Client-side state management (select → shake → fallen → result)
+- **Animations**: Custom CSS animations for fortune drawing experience
+
+### User Experience
+
+- **Mobile Responsive**: Works seamlessly on all device sizes
+- **Visual Effects**: Shake animation during drawing, glow effect on results
+- **Persistent Storage**: Fortune results persist across page refreshes
+- **Error Handling**: Graceful handling of AI failures and network issues
+
 ## Deployment
 
 ### Vercel (Recommended for Web App)
@@ -708,8 +836,8 @@ The `worker/worker.ts` script processes async jobs for report generation and nee
 The worker requires these environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key for admin access
-- `OPENAI_API_KEY` - OpenAI API key for report generation
-- `OPENAI_REPORT_MODEL` - (Optional) OpenAI model to use (defaults to `gpt-4o`)
+- `GOOGLE_API_KEY` - Google AI API key for report generation
+- `GEMINI_MODEL_REPORT` - (Optional) Google AI model to use (defaults to `gemini-2.5-pro`)
 
 The worker also expects:
 - A Supabase storage bucket named `reports` configured with public access
@@ -812,7 +940,7 @@ For high-volume usage:
 - Use a proper job queue (BullMQ, AWS SQS, etc.)
 - Implement job locking to prevent race conditions
 - Add retries for failed jobs
-- Monitor OpenAI rate limits and adjust `DELAY_BETWEEN_JOBS_MS` in worker code
+- Monitor Google AI rate limits and adjust `DELAY_BETWEEN_JOBS_MS` in worker code
 
 ### Supabase Setup
 
@@ -829,11 +957,15 @@ For high-volume usage:
 4. Configure a webhook endpoint pointing to `/api/stripe/webhook` and set `STRIPE_WEBHOOK_SECRET` (use Stripe CLI locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`)
 5. Optionally set `STRIPE_API_VERSION` in environment variables (defaults to 2024-06-20)
 
-### OpenAI Setup
+### Google AI Setup
 
-1. Get an API key from [platform.openai.com](https://platform.openai.com)
-2. Add credits to your account
-3. Add the API key to your environment variables
+1. Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Add the API key to your environment variables as `GOOGLE_API_KEY`
+3. Optional: Configure models via `GEMINI_MODEL_SUMMARY` (default: `gemini-2.5-pro`) and `GEMINI_MODEL_REPORT` (default: `gemini-2.5-pro`)
+4. The API key is used for:
+   - AI interpretations in `/api/ai/interpret`
+   - Daily fortune analysis in `/api/fortune/draw`
+   - Background report generation in `worker/worker.ts`
 
 ## MVP Limitations
 
@@ -964,4 +1096,4 @@ For issues or questions, please check:
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Supabase Documentation](https://supabase.com/docs)
 - [Stripe Documentation](https://stripe.com/docs)
-- [OpenAI Documentation](https://platform.openai.com/docs)
+- [Google AI Documentation](https://ai.google.dev/docs)
