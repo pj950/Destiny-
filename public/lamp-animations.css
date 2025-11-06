@@ -1,0 +1,318 @@
+/* Prayer Lamp Animations */
+/* Optimized for performance with transform/opacity */
+
+/* Base lamp container styles */
+.lamp-container {
+  @apply relative overflow-hidden;
+  will-change: transform;
+}
+
+/* Lit state animations */
+.lamp-lit {
+  animation: lamp-glow 3s ease-in-out infinite alternate;
+}
+
+.lamp-lit-reduced-motion {
+  animation: none;
+  filter: brightness(1.1) sepia(0.3) hue-rotate(-10deg);
+}
+
+/* Purchasing state animations */
+.lamp-purchasing {
+  animation: lamp-purchasing-pulse 1.5s ease-in-out infinite;
+}
+
+.lamp-purchasing-reduced-motion {
+  animation: none;
+  opacity: 0.7;
+}
+
+/* Image animations */
+.lamp-image-lit {
+  animation: image-flicker 4s ease-in-out infinite;
+  filter: brightness(1.15) contrast(1.05);
+}
+
+.lamp-image-purchasing {
+  animation: image-purchasing 1s ease-in-out infinite alternate;
+  filter: brightness(0.9) saturate(0.8);
+}
+
+/* Overlay animations */
+.lamp-overlay-lit {
+  animation: overlay-pulse 2.5s ease-in-out infinite;
+}
+
+.lamp-overlay-purchasing {
+  animation: overlay-purchasing 1.2s ease-in-out infinite;
+}
+
+/* Keyframes for smooth, performant animations */
+@keyframes lamp-glow {
+  0% {
+    box-shadow: 
+      0 0 20px rgba(251, 146, 60, 0.3),
+      0 0 40px rgba(251, 146, 60, 0.2),
+      0 0 60px rgba(251, 146, 60, 0.1);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 
+      0 0 30px rgba(251, 146, 60, 0.4),
+      0 0 60px rgba(251, 146, 60, 0.3),
+      0 0 90px rgba(251, 146, 60, 0.2);
+    transform: scale(1.01);
+  }
+  100% {
+    box-shadow: 
+      0 0 25px rgba(251, 146, 60, 0.5),
+      0 0 50px rgba(251, 146, 60, 0.3),
+      0 0 75px rgba(251, 146, 60, 0.15);
+    transform: scale(1.005);
+  }
+}
+
+@keyframes lamp-purchasing-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes image-flicker {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  25% {
+    opacity: 0.95;
+    transform: translateY(-1px);
+  }
+  50% {
+    opacity: 0.98;
+    transform: translateY(0.5px);
+  }
+  75% {
+    opacity: 0.92;
+    transform: translateY(-0.5px);
+  }
+}
+
+@keyframes image-purchasing {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes overlay-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes overlay-purchasing {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Candle flicker effect for additional realism */
+.candle-flicker {
+  animation: candle-flicker 3s ease-in-out infinite;
+}
+
+@keyframes candle-flicker {
+  0%, 100% { 
+    opacity: 0.9; 
+    transform: scale(1) translateY(0); 
+  }
+  25% { 
+    opacity: 0.7; 
+    transform: scale(1.02) translateY(-1px); 
+  }
+  50% { 
+    opacity: 0.8; 
+    transform: scale(0.99) translateY(0.5px); 
+  }
+  75% { 
+    opacity: 0.6; 
+    transform: scale(1.01) translateY(-0.3px); 
+  }
+}
+
+/* Glow particles for enhanced visual effect */
+.glow-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particle-float 6s ease-in-out infinite;
+}
+
+.glow-particle:nth-child(1) {
+  width: 4px;
+  height: 4px;
+  background: rgba(251, 146, 60, 0.8);
+  top: 20%;
+  left: 30%;
+  animation-delay: 0s;
+}
+
+.glow-particle:nth-child(2) {
+  width: 3px;
+  height: 3px;
+  background: rgba(250, 204, 21, 0.6);
+  top: 60%;
+  right: 25%;
+  animation-delay: 2s;
+}
+
+.glow-particle:nth-child(3) {
+  width: 2px;
+  height: 2px;
+  background: rgba(251, 146, 60, 0.7);
+  bottom: 30%;
+  left: 40%;
+  animation-delay: 4s;
+}
+
+@keyframes particle-float {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0) scale(0);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-20px) scale(0.8);
+  }
+  75% {
+    opacity: 0.3;
+    transform: translateY(-15px) scale(0.5);
+  }
+}
+
+/* Performance optimizations */
+.lamp-container,
+.lamp-image-lit,
+.lamp-image-purchasing,
+.lamp-overlay-lit,
+.lamp-overlay-purchasing {
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform: translateZ(0);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .lamp-lit,
+  .lamp-purchasing,
+  .lamp-image-lit,
+  .lamp-image-purchasing,
+  .lamp-overlay-lit,
+  .lamp-overlay-purchasing,
+  .candle-flicker,
+  .glow-particle {
+    animation: none !important;
+  }
+  
+  .lamp-lit-reduced-motion,
+  .lamp-purchasing-reduced-motion {
+    animation: none !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.lamp-container:focus-within {
+  outline: 2px solid #fb923c;
+  outline-offset: 2px;
+}
+
+.lamp-button:focus {
+  outline: 2px solid #fb923c;
+  outline-offset: 2px;
+}
+
+/* Loading spinner for purchasing state */
+.lamp-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Smooth transitions for state changes */
+.lamp-state-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animation utilities */
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-right {
+  animation-name: slide-in-from-right;
+}
+
+.fade-in-0 {
+  animation-name: fade-in-0;
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in-0 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
