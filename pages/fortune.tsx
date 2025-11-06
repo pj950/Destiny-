@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -12,7 +12,7 @@ interface Fortune {
   stick_id: number
   stick_text: string
   stick_level: string
-  ai_analysis: string
+  ai_analysis: string | null
   created_at: string
 }
 
@@ -34,45 +34,134 @@ const levelColors = {
   '凶': 'text-gray-600'
 }
 
+const STORAGE_KEY = 'daily_fortune_cache_v1'
+
+const getTodayDate = () => new Date().toISOString().split('T')[0]
+
+const storeFortuneCache = (fortune: Fortune) => {
+  if (typeof window === 'undefined') return
+  try {
+    const createdAt = new Date(fortune.created_at)
+    const date = Number.isNaN(createdAt.getTime()) ? getTodayDate() : createdAt.toISOString().split('T')[0]
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ date, fortune })
+    )
+  } catch (err) {
+    console.warn('Failed to cache daily fortune', err)
+  }
+}
+
+const readFortuneCache = (): Fortune | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const cached = JSON.parse(raw) as { date?: string; fortune?: Fortune }
+    if (!cached || !cached.date || !cached.fortune) {
+      window.localStorage.removeItem(STORAGE_KEY)
+      return null
+    }
+    if (cached.date !== getTodayDate()) {
+      window.localStorage.removeItem(STORAGE_KEY)
+      return null
+    }
+    return cached.fortune
+  } catch (err) {
+    console.warn('Failed to read cached fortune', err)
+    window.localStorage.removeItem(STORAGE_KEY)
+    return null
+  }
+}
+
 export default function Fortune() {
   const [state, setState] = useState<FortuneState>('select')
   const [selectedCategory, setSelectedCategory] = useState<FortuneCategory | null>(null)
   const [todayFortune, setTodayFortune] = useState<Fortune | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Check if already has fortune today
   useEffect(() => {
-    checkTodayFortune()
+    void checkTodayFortune()
+
+    return () => {
+      if (shakeTimeoutRef.current) {
+        clearTimeout(shakeTimeoutRef.current)
+        shakeTimeoutRef.current = null
+      }
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current)
+        revealTimeoutRef.current = null
+      }
+    }
   }, [])
+
+  const showCachedFortune = (message?: string) => {
+    const cached = readFortuneCache()
+    if (cached) {
+      setTodayFortune(cached)
+      setState('result')
+      setNotice(message ?? '')
+    } else if (message) {
+      setNotice(message)
+    }
+  }
 
   const checkTodayFortune = async () => {
     try {
       const res = await fetch('/api/fortune/today')
       const data = await res.json()
       
-      if (data.ok && data.hasFortune) {
-        setTodayFortune(data.fortune)
-        setState('result')
+      if (res.ok && data.ok) {
+        if (data.hasFortune && data.fortune) {
+          setTodayFortune(data.fortune)
+          storeFortuneCache(data.fortune)
+          setState('result')
+          setNotice('')
+        } else {
+          showCachedFortune()
+        }
+      } else {
+        showCachedFortune(data?.message)
       }
     } catch (err) {
       console.error('Failed to check today fortune:', err)
+      showCachedFortune('网络暂时不可用，已为您展示本地保存的签文')
     }
   }
 
   const handleCategorySelect = (category: FortuneCategory) => {
+    if (loading) return
+
+    if (todayFortune) {
+      setNotice('今日已抽签，请明天再来')
+      setState('result')
+      return
+    }
+
     setSelectedCategory(category)
+    setError('')
+    setNotice('')
     setState('shake')
     
-    // Start shaking animation
-    setTimeout(() => {
-      drawFortune(category)
+    if (shakeTimeoutRef.current) {
+      clearTimeout(shakeTimeoutRef.current)
+    }
+    shakeTimeoutRef.current = setTimeout(() => {
+      shakeTimeoutRef.current = null
+      void drawFortune(category)
     }, 2000)
   }
 
   const drawFortune = async (category: FortuneCategory) => {
     setLoading(true)
     setError('')
+    setNotice('')
     
     try {
       const res = await fetch('/api/fortune/draw', {
@@ -83,21 +172,47 @@ export default function Fortune() {
       
       const data = await res.json()
       
-      if (data.ok) {
-        setTodayFortune(data.fortune)
-        setState('fallen')
-        
-        // Show result after stick falls
-        setTimeout(() => {
+      if (!res.ok || !data.ok) {
+        if (data?.fortune) {
+          setTodayFortune(data.fortune)
+          storeFortuneCache(data.fortune)
+          setNotice(data?.message || '今日已抽签，请明天再来')
           setState('result')
-        }, 1500)
-      } else {
-        setError(data.message || '抽签失败，请重试')
+          return
+        }
+        setError(data?.message || '抽签失败，请重试')
         setState('select')
+        return
       }
-    } catch (err) {
-      setError('网络错误，请稍后重试')
+
+      if (data.alreadyDrawn && data.fortune) {
+        setTodayFortune(data.fortune)
+        storeFortuneCache(data.fortune)
+        setNotice(data.message || '今日已抽签，请明天再来')
+        setState('result')
+        return
+      }
+
+      if (data.fortune) {
+        setTodayFortune(data.fortune)
+        storeFortuneCache(data.fortune)
+        setState('fallen')
+        if (revealTimeoutRef.current) {
+          clearTimeout(revealTimeoutRef.current)
+        }
+        revealTimeoutRef.current = setTimeout(() => {
+          setState('result')
+          revealTimeoutRef.current = null
+        }, 1500)
+        return
+      }
+
+      setError('未获取到签文，请重试')
       setState('select')
+    } catch (err) {
+      console.error('Failed to draw fortune:', err)
+      setError('网络错误，请稍后重试')
+      showCachedFortune('网络暂时不可用，已为您展示本地保存的签文')
     } finally {
       setLoading(false)
     }
@@ -107,6 +222,7 @@ export default function Fortune() {
     setState('select')
     setSelectedCategory(null)
     setError('')
+    setNotice('')
   }
 
   return (
@@ -124,6 +240,14 @@ export default function Fortune() {
             </Text>
           </div>
 
+          {notice && (
+            <div className="max-w-3xl mx-auto mb-6">
+              <div className="bg-brand-primary-50 border border-brand-primary-100 text-brand-primary-700 px-4 py-3 rounded-xl text-sm text-center">
+                {notice}
+              </div>
+            </div>
+          )}
+
           {/* Select Category State */}
           {state === 'select' && (
             <div className="max-w-4xl mx-auto">
@@ -134,8 +258,10 @@ export default function Fortune() {
                   {categories.map((category) => (
                     <button
                       key={category}
+                      type="button"
                       onClick={() => handleCategorySelect(category)}
-                      className="flex flex-col items-center p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-brand-primary-500 hover:bg-brand-primary-50 transition-all duration-200 cursor-pointer group"
+                      disabled={loading}
+                      className="flex flex-col items-center p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-brand-primary-500 hover:bg-brand-primary-50 transition-all duration-200 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
                         {categoryIcons[category]}
@@ -242,7 +368,7 @@ export default function Fortune() {
                     抽签时间：{new Date(todayFortune.created_at).toLocaleString('zh-CN')}
                   </Text>
                   
-                  <Button variant="outline" onClick={reset}>
+                  <Button variant="outline" onClick={reset} disabled={loading}>
                     重新选择
                   </Button>
                 </div>

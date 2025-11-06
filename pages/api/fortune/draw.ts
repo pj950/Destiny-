@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { randomUUID } from 'crypto'
+
+const SESSION_COOKIE_NAME = 'fortune_session'
+const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
 
 // Fortune stick data (100 sticks with various levels and texts)
 const FORTUNE_STICKS = [
@@ -133,6 +137,39 @@ const getAnalysisPrompt = (category: string, stickText: string, stickLevel: stri
 请用中文回答，语言要通俗易懂，既有传统文化底蕴，又要贴近现代生活。回答要积极正面，即使是下下签也要给出希望和指导。`
 }
 
+const buildFortunePayload = (fortune: any) => ({
+  id: fortune.id,
+  category: fortune.category,
+  stick_id: fortune.stick_id,
+  stick_text: fortune.stick_text,
+  stick_level: fortune.stick_level,
+  ai_analysis: fortune.ai_analysis,
+  created_at: fortune.created_at,
+})
+
+const serializeCookie = (name: string, value: string) => {
+  const expires = `Max-Age=${SESSION_COOKIE_MAX_AGE}`
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+  return `${name}=${value}; Path=/; ${expires}; HttpOnly; SameSite=Lax${secure}`
+}
+
+const ensureSessionId = (req: NextApiRequest, res: NextApiResponse) => {
+  let sessionId = req.cookies?.[SESSION_COOKIE_NAME]
+  if (!sessionId) {
+    sessionId = randomUUID()
+    const newCookie = serializeCookie(SESSION_COOKIE_NAME, sessionId)
+    const existing = res.getHeader('Set-Cookie')
+    if (!existing) {
+      res.setHeader('Set-Cookie', newCookie)
+    } else if (Array.isArray(existing)) {
+      res.setHeader('Set-Cookie', [...existing, newCookie])
+    } else {
+      res.setHeader('Set-Cookie', [existing, newCookie])
+    }
+  }
+  return sessionId
+}
+
 // Initialize Gemini AI
 let genAI: GoogleGenerativeAI | null = null
 try {
@@ -151,6 +188,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // MVP: No authentication required
   // TODO (Post-MVP): Verify Bearer token and set user_id
   
+  const sessionId = ensureSessionId(req, res)
   const { category } = req.body
   
   // Input validation
@@ -166,23 +204,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
   
   try {
-    // Check if already drawn today (MVP: check for anonymous user)
     const { data: existingFortune, error: checkError } = await supabaseService
       .from('fortunes')
       .select('*')
       .eq('draw_date', today)
-      .eq('user_id', null) // MVP: anonymous user
-      .single()
+      .eq('session_id', sessionId)
+      .maybeSingle()
     
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found"
+    if (checkError) {
       return res.status(500).json({ ok: false, message: checkError.message })
     }
     
     if (existingFortune) {
-      return res.status(400).json({ 
-        ok: false, 
+      return res.status(200).json({ 
+        ok: true,
+        alreadyDrawn: true,
         message: '今日已抽签，请明天再来',
-        fortune: existingFortune
+        fortune: buildFortunePayload(existingFortune)
       })
     }
     
@@ -191,8 +229,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const selectedStick = FORTUNE_STICKS[randomIndex]
     
     // Generate AI analysis
-    let aiAnalysis = null
-    if (genAI) {
+    let aiAnalysis: string | null = null
+    if (!genAI) {
+      aiAnalysis = 'AI解签功能暂未配置，请稍后再试。'
+    } else {
       try {
         const model = genAI.getGenerativeModel({ 
           model: process.env.GEMINI_MODEL_SUMMARY || 'gemini-2.5-pro' 
@@ -206,10 +246,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           )
         ]) as any
         
-        aiAnalysis = result.response.text()
+        const text = typeof result?.response?.text === 'function' ? result.response.text() : null
+        aiAnalysis = (typeof text === 'string' && text.trim().length > 0) ? text.trim() : null
       } catch (aiError) {
         console.error('AI analysis failed:', aiError)
-        // Continue without AI analysis if it fails
+        aiAnalysis = 'AI解签暂时不可用，请稍后再试。'
       }
     }
     
@@ -218,6 +259,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('fortunes')
       .insert([{
         user_id: null, // MVP: anonymous user
+        session_id: sessionId,
         draw_date: today,
         category,
         stick_id: selectedStick.id,
@@ -226,9 +268,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ai_analysis: aiAnalysis
       }])
       .select()
-      .single()
+      .maybeSingle()
     
     if (insertError) {
+      if (insertError.code === '23505') {
+        const { data: conflictFortune } = await supabaseService
+          .from('fortunes')
+          .select('*')
+          .eq('draw_date', today)
+          .eq('session_id', sessionId)
+          .maybeSingle()
+        if (conflictFortune) {
+          return res.status(200).json({
+            ok: true,
+            alreadyDrawn: true,
+            message: '今日已抽签，请明天再来',
+            fortune: buildFortunePayload(conflictFortune)
+          })
+        }
+      }
       return res.status(500).json({ ok: false, message: insertError.message })
     }
     
@@ -236,17 +294,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ ok: false, message: 'Failed to save fortune' })
     }
     
-    res.json({ 
-      ok: true, 
-      fortune: {
-        id: fortune.id,
-        category: fortune.category,
-        stick_id: fortune.stick_id,
-        stick_text: fortune.stick_text,
-        stick_level: fortune.stick_level,
-        ai_analysis: fortune.ai_analysis,
-        created_at: fortune.created_at
-      }
+    return res.json({ 
+      ok: true,
+      alreadyDrawn: false,
+      fortune: buildFortunePayload(fortune)
     })
     
   } catch (err: any) {

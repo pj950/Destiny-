@@ -720,7 +720,7 @@ Create a Stripe checkout session for purchasing a prayer lamp.
 ```
 
 ### GET `/api/fortune/today`
-Retrieve today's fortune draw if it exists.
+Retrieve today's fortune draw if it exists. Automatically issues an HttpOnly `fortune_session` cookie (valid for 1 year) if the browser does not already provide one.
 
 **Response (if fortune exists):**
 ```json
@@ -748,7 +748,7 @@ Retrieve today's fortune draw if it exists.
 ```
 
 ### POST `/api/fortune/draw`
-Draw a daily fortune stick with AI interpretation. One draw per day per user (MVP: per session).
+Draw a daily fortune stick with AI interpretation. Limited to **one draw per session per day** (enforced via the `fortune_session` cookie).
 
 **Request body:**
 ```json
@@ -759,10 +759,11 @@ Draw a daily fortune stick with AI interpretation. One draw per day per user (MV
 
 **Valid categories:** `事业`, `财富`, `感情`, `健康`, `学业`
 
-**Response:**
+**Successful response (new draw):**
 ```json
 {
   "ok": true,
+  "alreadyDrawn": false,
   "fortune": {
     "id": "uuid",
     "category": "事业",
@@ -775,12 +776,38 @@ Draw a daily fortune stick with AI interpretation. One draw per day per user (MV
 }
 ```
 
-**Error response (if already drawn today):**
+**Response when the user already drew today:**
 ```json
 {
-  "ok": false,
+  "ok": true,
+  "alreadyDrawn": true,
   "message": "今日已抽签，请明天再来",
-  "fortune": { ... }
+  "fortune": {
+    "id": "uuid",
+    "category": "事业",
+    "stick_id": 15,
+    "stick_text": "贵人相助，化险为夷",
+    "stick_level": "上上",
+    "ai_analysis": "详细的AI解读...",
+    "created_at": "2024-11-06T08:30:00Z"
+  }
+}
+```
+
+**Fallback response (AI unavailable):**
+```json
+{
+  "ok": true,
+  "alreadyDrawn": false,
+  "fortune": {
+    "id": "uuid",
+    "category": "事业",
+    "stick_id": 15,
+    "stick_text": "贵人相助，化险为夷",
+    "stick_level": "上上",
+    "ai_analysis": "AI解签暂时不可用，请稍后再试。",
+    "created_at": "2024-11-06T08:30:00Z"
+  }
 }
 ```
 
@@ -799,12 +826,14 @@ The Daily Fortune (每日一签) feature allows users to draw one fortune stick 
    - 下吉 (Low) - 20 sticks
    - 凶 (Bad) - 10 sticks
 4. **AI Interpretation**: Google Gemini 2.5 Pro provides detailed analysis of each fortune
-5. **One-Per-Day**: Users can only draw once per day (MVP: per session, no auth required)
+5. **One-Per-Day**: Enforced via anonymous HttpOnly session cookie (per browser session, no auth required for MVP)
 
 ### Technical Implementation
 
-- **Database**: `fortunes` table stores daily draws with AI analysis
-- **Rate Limiting**: Enforced at database level with unique constraints on `(user_id, draw_date)`
+- **Database**: `fortunes` table stores daily draws with AI analysis and session identifiers
+- **Rate Limiting**: Unique constraints on `(session_id, draw_date)` (and `(user_id, draw_date)` once auth is enabled)
+- **Session Handling**: Secure HttpOnly cookie (`fortune_session`) created server-side and reused for all requests
+- **Offline Resilience**: Client caches the latest fortune in `localStorage` to support offline revisits
 - **AI Integration**: Uses same Gemini model as other features (`GEMINI_MODEL_SUMMARY`)
 - **State Machine**: Client-side state management (select → shake → fallen → result)
 - **Animations**: Custom CSS animations for fortune drawing experience
@@ -813,8 +842,8 @@ The Daily Fortune (每日一签) feature allows users to draw one fortune stick 
 
 - **Mobile Responsive**: Works seamlessly on all device sizes
 - **Visual Effects**: Shake animation during drawing, glow effect on results
-- **Persistent Storage**: Fortune results persist across page refreshes
-- **Error Handling**: Graceful handling of AI failures and network issues
+- **Persistent Storage**: Fortune results persist across page refreshes and offline reloads
+- **Error Handling**: Graceful handling of AI failures, duplicate draws, and network interruptions
 
 ## Deployment
 
