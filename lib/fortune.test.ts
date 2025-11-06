@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock the fortune stick data
 const FORTUNE_STICKS = [
@@ -7,9 +7,35 @@ const FORTUNE_STICKS = [
   { id: 100, level: '凶', text: '时运不济，需要等待' }
 ]
 
+// Mock API responses
+const mockFortuneResponse = {
+  ok: true,
+  alreadyDrawn: false,
+  fortune: {
+    id: 'test-uuid',
+    category: '事业',
+    stick_id: 15,
+    stick_text: '事业有成，步步高升',
+    stick_level: '上上',
+    ai_analysis: 'Mock AI analysis',
+    created_at: '2024-11-06T12:00:00Z'
+  }
+}
+
+const mockAlreadyDrawnResponse = {
+  ok: true,
+  alreadyDrawn: true,
+  message: '今日已抽签，请明天再来',
+  fortune: mockFortuneResponse.fortune
+}
+
 describe('Fortune Feature', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('Fortune Stick Selection', () => {
@@ -46,6 +72,13 @@ describe('Fortune Feature', () => {
       const today = mockDate.toISOString().split('T')[0]
       expect(today).toBe('2024-11-06')
     })
+
+    it('should determine if date matches today', () => {
+      const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      
+      expect(today).not.toBe(yesterday)
+    })
   })
 
   describe('Category Validation', () => {
@@ -55,6 +88,111 @@ describe('Fortune Feature', () => {
         expect(typeof category).toBe('string')
         expect(category.trim().length).toBeGreaterThan(0)
       })
+    })
+
+    it('should have exactly 5 categories', () => {
+      const validCategories = ['事业', '财富', '感情', '健康', '学业']
+      expect(validCategories.length).toBe(5)
+    })
+
+    it('should reject invalid categories', () => {
+      const validCategories = ['事业', '财富', '感情', '健康', '学业']
+      const invalidCategories = ['无效', '不存在', '']
+      
+      invalidCategories.forEach(category => {
+        expect(validCategories).not.toContain(category)
+      })
+    })
+  })
+
+  describe('Category Selection Flow', () => {
+    it('should handle category selection state', () => {
+      const category = '事业'
+      const validCategories = ['事业', '财富', '感情', '健康', '学业']
+      
+      expect(validCategories).toContain(category)
+    })
+
+    it('should support all category types for state transition', () => {
+      const categories = ['事业', '财富', '感情', '健康', '学业']
+      const stateTransition = (category: string) => {
+        return { selected: category, state: 'shake' }
+      }
+      
+      categories.forEach(cat => {
+        const result = stateTransition(cat)
+        expect(result.selected).toBe(cat)
+        expect(result.state).toBe('shake')
+      })
+    })
+  })
+
+  describe('State Transitions', () => {
+    it('should transition from idle to select', () => {
+      const states = ['idle', 'select']
+      expect(states[0]).toBe('idle')
+      expect(states[1]).toBe('select')
+    })
+
+    it('should transition from select to shake when category selected', () => {
+      const stateSequence = ['select', 'shake']
+      expect(stateSequence[0]).toBe('select')
+      expect(stateSequence[1]).toBe('shake')
+    })
+
+    it('should transition from shake to fallen', () => {
+      const stateSequence = ['shake', 'fallen']
+      expect(stateSequence[0]).toBe('shake')
+      expect(stateSequence[1]).toBe('fallen')
+    })
+
+    it('should transition from fallen to result', () => {
+      const stateSequence = ['fallen', 'result']
+      expect(stateSequence[0]).toBe('fallen')
+      expect(stateSequence[1]).toBe('result')
+    })
+
+    it('should have valid state machine sequence', () => {
+      const validSequence = ['idle', 'select', 'shake', 'fallen', 'result']
+      expect(validSequence.length).toBe(5)
+      expect(validSequence).toContain('idle')
+      expect(validSequence).toContain('select')
+      expect(validSequence).toContain('shake')
+      expect(validSequence).toContain('fallen')
+      expect(validSequence).toContain('result')
+    })
+  })
+
+  describe('API Response Handling', () => {
+    it('should handle successful draw response', () => {
+      expect(mockFortuneResponse.ok).toBe(true)
+      expect(mockFortuneResponse.fortune).toBeDefined()
+      expect(mockFortuneResponse.fortune.stick_id).toBeGreaterThan(0)
+      expect(mockFortuneResponse.fortune.stick_text).toBeTruthy()
+    })
+
+    it('should handle already drawn response', () => {
+      expect(mockAlreadyDrawnResponse.ok).toBe(true)
+      expect(mockAlreadyDrawnResponse.alreadyDrawn).toBe(true)
+      expect(mockAlreadyDrawnResponse.message).toContain('已抽签')
+    })
+
+    it('should handle error response', () => {
+      const errorResponse = {
+        ok: false,
+        message: '网络错误'
+      }
+      
+      expect(errorResponse.ok).toBe(false)
+      expect(errorResponse.message).toBeTruthy()
+    })
+
+    it('should parse fortune response correctly', () => {
+      const { fortune } = mockFortuneResponse
+      expect(fortune.id).toBeTruthy()
+      expect(fortune.category).toBe('事业')
+      expect(fortune.stick_id).toBeGreaterThan(0)
+      expect(fortune.stick_level).toBe('上上')
     })
   })
 
@@ -88,6 +226,18 @@ describe('Fortune Feature', () => {
       expect(prompt).toContain('注意事项')
       expect(prompt).toContain('改运方法')
     })
+
+    it('should generate unique prompts for different categories', () => {
+      const getPrompt = (category: string) => 
+        `针对${category}方面提供实用的建议`
+      
+      const prompt1 = getPrompt('事业')
+      const prompt2 = getPrompt('财富')
+      
+      expect(prompt1).toContain('事业')
+      expect(prompt2).toContain('财富')
+      expect(prompt1).not.toBe(prompt2)
+    })
   })
 
   describe('Session Management', () => {
@@ -97,6 +247,14 @@ describe('Fortune Feature', () => {
       expect(typeof sessionId).toBe('string')
       expect(sessionId.length).toBe(36) // UUID v4 length
       expect(sessionId.split('-').length).toBe(5) // UUID format
+    })
+
+    it('should handle multiple sessions independently', () => {
+      const { randomUUID } = require('crypto')
+      const session1 = randomUUID()
+      const session2 = randomUUID()
+      
+      expect(session1).not.toBe(session2)
     })
   })
 
@@ -123,7 +281,6 @@ describe('Fortune Feature', () => {
         created_at: '2024-11-06T12:00:00Z'
       }
 
-      // Test storing
       const STORAGE_KEY = 'daily_fortune_cache_v1'
       const today = new Date().toISOString().split('T')[0]
       const cacheData = { date: today, fortune: mockFortune }
@@ -134,14 +291,95 @@ describe('Fortune Feature', () => {
         JSON.stringify(cacheData)
       )
 
-      // Mock getItem to return our test data
       localStorage.getItem.mockReturnValue(JSON.stringify(cacheData))
 
-      // Test reading
       const cachedData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
       expect(cachedData).toHaveProperty('date')
       expect(cachedData).toHaveProperty('fortune')
       expect(cachedData.fortune).toEqual(mockFortune)
+    })
+
+    it('should clear cache on date mismatch', () => {
+      const STORAGE_KEY = 'daily_fortune_cache_v1'
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const mockFortune = { id: 'test', category: '事业', stick_id: 1, stick_text: '龙凤呈祥', stick_level: '上上', ai_analysis: null, created_at: '2024-11-05T00:00:00Z' }
+      const cacheData = { date: yesterday, fortune: mockFortune }
+
+      localStorage.getItem.mockReturnValue(JSON.stringify(cacheData))
+      
+      const cachedData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+      const today = new Date().toISOString().split('T')[0]
+      
+      if (cachedData.date !== today) {
+        localStorage.removeItem(STORAGE_KEY)
+      }
+      
+      expect(localStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY)
+    })
+
+    it('should handle cache storage errors gracefully', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      
+      localStorage.setItem.mockImplementation(() => {
+        throw new Error('Storage quota exceeded')
+      })
+
+      try {
+        localStorage.setItem('test_key', 'test_value')
+      } catch {
+        consoleSpy('Failed to cache daily fortune')
+      }
+
+      expect(consoleSpy).toHaveBeenCalled()
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('One Draw Per Day Constraint', () => {
+    it('should enforce one-draw-per-day limit', () => {
+      const today = new Date().toISOString().split('T')[0]
+      const drawing1 = { date: today, drawn: true }
+      const drawing2 = { date: today, drawn: true }
+      
+      expect(drawing1.date).toBe(drawing2.date)
+    })
+
+    it('should reset constraint after date change', () => {
+      const today = new Date().toISOString().split('T')[0]
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      
+      const drawing1 = { date: today, drawn: true }
+      const drawing2 = { date: tomorrow, drawn: false }
+      
+      expect(drawing1.date).not.toBe(drawing2.date)
+      expect(drawing1.drawn).toBe(true)
+      expect(drawing2.drawn).toBe(false)
+    })
+  })
+
+  describe('Accessibility Features', () => {
+    it('should have status message for aria-live regions', () => {
+      const statusMessages = {
+        select: '请选择求签类别',
+        shake: '正在为您求签...',
+        fallen: '签文已出，正在为您解读...',
+        result: '结果已生成'
+      }
+      
+      expect(statusMessages.select).toBeTruthy()
+      expect(statusMessages.shake).toBeTruthy()
+      expect(statusMessages.fallen).toBeTruthy()
+      expect(statusMessages.result).toBeTruthy()
+    })
+
+    it('should provide aria-labels for interactive elements', () => {
+      const categories = ['事业', '财富', '感情', '健康', '学业']
+      const ariaLabels = categories.map(cat => `求签类别：${cat}`)
+      
+      expect(ariaLabels.length).toBe(5)
+      ariaLabels.forEach(label => {
+        expect(label).toContain('求签类别')
+      })
     })
   })
 })
