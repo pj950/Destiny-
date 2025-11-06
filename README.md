@@ -39,7 +39,7 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 
 - 🎯 **Profile Creation** - Input birth information with accurate timezone handling
 - 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
-- 🤖 **AI Interpretation** - Get instant AI-powered insights using OpenAI GPT models
+- 🤖 **AI Interpretation** - Get instant AI-powered insights using Google Gemini 2.5 Pro
 - 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
 - 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
@@ -189,7 +189,7 @@ The application follows a simple navigation structure:
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
-- **AI**: OpenAI GPT-4o-mini / GPT-4o
+- **AI**: Google Gemini 2.5 Pro
 - **Payments**: Stripe
 - **Package Manager**: pnpm (recommended) or npm
 
@@ -199,7 +199,7 @@ Before you begin, ensure you have the following:
 
 - **Node.js** 18+ and **pnpm** (or npm)
 - **Supabase** account and project
-- **OpenAI** API key
+- **Google AI Studio** account (for Gemini API key)
 - **Stripe** account (for payment processing)
 
 ## Quick Start
@@ -227,9 +227,9 @@ Required environment variables:
 | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL | `https://xxxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public key | `eyJhbGc...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) | `eyJhbGc...` |
-| `OPENAI_API_KEY` | OpenAI API key for AI interpretations | `sk-proj-...` |
-| `OPENAI_MODEL_SUMMARY` | OpenAI model for chart summaries (optional, defaults to gpt-4o-mini) | `gpt-4o-mini` or `gpt-4o` |
-| `OPENAI_REPORT_MODEL` | OpenAI model for detailed reports (optional, defaults to gpt-4o) | `gpt-4o` or `gpt-4o-mini` |
+| `GOOGLE_API_KEY` | Google AI API key for Gemini interpretations | `AIzaSy...` |
+| `GEMINI_MODEL_SUMMARY` | Gemini model for chart summaries (optional, defaults to gemini-2.5-pro) | `gemini-2.5-pro` or `gemini-2.5-flash` |
+| `GEMINI_MODEL_REPORT` | Gemini model for detailed reports (optional, defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
 | `STRIPE_SECRET_KEY` | Stripe secret key for payments (use test keys in development) | `sk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret used to verify webhooks | `whsec_...` |
 | `STRIPE_API_VERSION` | Stripe API version (optional, defaults to 2024-06-20) | `2024-06-20` |
@@ -353,30 +353,30 @@ npm run worker
 2. For each job:
    - Marks it as `processing`
    - Fetches the associated chart data
-   - Generates a detailed report using OpenAI (model: `OPENAI_REPORT_MODEL`)
+   - Generates a detailed report using Gemini (model: `GEMINI_MODEL_REPORT`)
    - Uploads the report to Supabase Storage (`reports` bucket)
    - Marks the job as `done` with `result_url`
 3. Failed jobs are marked as `failed` with error details in metadata
-4. Rate limiting: 1 second delay between jobs to avoid overwhelming OpenAI
+4. Rate limiting: 1 second delay between jobs to avoid overwhelming Gemini
 
 **Logs:**
 The worker provides detailed console logs for debugging:
 - Job processing status
-- OpenAI API calls
+- Gemini API calls
 - Storage uploads
 - Success/failure messages
 
 **Example output:**
 ```
 [Worker] Starting worker...
-[Worker] Using OpenAI model: gpt-4o
+[Worker] Using Gemini model: gemini-2.5-pro
 [Worker] Fetching pending jobs...
 [Worker] Found 2 pending job(s)
 [Worker] Processing job abc123...
 [Worker] Job abc123 marked as processing
 [Worker] Fetching chart xyz789...
 [Worker] Chart xyz789 fetched successfully
-[Worker] Generating report with OpenAI (model: gpt-4o)...
+[Worker] Generating report with Gemini (model: gemini-2.5-pro)...
 [Worker] Report generated (1234 characters)
 [Worker] Uploading report to storage bucket 'reports' as abc123.txt...
 [Worker] Report uploaded successfully
@@ -409,11 +409,11 @@ pnpm start
 ## Environment Setup
 
 - Copy the sample env file and fill values: `cp .env.example .env.local`
-- Required keys: Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY), OpenAI (OPENAI_API_KEY, optional OPENAI_MODEL_SUMMARY/OPENAI_REPORT_MODEL), Stripe (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, optional STRIPE_API_VERSION), and NEXT_PUBLIC_SITE_URL
+- Required keys: Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY), Google AI (GOOGLE_API_KEY, optional GEMINI_MODEL_SUMMARY/GEMINI_MODEL_REPORT), Stripe (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, optional STRIPE_API_VERSION), and NEXT_PUBLIC_SITE_URL
 - See the detailed guides below:
   - [Supabase Setup](#supabase-setup)
   - [Stripe Configuration](#stripe-configuration)
-  - [OpenAI Setup](#openai-setup)
+  - [Google AI Setup](#google-ai-setup)
 - The background worker uses the same `.env.local` file when run with `pnpm worker`
 
 ## Project Structure
@@ -470,7 +470,7 @@ The `lib/bazi.ts` module provides accurate BaZi (Four Pillars) calculation with 
 See [docs/bazi-algorithm.md](docs/bazi-algorithm.md) for detailed algorithm documentation and limitations.
 
 ### AI Interpretation
-Uses OpenAI's GPT-4o-mini model (configurable via `OPENAI_MODEL_SUMMARY`) to generate short interpretations (150-200 characters) of BaZi charts. Premium reports can use GPT-4o for longer, more detailed analysis.
+Uses Google's Gemini 2.5 Pro model (configurable via `GEMINI_MODEL_SUMMARY`) to generate short interpretations (150-200 characters) of BaZi charts. Premium reports use the same model (configurable via `GEMINI_MODEL_REPORT`) for longer, more detailed analysis.
 
 ### Payment Processing
 Stripe Checkout integration for purchasing detailed fortune reports. After successful payment, a job is created in the database for async processing by the worker. The Stripe API version is configurable via `STRIPE_API_VERSION` (defaults to 2024-06-20).

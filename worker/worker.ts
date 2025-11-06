@@ -1,5 +1,5 @@
 import { supabaseService } from '../lib/supabase'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 // Enforce server-only execution
 if (typeof window !== 'undefined') {
@@ -7,8 +7,8 @@ if (typeof window !== 'undefined') {
 }
 
 // Validate required environment variables
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is required')
+if (!process.env.GOOGLE_API_KEY) {
+  throw new Error('GOOGLE_API_KEY environment variable is required')
 }
 
 if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -19,13 +19,13 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is required')
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-const OPENAI_REPORT_MODEL = process.env.OPENAI_REPORT_MODEL ?? 'gpt-4o'
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
+const GEMINI_REPORT_MODEL = process.env.GEMINI_MODEL_REPORT ?? 'gemini-2.5-pro'
 const BATCH_SIZE = 5
-const DELAY_BETWEEN_JOBS_MS = 1000 // 1 second delay to avoid hammering OpenAI
+const DELAY_BETWEEN_JOBS_MS = 1000 // 1 second delay to avoid hammering Gemini
 
 console.log('[Worker] Starting worker...')
-console.log(`[Worker] Using OpenAI model: ${OPENAI_REPORT_MODEL}`)
+console.log(`[Worker] Using Gemini model: ${GEMINI_REPORT_MODEL}`)
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -88,20 +88,16 @@ async function processJobs() {
       
       console.log(`[Worker] Chart ${job.chart_id} fetched successfully`)
       
-      // Generate report with OpenAI
-      console.log(`[Worker] Generating report with OpenAI (model: ${OPENAI_REPORT_MODEL})...`)
+      // Generate report with Gemini
+      console.log(`[Worker] Generating report with Gemini (model: ${GEMINI_REPORT_MODEL})...`)
       const prompt = `请根据命盘数据生成一份1200字左右的深度报告：${JSON.stringify(chartRow.chart_json)}`
       
-      const completion = await openai.chat.completions.create({ 
-        model: OPENAI_REPORT_MODEL, 
-        messages: [{ role: 'user', content: prompt }], 
-        max_tokens: 2000 
-      })
-      
-      const reportText = completion.choices?.[0]?.message?.content || ''
+      const model = genAI.getGenerativeModel({ model: GEMINI_REPORT_MODEL })
+      const result = await model.generateContent(prompt)
+      const reportText = result.response.text()
       
       if (!reportText) {
-        throw new Error('OpenAI returned empty response')
+        throw new Error('Gemini returned empty response')
       }
       
       console.log(`[Worker] Report generated (${reportText.length} characters)`)
@@ -168,7 +164,7 @@ async function processJobs() {
       }
     }
     
-    // Rate limiting: delay between jobs to avoid hammering OpenAI
+    // Rate limiting: delay between jobs to avoid hammering Gemini
     if (jobs.indexOf(job) < jobs.length - 1) {
       console.log(`[Worker] Waiting ${DELAY_BETWEEN_JOBS_MS}ms before next job...`)
       await sleep(DELAY_BETWEEN_JOBS_MS)
