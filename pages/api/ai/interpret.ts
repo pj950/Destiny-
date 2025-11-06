@@ -1,19 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { supabaseService } from '../../../lib/supabase'
 
 // Guard: Check for required environment variables
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY environment variable is not configured. Please set it in your .env.local file.')
+if (!process.env.GOOGLE_API_KEY) {
+  throw new Error('GOOGLE_API_KEY environment variable is not configured. Please set it in your .env.local file.')
 }
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 30000 // 30 second timeout
-})
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
 
-// Use environment variable for model selection, default to gpt-4o-mini
-const MODEL = process.env.OPENAI_MODEL_SUMMARY || 'gpt-4o-mini'
+// Use environment variable for model selection, default to gemini-2.5-pro
+const MODEL = process.env.GEMINI_MODEL_SUMMARY || 'gemini-2.5-pro'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -40,55 +37,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const systemPrompt = `你是一位"东方命盘分析师"。基于下面的结构化命盘数据，生成150-200字中文解读。\n`
     const userPrompt = `命盘：${JSON.stringify(chart)}\n问题：${question || '请解读此命盘'}`
     
-    const completion = await openai.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      max_tokens: 400,
-      temperature: 0.7
-    })
+    const model = genAI.getGenerativeModel({ model: MODEL })
+    const prompt = `${systemPrompt}\n${userPrompt}`
     
-    const text = completion.choices?.[0]?.message?.content || ''
+    // Create abort controller for timeout (30 seconds)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
     
-    if (!text) {
-      return res.status(500).json({ ok: false, message: 'OpenAI returned empty response' })
-    }
-    
-    await supabaseService
-      .from('charts')
-      .update({ ai_summary: text })
-      .eq('id', chart_id)
+    try {
+      const result = await model.generateContent(prompt)
+      clearTimeout(timeoutId)
       
-    res.json({ ok: true, summary: text })
+      const text = result.response.text()
+      
+      if (!text) {
+        return res.status(500).json({ ok: false, message: 'Gemini returned empty response' })
+      }
+      
+      await supabaseService
+        .from('charts')
+        .update({ ai_summary: text })
+        .eq('id', chart_id)
+        
+      res.json({ ok: true, summary: text })
+    } catch (genErr: any) {
+      clearTimeout(timeoutId)
+      throw genErr
+    }
   } catch (err: any) {
     // Better error handling for different error types
-    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+    if (err.name === 'AbortError' || err.message?.includes('abort')) {
       return res.status(504).json({ 
         ok: false, 
-        message: 'OpenAI request timed out after 30 seconds. Please try again.' 
+        message: 'Gemini request timed out after 30 seconds. Please try again.' 
       })
     }
     
-    if (err.status === 401) {
+    if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+      return res.status(504).json({ 
+        ok: false, 
+        message: 'Gemini request timed out after 30 seconds. Please try again.' 
+      })
+    }
+    
+    if (err.status === 401 || err.message?.includes('API key')) {
       return res.status(500).json({ 
         ok: false, 
-        message: 'OpenAI authentication failed. Please verify your OPENAI_API_KEY is valid.' 
+        message: 'Gemini authentication failed. Please verify your GOOGLE_API_KEY is valid.' 
       })
     }
     
     if (err.status === 429) {
       return res.status(429).json({ 
         ok: false, 
-        message: 'OpenAI rate limit exceeded. Please try again later or upgrade your OpenAI plan.' 
+        message: 'Gemini rate limit exceeded. Please try again later or check your quota.' 
       })
     }
     
-    if (err.status === 500) {
+    if (err.status === 500 || err.status === 503) {
       return res.status(500).json({ 
         ok: false, 
-        message: 'OpenAI service error. Please try again later.' 
+        message: 'Gemini service error. Please try again later.' 
       })
     }
     

@@ -381,10 +381,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
-# OpenAI
-OPENAI_API_KEY=sk-proj-...
-OPENAI_MODEL_SUMMARY=gpt-4o-mini # optional, for AI summaries
-OPENAI_REPORT_MODEL=gpt-4o # optional, for deep reports
+# Google Gemini
+GOOGLE_API_KEY=AIzaSy...
+GEMINI_MODEL_SUMMARY=gemini-2.5-pro # optional, for AI summaries
+GEMINI_MODEL_REPORT=gemini-2.5-pro # optional, for deep reports
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_... # or sk_live_... for production
@@ -407,9 +407,9 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Your Supabase project URL | `https://xxxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key | `eyJhbGc...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key (server-side only) | `eyJhbGc...` |
-| `OPENAI_API_KEY` | Yes | OpenAI API key for AI interpretations | `sk-proj-...` |
-| `OPENAI_MODEL_SUMMARY` | No | OpenAI model for AI summaries (defaults to gpt-4o-mini) | `gpt-4o-mini` |
-| `OPENAI_REPORT_MODEL` | No | OpenAI model for deep report generation (defaults to gpt-4o) | `gpt-4o` |
+| `GOOGLE_API_KEY` | Yes | Google AI API key for Gemini interpretations | `AIzaSy...` |
+| `GEMINI_MODEL_SUMMARY` | No | Gemini model for AI summaries (defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
+| `GEMINI_MODEL_REPORT` | No | Gemini model for deep report generation (defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
 | `STRIPE_SECRET_KEY` | Yes | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
 | `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret for verifying webhook events | `whsec_...` |
 | `STRIPE_API_VERSION` | No | Stripe API version (defaults to 2024-06-20) | `2024-06-20` |
@@ -428,7 +428,7 @@ Before deploying to Vercel, ensure you have:
 - ✅ **Supabase Project**: Completed Steps 1-3 above (database, RLS, storage)
 - ✅ **API Keys Ready**: 
   - Supabase credentials (URL, anon key, service role key)
-  - OpenAI API key with credits
+  - Google API key from Google AI Studio
   - Stripe secret key and webhook secret
 
 ### Step 5.1: Push Code to GitHub
@@ -471,7 +471,7 @@ This is the most critical step. Add all environment variables before deploying.
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxxx.supabase.co` | Production, Preview, Development | Your Supabase project URL (from Supabase Settings > API) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase anonymous/public key (from Supabase Settings > API) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase service role key - **KEEP SECRET** (from Supabase Settings > API) |
-| `OPENAI_API_KEY` | `sk-proj-...` | Production, Preview, Development | OpenAI API key for AI interpretations (from OpenAI dashboard) |
+| `GOOGLE_API_KEY` | `AIzaSy...` | Production, Preview, Development | Google AI API key for Gemini interpretations (from Google AI Studio) |
 | `STRIPE_SECRET_KEY` | `sk_test_...` or `sk_live_...` | Production, Preview, Development | Stripe secret key for payments (use `sk_test_` for testing) |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Production, Preview, Development | Stripe webhook signing secret (see Step 5.6 below) |
 | `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Production, Preview, Development | Your Vercel deployment URL (update after first deploy) |
@@ -480,8 +480,8 @@ This is the most critical step. Add all environment variables before deploying.
 
 | Variable Name | Default Value | Environment | Description |
 |---------------|---------------|-------------|-------------|
-| `OPENAI_MODEL_SUMMARY` | `gpt-4o-mini` | Production, Preview, Development | OpenAI model for AI interpretations (cost optimization) |
-| `OPENAI_REPORT_MODEL` | `gpt-4o` | Production, Preview, Development | OpenAI model for deep report generation (higher quality) |
+| `GEMINI_MODEL_SUMMARY` | `gemini-2.5-pro` | Production, Preview, Development | Gemini model for AI interpretations (can also use gemini-2.5-flash for cost optimization) |
+| `GEMINI_MODEL_REPORT` | `gemini-2.5-pro` | Production, Preview, Development | Gemini model for deep report generation (higher quality) |
 | `STRIPE_API_VERSION` | `2024-06-20` | Production, Preview, Development | Stripe API version to use |
 
 **Important Notes**:
