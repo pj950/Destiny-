@@ -59,98 +59,146 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
 
-      // Extract chart_id from session metadata
+      // Check if this is a lamp purchase or report generation
+      const purchaseType = session.metadata?.type
+      const lamp_key = session.metadata?.lamp_key
       const chart_id = session.metadata?.chart_id
 
-      if (!chart_id) {
-        console.error(`[Webhook] Event ${event.id}: Missing chart_id in session metadata`)
-        return res.status(400).json({ error: 'Missing chart_id in session metadata' })
-      }
+      if (purchaseType === 'lamp_purchase' && lamp_key) {
+        // Handle lamp purchase
+        console.log(`[Webhook] Event ${event.id}: Processing lamp purchase for ${lamp_key}, session ${session.id}`)
 
-      console.log(`[Webhook] Event ${event.id}: Processing checkout session ${session.id} for chart ${chart_id}`)
-
-      // Check if we've already processed this event (idempotency check)
-      const { data: existingJob, error: searchError } = await supabaseService
-        .from('jobs')
-        .select('*')
-        .eq('chart_id', chart_id)
-        .eq('metadata->>checkout_session_id', session.id)
-        .maybeSingle()
-
-      if (searchError) {
-        console.error(`[Webhook] Event ${event.id}: Error searching for existing job:`, searchError)
-        return res.status(500).json({ error: 'Database error while searching for job' })
-      }
-
-      if (existingJob) {
-        // Check if we've already processed this exact webhook event
-        const lastEventId = existingJob.metadata?.last_webhook_event_id
-        if (lastEventId === event.id) {
-          console.log(`[Webhook] Event ${event.id}: Already processed, returning success`)
-          return res.status(200).json({ received: true, message: 'Event already processed' })
-        }
-
-        // Job exists, update it to ensure it's pending and mark the event as processed
-        console.log(`[Webhook] Event ${event.id}: Updating existing job ${existingJob.id} to pending status`)
-        
-        const { error: updateError } = await supabaseService
-          .from('jobs')
-          .update({
-            status: 'pending',
-            metadata: {
-              ...existingJob.metadata,
-              payment_confirmed: true,
-              last_webhook_event_id: event.id,
-              payment_confirmed_at: new Date().toISOString()
-            },
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingJob.id)
-
-        if (updateError) {
-          console.error(`[Webhook] Event ${event.id}: Error updating job ${existingJob.id}:`, updateError)
-          return res.status(500).json({ error: 'Failed to update job' })
-        }
-
-        console.log(`[Webhook] Event ${event.id}: Successfully updated job ${existingJob.id}`)
-      } else {
-        // Job doesn't exist, create it (edge case: job creation failed in /api/reports/generate)
-        console.log(`[Webhook] Event ${event.id}: Job not found, creating new job for chart ${chart_id}`)
-
-        // Verify chart exists before creating job
-        const { data: chart, error: chartError } = await supabaseService
-          .from('charts')
-          .select('id')
-          .eq('id', chart_id)
+        // Check if we've already processed this event for this lamp
+        const { data: existingLamp, error: searchError } = await supabaseService
+          .from('lamps')
+          .select('*')
+          .eq('lamp_key', lamp_key)
           .maybeSingle()
 
-        if (chartError || !chart) {
-          console.error(`[Webhook] Event ${event.id}: Chart ${chart_id} not found`)
-          return res.status(404).json({ error: 'Chart not found' })
+        if (searchError) {
+          console.error(`[Webhook] Event ${event.id}: Error searching for lamp ${lamp_key}:`, searchError)
+          return res.status(500).json({ error: 'Database error while searching for lamp' })
         }
 
-        const { error: insertError } = await supabaseService
-          .from('jobs')
-          .insert({
-            user_id: null,
-            chart_id,
-            job_type: 'deep_report',
-            status: 'pending',
-            result_url: null,
-            metadata: {
-              checkout_session_id: session.id,
-              payment_confirmed: true,
-              last_webhook_event_id: event.id,
-              payment_confirmed_at: new Date().toISOString()
-            }
+        if (!existingLamp) {
+          console.error(`[Webhook] Event ${event.id}: Lamp ${lamp_key} not found`)
+          return res.status(404).json({ error: 'Lamp not found' })
+        }
+
+        // Check if already lit or already processed this webhook
+        if (existingLamp.status === 'lit') {
+          console.log(`[Webhook] Event ${event.id}: Lamp ${lamp_key} is already lit`)
+          return res.status(200).json({ received: true, message: 'Lamp already lit' })
+        }
+
+        // Update lamp to lit status
+        const { error: updateError } = await supabaseService
+          .from('lamps')
+          .update({
+            status: 'lit',
+            updated_at: new Date().toISOString()
           })
+          .eq('lamp_key', lamp_key)
 
-        if (insertError) {
-          console.error(`[Webhook] Event ${event.id}: Error creating job:`, insertError)
-          return res.status(500).json({ error: 'Failed to create job' })
+        if (updateError) {
+          console.error(`[Webhook] Event ${event.id}: Error updating lamp ${lamp_key}:`, updateError)
+          return res.status(500).json({ error: 'Failed to update lamp status' })
         }
 
-        console.log(`[Webhook] Event ${event.id}: Successfully created job for chart ${chart_id}`)
+        console.log(`[Webhook] Event ${event.id}: Successfully lit lamp ${lamp_key}`)
+        return res.status(200).json({ received: true })
+
+      } else if (chart_id) {
+        // Handle report generation (existing logic)
+        console.log(`[Webhook] Event ${event.id}: Processing checkout session ${session.id} for chart ${chart_id}`)
+
+        // Check if we've already processed this event (idempotency check)
+        const { data: existingJob, error: searchError } = await supabaseService
+          .from('jobs')
+          .select('*')
+          .eq('chart_id', chart_id)
+          .eq('metadata->>checkout_session_id', session.id)
+          .maybeSingle()
+
+        if (searchError) {
+          console.error(`[Webhook] Event ${event.id}: Error searching for existing job:`, searchError)
+          return res.status(500).json({ error: 'Database error while searching for job' })
+        }
+
+        if (existingJob) {
+          // Check if we've already processed this exact webhook event
+          const lastEventId = existingJob.metadata?.last_webhook_event_id
+          if (lastEventId === event.id) {
+            console.log(`[Webhook] Event ${event.id}: Already processed, returning success`)
+            return res.status(200).json({ received: true, message: 'Event already processed' })
+          }
+
+          // Job exists, update it to ensure it's pending and mark the event as processed
+          console.log(`[Webhook] Event ${event.id}: Updating existing job ${existingJob.id} to pending status`)
+          
+          const { error: updateError } = await supabaseService
+            .from('jobs')
+            .update({
+              status: 'pending',
+              metadata: {
+                ...existingJob.metadata,
+                payment_confirmed: true,
+                last_webhook_event_id: event.id,
+                payment_confirmed_at: new Date().toISOString()
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingJob.id)
+
+          if (updateError) {
+            console.error(`[Webhook] Event ${event.id}: Error updating job ${existingJob.id}:`, updateError)
+            return res.status(500).json({ error: 'Failed to update job' })
+          }
+
+          console.log(`[Webhook] Event ${event.id}: Successfully updated job ${existingJob.id}`)
+        } else {
+          // Job doesn't exist, create it (edge case: job creation failed in /api/reports/generate)
+          console.log(`[Webhook] Event ${event.id}: Job not found, creating new job for chart ${chart_id}`)
+
+          // Verify chart exists before creating job
+          const { data: chart, error: chartError } = await supabaseService
+            .from('charts')
+            .select('id')
+            .eq('id', chart_id)
+            .maybeSingle()
+
+          if (chartError || !chart) {
+            console.error(`[Webhook] Event ${event.id}: Chart ${chart_id} not found`)
+            return res.status(404).json({ error: 'Chart not found' })
+          }
+
+          const { error: insertError } = await supabaseService
+            .from('jobs')
+            .insert({
+              user_id: null,
+              chart_id,
+              job_type: 'deep_report',
+              status: 'pending',
+              result_url: null,
+              metadata: {
+                checkout_session_id: session.id,
+                payment_confirmed: true,
+                last_webhook_event_id: event.id,
+                payment_confirmed_at: new Date().toISOString()
+              }
+            })
+
+          if (insertError) {
+            console.error(`[Webhook] Event ${event.id}: Error creating job:`, insertError)
+            return res.status(500).json({ error: 'Failed to create job' })
+          }
+
+          console.log(`[Webhook] Event ${event.id}: Successfully created job for chart ${chart_id}`)
+        }
+      } else {
+        // Neither lamp purchase nor report generation
+        console.error(`[Webhook] Event ${event.id}: Unknown checkout session type. Missing chart_id and lamp_key/type metadata`)
+        return res.status(400).json({ error: 'Invalid checkout session metadata' })
       }
 
       // Return success response quickly
