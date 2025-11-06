@@ -26,7 +26,9 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-/* Fortune drawing animations */
+/* Fortune drawing animations with reduced-motion support */
+
+/* Shake animation for fortune draw */
 @keyframes shake {
   0%, 100% { transform: translateX(0) rotate(0deg); }
   10% { transform: translateX(-2px) rotate(-1deg); }
@@ -40,6 +42,7 @@ body {
   90% { transform: translateX(-0.5px) rotate(-0.25deg); }
 }
 
+/* Fall animation for fortune stick */
 @keyframes fall {
   0% { 
     transform: translateY(-100px) rotate(0deg);
@@ -66,19 +69,27 @@ body {
   }
 }
 
+/* Glow animation for result text (using opacity instead of box-shadow) */
 @keyframes glow {
   0%, 100% { 
-    box-shadow: 0 0 5px rgba(251, 146, 60, 0.5),
-                0 0 10px rgba(251, 146, 60, 0.3),
-                0 0 15px rgba(251, 146, 60, 0.1);
+    opacity: 1;
   }
   50% { 
-    box-shadow: 0 0 10px rgba(251, 146, 60, 0.8),
-                0 0 20px rgba(251, 146, 60, 0.6),
-                0 0 30px rgba(251, 146, 60, 0.4);
+    opacity: 0.8;
   }
 }
 
+/* Fade in animation */
+@keyframes fade-in {
+  0% { 
+    opacity: 0;
+  }
+  100% { 
+    opacity: 1;
+  }
+}
+
+/* Slide up animation */
 @keyframes slide-up {
   0% { 
     transform: translateY(10px);
@@ -90,6 +101,7 @@ body {
   }
 }
 
+/* Applied animations with reduced-motion fallback */
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
@@ -104,4 +116,40 @@ body {
 
 .fortune-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+.fortune-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Reduced motion support - disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .fortune-shake,
+  .fortune-fall,
+  .fortune-glow,
+  .fortune-fade-in,
+  .animate-slide-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Keyboard focus styles for accessibility */
+button:focus-visible {
+  outline: 3px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+/* Skip to main content link for accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
