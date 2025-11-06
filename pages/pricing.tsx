@@ -235,7 +235,7 @@ export default function Pricing() {
             <Card className="p-6">
               <Heading level={3} size="lg" className="mb-3">⏰ 报告多久能生成？</Heading>
               <Text color="secondary">
-                付款成功后，系统会自动开始生成深度报告。通常在5-10分钟内完成，您可以在"我的命盘"页面查看进度并下载报告。
+                付款成功后，系统会自动开始生成深度报告。通常在5-10分钟内完成，您可以在「我的命盘」页面查看进度并下载报告。
               </Text>
             </Card>
           </div>

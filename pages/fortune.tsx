@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -99,9 +99,9 @@ export default function Fortune() {
         revealTimeoutRef.current = null
       }
     }
-  }, [])
+  }, [checkTodayFortune])
 
-  const showCachedFortune = (message?: string) => {
+  const showCachedFortune = useCallback((message?: string) => {
     const cached = readFortuneCache()
     if (cached) {
       setTodayFortune(cached)
@@ -110,9 +110,9 @@ export default function Fortune() {
     } else if (message) {
       setNotice(message)
     }
-  }
+  }, [])
 
-  const checkTodayFortune = async () => {
+  const checkTodayFortune = useCallback(async () => {
     try {
       const res = await fetch('/api/fortune/today')
       const data = await res.json()
@@ -133,7 +133,7 @@ export default function Fortune() {
       console.error('Failed to check today fortune:', err)
       showCachedFortune('网络暂时不可用，已为您展示本地保存的签文')
     }
-  }
+  }, [showCachedFortune])
 
   const handleCategorySelect = (category: FortuneCategory) => {
     if (loading) return
