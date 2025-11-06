@@ -1,9 +1,7 @@
 import { useRouter } from 'next/router'
+import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import Button from '../components/Button'
-import Section from '../components/Section'
-import Card from '../components/Card'
 
 interface Tool {
   name: string
@@ -119,125 +117,136 @@ export default function Tools() {
       <Navbar />
       
       <Section background="dark" className="pt-20">
-        <div className="text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
-            占卜工具
-          </h1>
-          <p className="text-xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            探索东方智慧，洞察命运玄机
-          </p>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            我们提供全方位的命理分析工具，从基础排盘到深度解读，满足您的各种需求
-          </p>
-        </div>
+        <Container>
+          <div className="text-center">
+            <Heading level={1} gradient className="mb-6">
+              占卜工具
+            </Heading>
+            <Text size="xl" color="secondary" className="mb-4 max-w-3xl mx-auto">
+              探索东方智慧，洞察命运玄机
+            </Text>
+            <Text size="lg" color="muted" className="max-w-2xl mx-auto">
+              我们提供全方位的命理分析工具，从基础排盘到深度解读，满足您的各种需求
+            </Text>
+          </div>
+        </Container>
       </Section>
 
       <Section background="gradient">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">核心功能</h2>
-          <p className="text-xl text-gray-600">立即开始使用我们的核心服务</p>
-        </div>
+        <Container>
+          <div className="text-center mb-12">
+            <Heading level={2} className="mb-4">核心功能</Heading>
+            <Text size="xl">立即开始使用我们的核心服务</Text>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
-          {featuredTools.map((tool) => (
-            <Card 
-              key={tool.name} 
-              className="p-8 cursor-pointer transform transition-all duration-300 hover:scale-105"
-              hover
-              onClick={() => handleToolClick(tool)}
-            >
-              <div className="text-center">
-                <div className="text-6xl mb-4">{tool.icon}</div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">{tool.name}</h3>
-                <p className="text-gray-600 mb-6">{tool.description}</p>
-                <Button variant="primary" size="md" fullWidth>
-                  立即使用
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
+            {featuredTools.map((tool) => (
+              <Card 
+                key={tool.name} 
+                className="p-8 cursor-pointer transform transition-all duration-300 hover:scale-105"
+                hover
+                onClick={() => handleToolClick(tool)}
+                variant="elevated"
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-4">{tool.icon}</div>
+                  <Heading level={3} size="2xl" className="mb-3">{tool.name}</Heading>
+                  <Text color="secondary" className="mb-6">{tool.description}</Text>
+                  <Button variant="primary" size="md" fullWidth>
+                    立即使用
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </Container>
       </Section>
 
       <Section background="white">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">更多工具</h2>
-          <p className="text-xl text-gray-600">更多精彩功能即将推出</p>
-        </div>
+        <Container>
+          <div className="text-center mb-12">
+            <Heading level={2} className="mb-4">更多工具</Heading>
+            <Text size="xl">更多精彩功能即将推出</Text>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {otherTools.map((tool) => (
-            <Card 
-              key={tool.name} 
-              className="p-6 cursor-pointer relative overflow-hidden"
-              hover={!tool.comingSoon}
-              onClick={() => handleToolClick(tool)}
-            >
-              {tool.comingSoon && (
-                <div className="absolute top-2 right-2">
-                  <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
-                    即将推出
-                  </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {otherTools.map((tool) => (
+              <Card 
+                key={tool.name} 
+                className="p-6 cursor-pointer relative overflow-hidden"
+                hover={!tool.comingSoon}
+                onClick={() => handleToolClick(tool)}
+              >
+                {tool.comingSoon && (
+                  <div className="absolute top-2 right-2">
+                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
+                      即将推出
+                    </span>
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <div className="text-5xl mb-3">{tool.icon}</div>
+                  <Heading level={3} size="lg" className="mb-2">{tool.name}</Heading>
+                  <Text size="sm" color="secondary">{tool.description}</Text>
                 </div>
-              )}
-              
-              <div className="text-center">
-                <div className="text-5xl mb-3">{tool.icon}</div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{tool.name}</h3>
-                <p className="text-sm text-gray-600">{tool.description}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </Container>
       </Section>
 
       <Section background="gradient">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">为什么选择我们的工具？</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div className="text-center">
-            <div className="text-5xl mb-4">⚡</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">快速准确</h3>
-            <p className="text-gray-600">
-              采用先进算法，毫秒级计算，确保结果准确可靠
-            </p>
+        <Container size="lg">
+          <div className="text-center mb-12">
+            <Heading level={2} className="mb-4">为什么选择我们的工具？</Heading>
           </div>
 
-          <div className="text-center">
-            <div className="text-5xl mb-4">🎓</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">专业权威</h3>
-            <p className="text-gray-600">
-              基于正宗的传统命理理论，结合现代科技创新
-            </p>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="text-5xl mb-4">⚡</div>
+              <Heading level={3} size="xl" className="mb-3">快速准确</Heading>
+              <Text color="secondary">
+                采用先进算法，毫秒级计算，确保结果准确可靠
+              </Text>
+            </div>
 
-          <div className="text-center">
-            <div className="text-5xl mb-4">🌟</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">易于使用</h3>
-            <p className="text-gray-600">
-              简洁直观的界面设计，无需专业知识即可上手
-            </p>
+            <div className="text-center">
+              <div className="text-5xl mb-4">🎓</div>
+              <Heading level={3} size="xl" className="mb-3">专业权威</Heading>
+              <Text color="secondary">
+                基于正宗的传统命理理论，结合现代科技创新
+              </Text>
+            </div>
+
+            <div className="text-center">
+              <div className="text-5xl mb-4">🌟</div>
+              <Heading level={3} size="xl" className="mb-3">易于使用</Heading>
+              <Text color="secondary">
+                简洁直观的界面设计，无需专业知识即可上手
+              </Text>
+            </div>
           </div>
-        </div>
+        </Container>
       </Section>
 
       <Section background="dark">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold mb-6">开始您的命运探索之旅</h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            免费试算八字命盘，体验AI智能解读
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="primary" size="lg" onClick={() => router.push('/')}>
-              免费试算
-            </Button>
-            <Button variant="secondary" size="lg" onClick={() => router.push('/pricing')}>
-              查看价格
-            </Button>
+        <Container>
+          <div className="text-center">
+            <Heading level={2} className="mb-6">开始您的命运探索之旅</Heading>
+            <Text size="xl" color="secondary" className="mb-8 max-w-2xl mx-auto">
+              免费试算八字命盘，体验AI智能解读
+            </Text>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button variant="primary" size="lg" onClick={() => router.push('/')}>
+                免费试算
+              </Button>
+              <Button variant="secondary" size="lg" onClick={() => router.push('/pricing')}>
+                查看价格
+              </Button>
+            </div>
           </div>
-        </div>
+        </Container>
       </Section>
 
       <Footer />

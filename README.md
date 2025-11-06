@@ -16,6 +16,7 @@ This application allows users to:
 
 - [Overview](#overview)
 - [Features](#features)
+- [Design System](#design-system)
 - [Demo](#demo)
 - [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
@@ -41,8 +42,96 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using OpenAI GPT models
 - 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
-- 📱 **Modern UI** - Responsive design with Tailwind CSS
+- 📱 **Modern UI** - Responsive design with Tailwind CSS and custom design system
 - 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL database
+
+## Design System
+
+Eastern Destiny uses a custom design system built on top of Tailwind CSS to ensure consistent styling across the application.
+
+### Design Tokens
+
+The design system is defined in `src/lib/theme.ts` with the following tokens:
+
+#### Brand Colors
+- **Primary**: Blue color palette (`brand-primary-50` to `brand-primary-900`)
+- **Secondary**: Pink color palette (`brand-secondary-50` to `brand-secondary-900`)  
+- **Accent**: Amber color palette (`brand-accent-50` to `brand-accent-900`)
+
+#### Typography Scale
+- Consistent font sizes from `xs` (12px) to `7xl` (72px)
+- Responsive heading scales with proper line heights
+- Semantic text colors (primary, secondary, muted, accent, danger)
+
+#### Spacing System
+- Consistent spacing scale from `xs` (8px) to `4xl` (96px)
+- Standard section padding: `py-16 md:py-24`
+- Container max-widths: `max-w-screen-xl` and `max-w-screen-2xl`
+
+#### Shadows & Effects
+- Soft shadows for subtle depth (`shadow-soft`)
+- Medium shadows for elevated elements (`shadow-medium`)
+- Custom animations: `fade-in`, `slide-up`, `bounce-soft`
+
+### UI Components
+
+All shared components are located in `components/ui/`:
+
+#### Core Components
+- **Button** - Variants: primary, secondary, outline, ghost, danger
+- **Input** - With label, error states, helper text, icons
+- **Card** - Variants: default, elevated, outlined; hover effects
+- **Section** - Backgrounds: white, gray, gradient, dark, brand
+- **Container** - Responsive container with size variants
+- **Heading** - Semantic headings with gradient option
+- **Text** - Consistent text styling with size/color variants
+
+#### Layout Components
+- **Navbar** - Fixed navigation with active state indicators
+- **Footer** - Comprehensive footer with links and social icons
+
+### Customization
+
+To modify the theme:
+
+1. **Brand Colors**: Update color values in `tailwind.config.js` and `src/lib/theme.ts`
+2. **Spacing**: Adjust spacing scale in Tailwind config
+3. **Typography**: Modify font scales and weights
+4. **Components**: Extend component props for new variants
+
+Example color change:
+```javascript
+// tailwind.config.js
+brand: {
+  primary: {
+    500: '#your-new-color', // Change this
+    // ... other shades
+  }
+}
+```
+
+### Accessibility
+
+- Focus states on all interactive elements
+- Semantic HTML structure
+- ARIA labels where needed
+- Keyboard navigation support
+- High contrast ratios for text
+
+**Usage Example:**
+```jsx
+import { Button, Card, Section, Heading, Text } from '../components/ui'
+
+<Section background="gradient">
+  <Container>
+    <Heading level={2} gradient>Section Title</Heading>
+    <Text size="lg" color="secondary">Description text</Text>
+    <Card hover>
+      <Button variant="primary" size="lg">Action</Button>
+    </Card>
+  </Container>
+</Section>
+```
 
 ## Demo
 
