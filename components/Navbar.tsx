@@ -14,6 +14,7 @@ export default function Navbar({ children }: NavbarProps) {
   const navItems = [
     { name: '首页', path: '/' },
     { name: '工具', path: '/tools' },
+    { name: '每日一签', path: '/fortune' },
     { name: '祈福点灯', path: '/lamps' },
     { name: '价格', path: '/pricing' },
   ]

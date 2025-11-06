@@ -40,6 +40,7 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🎯 **Profile Creation** - Input birth information with accurate timezone handling
 - 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using Google Gemini 2.5 Pro
+- 🎲 **Daily Fortune** - Draw one fortune stick per day with AI-powered interpretations
 - 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
 - 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
@@ -434,11 +435,14 @@ pnpm start
 │   ├── index.tsx       # Homepage
 │   ├── compute.tsx     # Chart computation page
 │   ├── dashboard.tsx   # User dashboard
+│   ├── fortune.tsx     # Daily fortune drawing page
 │   └── api/            # API routes
 │       ├── profiles.ts           # Create user profiles
 │       ├── charts/compute.ts     # Compute BaZi charts
 │       ├── ai/interpret.ts       # AI interpretation
 │       ├── reports/generate.ts   # Generate paid reports
+│       ├── fortune/today.ts     # Check daily fortune status
+│       ├── fortune/draw.ts      # Draw daily fortune
 │       ├── my/charts.ts          # List recent charts
 │       ├── my/jobs.ts            # List recent jobs
 │       ├── stripe/webhook.ts     # Stripe webhook handler
@@ -489,6 +493,8 @@ Key routes:
 - POST `/api/ai/interpret` — Generate AI summary and store it
 - POST `/api/reports/generate` — Create Stripe Checkout session
 - POST `/api/stripe/webhook` — Stripe webhook (server-to-server, signature verified)
+- GET `/api/fortune/today` — Check if user has drawn fortune today
+- POST `/api/fortune/draw` — Draw daily fortune stick with AI interpretation
 
 ### POST `/api/profiles`
 Create a new user profile with birth information.
