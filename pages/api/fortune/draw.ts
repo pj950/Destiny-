@@ -196,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ ok: false, message: 'Category is required and must be a string' })
   }
   
-  const validCategories = ['事业', '财富', '感情', '健康', '学业']
+  const validCategories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
   if (!validCategories.includes(category)) {
     return res.status(400).json({ ok: false, message: 'Invalid category. Must be one of: ' + validCategories.join(', ') })
   }

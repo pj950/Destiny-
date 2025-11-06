@@ -4,7 +4,10 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
 type FortuneState = 'idle' | 'select' | 'shake' | 'fallen' | 'result'
-type FortuneCategory = '事业' | '财富' | '感情' | '健康' | '学业'
+type FortuneCategory = 
+  | '事业运' | '财富运' | '感情运' | '婚姻运' | '家庭运' 
+  | '健康运' | '考试运' | '官司诉讼' | '旅行出行' | '求子育儿' 
+  | '置业投资' | '买房置业' | '风水运势' | '寻物失物' | '综合运途'
 
 interface Fortune {
   id: string
@@ -16,14 +19,46 @@ interface Fortune {
   created_at: string
 }
 
-const categories: FortuneCategory[] = ['事业', '财富', '感情', '健康', '学业']
+const categories: FortuneCategory[] = [
+  '事业运', '财富运', '感情运', '婚姻运', '家庭运',
+  '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿',
+  '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途'
+]
 
-const categoryIcons = {
-  '事业': '💼',
-  '财富': '💰', 
-  '感情': '❤️',
-  '健康': '🏥',
-  '学业': '📚'
+const categoryIcons: Record<FortuneCategory, string> = {
+  '事业运': '💼',
+  '财富运': '💰',
+  '感情运': '❤️',
+  '婚姻运': '💑',
+  '家庭运': '👨‍👩‍👧‍👦',
+  '健康运': '🏥',
+  '考试运': '📚',
+  '官司诉讼': '⚖️',
+  '旅行出行': '✈️',
+  '求子育儿': '👶',
+  '置业投资': '📈',
+  '买房置业': '🏠',
+  '风水运势': '🏮',
+  '寻物失物': '🔍',
+  '综合运途': '🌟'
+}
+
+const categoryGradients: Record<FortuneCategory, string> = {
+  '事业运': 'from-blue-500 to-blue-600',
+  '财富运': 'from-yellow-500 to-yellow-600',
+  '感情运': 'from-red-500 to-pink-600',
+  '婚姻运': 'from-pink-500 to-rose-600',
+  '家庭运': 'from-orange-500 to-orange-600',
+  '健康运': 'from-green-500 to-green-600',
+  '考试运': 'from-purple-500 to-purple-600',
+  '官司诉讼': 'from-indigo-500 to-indigo-600',
+  '旅行出行': 'from-cyan-500 to-cyan-600',
+  '求子育儿': 'from-amber-500 to-amber-600',
+  '置业投资': 'from-emerald-500 to-emerald-600',
+  '买房置业': 'from-stone-500 to-stone-600',
+  '风水运势': 'from-violet-500 to-violet-600',
+  '寻物失物': 'from-lime-500 to-lime-600',
+  '综合运途': 'from-fuchsia-500 to-fuchsia-600'
 }
 
 const levelColors = {
@@ -291,11 +326,11 @@ export default function Fortune() {
 
           {/* Select Category State */}
           {state === 'select' && (
-            <div className="max-w-4xl mx-auto fortune-fade-in">
+            <div className="max-w-6xl mx-auto fortune-fade-in">
               <Card className="p-8">
                 <Heading level={2} className="mb-6 text-center">请选择求签类别</Heading>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-6">
                   {categories.map((category) => (
                     <button
                       key={category}
@@ -304,12 +339,12 @@ export default function Fortune() {
                       disabled={loading}
                       aria-label={`求签类别：${category}`}
                       aria-disabled={loading}
-                      className="flex flex-col items-center p-6 bg-white rounded-xl border-2 border-gray-200 hover:border-brand-primary-500 hover:bg-brand-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary-500 transition-all duration-200 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed"
+                      className={`flex flex-col items-center p-4 rounded-xl border-2 border-gray-200 hover:border-transparent hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary-500 transition-all duration-200 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-br ${categoryGradients[category]} hover:opacity-90`}
                     >
-                      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-200">
+                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">
                         {categoryIcons[category]}
                       </div>
-                      <Text weight="semibold" className="text-gray-900">
+                      <Text weight="semibold" className="text-white text-center text-xs md:text-sm">
                         {category}
                       </Text>
                     </button>

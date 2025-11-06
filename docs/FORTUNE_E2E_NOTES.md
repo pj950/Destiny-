@@ -26,13 +26,14 @@ The Daily Fortune feature allows users to draw daily fortune sticks with AI-powe
 ### 2. Category Selection
 
 **Test Case: Select each category**
-- User clicks on each of the 5 category buttons (事业, 财富, 感情, 健康, 学业)
+- User clicks on each of the 15 category buttons (事业运, 财富运, 感情运, 婚姻运, 家庭运, 健康运, 考试运, 官司诉讼, 旅行出行, 求子育儿, 置业投资, 买房置业, 风水运势, 寻物失物, 综合运途)
 - Expected behavior:
   - Button receives focus outline on keyboard navigation
   - Icon scales up on hover (transform animation)
   - Cursor changes to pointer on hover
   - State transitions to 'shake' when clicked
   - Corresponding aria-label announces "求签类别：[category]"
+  - Each category has its own gradient color and icon
 
 **Test Case: Category buttons are keyboard accessible**
 - User tabs through category buttons and presses Enter
