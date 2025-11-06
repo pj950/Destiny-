@@ -19,7 +19,7 @@ export default async function handler(
 
     const { data: lamps, error } = await supabaseService
       .from('lamps')
-      .select('lamp_key, status')
+      .select('lamp_key, status, updated_at')
       .order('lamp_key', { ascending: true })
 
     if (error) {
@@ -34,7 +34,14 @@ export default async function handler(
 
     console.log(`[Lamp Status] Retrieved ${lamps.length} lamp statuses`)
     
-    return res.status(200).json(lamps as LampStatus[])
+    // Map updated_at to last_updated for consistency
+    const formattedLamps = lamps.map(lamp => ({
+      lamp_key: lamp.lamp_key,
+      status: lamp.status,
+      last_updated: lamp.updated_at
+    }))
+    
+    return res.status(200).json(formattedLamps as LampStatus[])
 
   } catch (error: any) {
     console.error('[Lamp Status] Unexpected error:', error)
