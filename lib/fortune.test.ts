@@ -13,7 +13,7 @@ const mockFortuneResponse = {
   alreadyDrawn: false,
   fortune: {
     id: 'test-uuid',
-    category: '事业',
+    category: '事业运',
     stick_id: 15,
     stick_text: '事业有成，步步高升',
     stick_level: '上上',
@@ -83,22 +83,22 @@ describe('Fortune Feature', () => {
 
   describe('Category Validation', () => {
     it('should validate fortune categories', () => {
-      const validCategories = ['事业', '财富', '感情', '健康', '学业']
+      const validCategories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
       validCategories.forEach(category => {
         expect(typeof category).toBe('string')
         expect(category.trim().length).toBeGreaterThan(0)
       })
     })
 
-    it('should have exactly 5 categories', () => {
-      const validCategories = ['事业', '财富', '感情', '健康', '学业']
-      expect(validCategories.length).toBe(5)
+    it('should have exactly 15 categories', () => {
+      const validCategories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
+      expect(validCategories.length).toBe(15)
     })
 
     it('should reject invalid categories', () => {
-      const validCategories = ['事业', '财富', '感情', '健康', '学业']
-      const invalidCategories = ['无效', '不存在', '']
-      
+      const validCategories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
+      const invalidCategories = ['无效', '不存在', '', '事业', '财富']
+
       invalidCategories.forEach(category => {
         expect(validCategories).not.toContain(category)
       })
@@ -107,18 +107,18 @@ describe('Fortune Feature', () => {
 
   describe('Category Selection Flow', () => {
     it('should handle category selection state', () => {
-      const category = '事业'
-      const validCategories = ['事业', '财富', '感情', '健康', '学业']
-      
+      const category = '事业运'
+      const validCategories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
+
       expect(validCategories).toContain(category)
     })
 
-    it('should support all category types for state transition', () => {
-      const categories = ['事业', '财富', '感情', '健康', '学业']
+    it('should support all 15 category types for state transition', () => {
+      const categories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
       const stateTransition = (category: string) => {
         return { selected: category, state: 'shake' }
       }
-      
+
       categories.forEach(cat => {
         const result = stateTransition(cat)
         expect(result.selected).toBe(cat)
@@ -190,7 +190,7 @@ describe('Fortune Feature', () => {
     it('should parse fortune response correctly', () => {
       const { fortune } = mockFortuneResponse
       expect(fortune.id).toBeTruthy()
-      expect(fortune.category).toBe('事业')
+      expect(fortune.category).toBe('事业运')
       expect(fortune.stick_id).toBeGreaterThan(0)
       expect(fortune.stick_level).toBe('上上')
     })
@@ -198,7 +198,7 @@ describe('Fortune Feature', () => {
 
   describe('AI Analysis Prompt', () => {
     it('should generate proper analysis prompt', () => {
-      const category = '事业'
+      const category = '事业运'
       const stickText = '龙凤呈祥，万事亨通'
       const stickLevel = '上上'
       
@@ -228,14 +228,14 @@ describe('Fortune Feature', () => {
     })
 
     it('should generate unique prompts for different categories', () => {
-      const getPrompt = (category: string) => 
+      const getPrompt = (category: string) =>
         `针对${category}方面提供实用的建议`
-      
-      const prompt1 = getPrompt('事业')
-      const prompt2 = getPrompt('财富')
-      
-      expect(prompt1).toContain('事业')
-      expect(prompt2).toContain('财富')
+
+      const prompt1 = getPrompt('事业运')
+      const prompt2 = getPrompt('财富运')
+
+      expect(prompt1).toContain('事业运')
+      expect(prompt2).toContain('财富运')
       expect(prompt1).not.toBe(prompt2)
     })
   })
@@ -273,7 +273,7 @@ describe('Fortune Feature', () => {
     it('should handle cache operations', () => {
       const mockFortune = {
         id: 'test-id',
-        category: '事业',
+        category: '事业运',
         stick_id: 1,
         stick_text: '龙凤呈祥，万事亨通',
         stick_level: '上上',
@@ -302,7 +302,7 @@ describe('Fortune Feature', () => {
     it('should clear cache on date mismatch', () => {
       const STORAGE_KEY = 'daily_fortune_cache_v1'
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      const mockFortune = { id: 'test', category: '事业', stick_id: 1, stick_text: '龙凤呈祥', stick_level: '上上', ai_analysis: null, created_at: '2024-11-05T00:00:00Z' }
+      const mockFortune = { id: 'test', category: '事业运', stick_id: 1, stick_text: '龙凤呈祥', stick_level: '上上', ai_analysis: null, created_at: '2024-11-05T00:00:00Z' }
       const cacheData = { date: yesterday, fortune: mockFortune }
 
       localStorage.getItem.mockReturnValue(JSON.stringify(cacheData))
@@ -365,18 +365,18 @@ describe('Fortune Feature', () => {
         fallen: '签文已出，正在为您解读...',
         result: '结果已生成'
       }
-      
+
       expect(statusMessages.select).toBeTruthy()
       expect(statusMessages.shake).toBeTruthy()
       expect(statusMessages.fallen).toBeTruthy()
       expect(statusMessages.result).toBeTruthy()
     })
 
-    it('should provide aria-labels for interactive elements', () => {
-      const categories = ['事业', '财富', '感情', '健康', '学业']
+    it('should provide aria-labels for all 15 categories', () => {
+      const categories = ['事业运', '财富运', '感情运', '婚姻运', '家庭运', '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿', '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途']
       const ariaLabels = categories.map(cat => `求签类别：${cat}`)
-      
-      expect(ariaLabels.length).toBe(5)
+
+      expect(ariaLabels.length).toBe(15)
       ariaLabels.forEach(label => {
         expect(label).toContain('求签类别')
       })
