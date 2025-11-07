@@ -1,23 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
-// import Stripe from 'stripe' // TODO: Migrate to Razorpay in follow-up ticket
+import { razorpayHelpers } from '../../../lib/razorpay'
 
-// TODO: Replace with Razorpay implementation in follow-up ticket
 // Guard: Check for required environment variables
-// if (!process.env.STRIPE_SECRET_KEY) {
-//   throw new Error('STRIPE_SECRET_KEY environment variable is not configured. Please set it in your .env.local file.')
-// }
+if (!process.env.NEXT_PUBLIC_SITE_URL) {
+  throw new Error('NEXT_PUBLIC_SITE_URL environment variable is not configured. Please set it in your .env.local file.')
+}
 
-// if (!process.env.NEXT_PUBLIC_SITE_URL) {
-//   throw new Error('NEXT_PUBLIC_SITE_URL environment variable is not configured. Please set it in your .env.local file.')
-// }
-
-// const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2024-06-20') as Stripe.LatestApiVersion
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { 
-//   apiVersion: stripeApiVersion 
-// })
-
-const LAMP_PRICE = 1990 // $19.90 in cents
+const LAMP_PRICE = 1990 // $19.90 in cents, will be converted to INR or as per Razorpay currency
 const VALID_LAMP_KEYS = ['p1', 'p2', 'p3', 'p4']
 
 interface CheckoutRequest {
@@ -48,12 +38,12 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid lamp_key. Must be one of: p1, p2, p3, p4' })
     }
 
-    console.log(`[Lamp Checkout] Creating checkout session for lamp: ${lamp_key}`)
+    console.log(`[Lamp Checkout] Creating Razorpay payment link for lamp: ${lamp_key}`)
 
     // Check lamp availability
     const { data: lamp, error: lampError } = await supabaseService
       .from('lamps')
-      .select('id, status, checkout_session_id')
+      .select('id, status, razorpay_payment_link_id, checkout_session_id')
       .eq('lamp_key', lamp_key)
       .single()
 
@@ -67,76 +57,67 @@ export default async function handler(
       return res.status(400).json({ error: 'This lamp has already been lit' })
     }
 
-    // Check if there's an existing uncompleted checkout session
-    if (lamp.checkout_session_id) {
+    // Check if there's an existing uncompleted Razorpay payment link
+    if (lamp.razorpay_payment_link_id) {
       try {
-        // TODO: Replace with Razorpay implementation in follow-up ticket
-        // const existingSession = await stripe.checkout.sessions.retrieve(lamp.checkout_session_id)
-        // if (existingSession.status === 'open') {
-        //   console.log(`[Lamp Checkout] Returning existing open session for lamp ${lamp_key}`)
-        //   return res.status(200).json({ url: existingSession.url! })
-        // }
-        console.log(`[Lamp Checkout] TODO: Implement Razorpay session retrieval for lamp ${lamp_key}`)
+        const existingLink = await razorpayHelpers.fetchPaymentLink(lamp.razorpay_payment_link_id)
+        if (existingLink && existingLink.status === 'created') {
+          console.log(`[Lamp Checkout] Returning existing payable link for lamp ${lamp_key}`)
+          return res.status(200).json({ url: existingLink.short_url! })
+        }
       } catch (error) {
-        console.log(`[Lamp Checkout] Could not retrieve existing session, creating new one for lamp ${lamp_key}`)
+        console.log(`[Lamp Checkout] Could not retrieve existing payment link, creating new one for lamp ${lamp_key}`)
       }
     }
 
-    // TODO: Replace with Razorpay implementation in follow-up ticket
-    // Create Stripe Checkout session
-    // const session = await stripe.checkout.sessions.create({
-    //   payment_method_types: ['card'],
-    //   line_items: [
-    //     {
-    //       price_data: {
-    //         currency: 'usd',
-    //         product_data: {
-    //           name: `祈福点灯 - ${lamp_key.toUpperCase()}`,
-    //           description: `点亮祈福灯 ${lamp_key.toUpperCase()}，为您祈求福运安康`,
-    //           images: [`${process.env.NEXT_PUBLIC_SITE_URL}/images/${lamp_key}.jpg`],
-    //         },
-    //         unit_amount: LAMP_PRICE,
-    //       },
-    //       quantity: 1,
-    //     },
-    //   ],
-    //   mode: 'payment',
-    //   success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/lamps?session_id={CHECKOUT_SESSION_ID}`,
-    //   cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/lamps`,
-    //   metadata: {
-    //     lamp_key,
-    //     type: 'lamp_purchase'
-    //   },
-    //   expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes
-    // })
+    // Create Razorpay payment link
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    const paymentLink = await razorpayHelpers.createPaymentLink({
+      amount: LAMP_PRICE, // Amount in smallest unit (cents for USD)
+      currency: 'USD',
+      description: `祈福点灯 - ${lamp_key.toUpperCase()}`,
+      notes: {
+        lamp_key,
+        purchase_type: 'lamp_purchase',
+      },
+      callback_url: `${siteUrl}/lamps`,
+      callback_method: 'get',
+      reference_id: lamp.id,
+      expire_by: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes
+    })
 
-    // Temporary placeholder for build to succeed
-    console.log(`[Lamp Checkout] TODO: Implement Razorpay payment link creation for lamp ${lamp_key}`)
-    return res.status(501).json({ error: 'Payment integration temporarily disabled during Razorpay migration' })
+    console.log(`[Lamp Checkout] Created payment link ${paymentLink.id} for lamp ${lamp_key}`)
 
-    // TODO: Replace with Razorpay implementation in follow-up ticket
-    // console.log(`[Lamp Checkout] Created checkout session ${session.id} for lamp ${lamp_key}`)
+    // Update lamp with payment link ID
+    const { error: updateError } = await supabaseService
+      .from('lamps')
+      .update({
+        razorpay_payment_link_id: paymentLink.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('lamp_key', lamp_key)
 
-    // // Update lamp with checkout session ID
-    // const { error: updateError } = await supabaseService
-    //   .from('lamps')
-    //   .update({
-    //     checkout_session_id: session.id,
-    //     updated_at: new Date().toISOString()
-    //   })
-    //   .eq('lamp_key', lamp_key)
+    if (updateError) {
+      console.error(`[Lamp Checkout] Error updating lamp ${lamp_key} with payment link ID:`, updateError)
+      // Don't fail the request, but log the error
+    }
 
-    // if (updateError) {
-    //   console.error(`[Lamp Checkout] Error updating lamp ${lamp_key} with session ID:`, updateError)
-    //   // Don't fail the request, but log the error
-    // }
-
-    // return res.status(200).json({ url: session.url! })
+    return res.status(200).json({ url: paymentLink.short_url! })
 
   } catch (error: any) {
     console.error('[Lamp Checkout] Unexpected error:', error)
-    return res.status(500).json({ 
-      error: error.message || 'An unexpected error occurred while creating checkout session' 
-    })
+    
+    // Handle Razorpay-specific error codes
+    let errorMessage = error.message || 'An unexpected error occurred while creating payment link'
+    
+    if (error.statusCode === 400) {
+      errorMessage = 'Invalid payment parameters. Please try again.'
+    } else if (error.statusCode === 401 || error.statusCode === 403) {
+      errorMessage = 'Payment service authentication failed. Please contact support.'
+    } else if (error.statusCode === 429) {
+      errorMessage = 'Too many requests. Please try again in a moment.'
+    }
+    
+    return res.status(500).json({ error: errorMessage })
   }
 }

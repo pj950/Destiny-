@@ -54,17 +54,20 @@ export default function LampsPage() {
     return () => performanceMonitor.current.stopMonitoring()
   }, [])
 
-  // Fetch lamp statuses on mount and when returning from Stripe
+  // Fetch lamp statuses on mount and when returning from payment gateway
   useEffect(() => {
     fetchLampStatuses()
   }, [])
 
-  // Check for session_id in URL query params (return from Stripe)
+  // Check for Razorpay callback parameters in URL query params (return from Razorpay)
   useEffect(() => {
-    if (router.isReady && router.query.session_id) {
-      // User returned from Stripe, refresh statuses
-      fetchLampStatuses()
-      toast.success('支付成功', '祈福灯已点亮')
+    if (router.isReady) {
+      const { razorpay_payment_id, razorpay_payment_link_id, session_id } = router.query
+      if (razorpay_payment_id || razorpay_payment_link_id || session_id) {
+        // User returned from payment gateway (Razorpay or legacy Stripe)
+        // Attempt to confirm the payment first, then refresh statuses
+        confirmPaymentAndRefresh(razorpay_payment_id as string | undefined, razorpay_payment_link_id as string | undefined)
+      }
     }
   }, [router.isReady, router.query])
 
@@ -154,6 +157,40 @@ export default function LampsPage() {
       setLoading(false)
     }
   }, [])
+
+  const confirmPaymentAndRefresh = useCallback(async (razorpayPaymentId?: string, razorpayPaymentLinkId?: string) => {
+    try {
+      // If we have payment confirmation params, confirm the payment
+      if (razorpayPaymentLinkId || razorpayPaymentId) {
+        const response = await fetch('/api/lamps/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            razorpay_payment_link_id: razorpayPaymentLinkId,
+            razorpay_payment_id: razorpayPaymentId,
+          }),
+        })
+
+        if (!response.ok) {
+          console.warn('[Lamps] Payment confirmation failed, will try to refresh from cache')
+        }
+      }
+      
+      // Refresh all lamp statuses after a small delay to allow backend to process
+      setTimeout(() => {
+        fetchLampStatuses()
+        toast.success('支付成功', '祈福灯已点亮')
+      }, 500)
+    } catch (error: any) {
+      console.error('[Lamps] Error confirming payment:', error)
+      // Still try to refresh even if confirmation fails
+      setTimeout(() => {
+        fetchLampStatuses()
+      }, 500)
+    }
+  }, [fetchLampStatuses])
 
   const handleBuyLamp = useCallback(async (lampKey: string) => {
     if (lampStates[lampKey] === 'purchasing') return
@@ -402,11 +439,11 @@ export default function LampsPage() {
                   <p className="text-sm text-gray-600">选择您想要点亮的祈福灯，每盏灯都有特殊的寓意</p>
                 </div>
                 <div>
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <span className="text-orange-600 font-bold">2</span>
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">完成支付</h3>
-                  <p className="text-sm text-gray-600">通过安全的Stripe支付系统完成购买</p>
+                  <p className="text-sm text-gray-600">通过安全的支付系统完成购买</p>
                 </div>
                 <div>
                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
