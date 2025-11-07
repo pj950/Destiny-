@@ -11,7 +11,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [x] `next-env.d.ts` generated
   - [x] `styles/globals.css` with Tailwind directives
 - [x] Create base configuration files
-  - [x] `package.json` with all dependencies (Next.js, TypeScript, Tailwind, Supabase, OpenAI, Stripe, etc.)
+  - [x] `package.json` with all dependencies (Next.js, TypeScript, Tailwind, Supabase, Google AI, Razorpay, etc.)
   - [x] `tsconfig.json` with strict mode enabled
   - [x] `next.config.js` for Next.js configuration
   - [x] `tailwind.config.js` with default configuration
@@ -71,8 +71,8 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 ### Implemented Routes
 - [x] `pages/api/profiles.ts` — Create user profiles (uses `supabaseService`)
 - [x] `pages/api/charts/compute.ts` — Compute BaZi charts
-- [x] `pages/api/ai/interpret.ts` — Generate AI interpretations via OpenAI
-- [x] `pages/api/reports/generate.ts` — Create Stripe checkout session for report purchase
+- [x] `pages/api/ai/interpret.ts` — Generate AI interpretations via Google Gemini
+- [x] `pages/api/reports/generate.ts` — Create Razorpay checkout session for report purchase
 - [x] `pages/api/jobs/[id].ts` — Retrieve job status by ID
 
 ### Missing Routes
@@ -81,7 +81,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - Should return list of charts for a user/profile
 
 ### Future Routes (Post-MVP)
-- [ ] `pages/api/stripe/webhook.ts` — Handle Stripe webhook events for payment confirmation
+- [ ] `pages/api/razorpay/webhook.ts` — Handle Razorpay webhook events for payment confirmation
 
 ---
 
@@ -121,7 +121,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [x] Step-by-step Supabase SQL/RLS/storage setup
   - [x] Worker deployment options (cron jobs, serverless, Railway, etc.)
   - [x] Production environment variable checklist
-  - [x] Stripe webhook configuration notes
+  - [x] Razorpay webhook configuration notes
 
 ### Type Definitions
 - [x] `types/` directory — TypeScript type definitions (if applicable)
@@ -134,7 +134,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [ ] Test profile creation flow (`pages/index.tsx` → `pages/api/profiles.ts`)
   - [ ] Test chart computation (`pages/compute.tsx` → `pages/api/charts/compute.ts`)
   - [ ] Test AI interpretation (`pages/api/ai/interpret.ts`)
-  - [ ] Test Stripe checkout flow (`pages/api/reports/generate.ts`)
+  - [ ] Test Razorpay checkout flow (`pages/api/reports/generate.ts`)
   - [ ] Test job status endpoint (`pages/api/jobs/[id].ts`)
   - [ ] Test worker processing (`worker/worker.ts`)
   - [ ] Test dashboard displays charts (`pages/dashboard.tsx`)
@@ -142,7 +142,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 - [ ] Environment verification
   - [ ] All environment variables in `.env.example` are documented
   - [ ] Service role key is never exposed to client-side code
-  - [ ] Stripe API version configuration works correctly
+  - [ ] Razorpay webhook configuration is correct
 
 - [ ] Cross-browser testing
   - [ ] Test in Chrome, Firefox, Safari
@@ -159,9 +159,9 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [ ] Service role key secured (server-side only)
 
 - [ ] Third-party integrations
-  - [ ] OpenAI API key configured and tested
-  - [ ] Stripe API key configured and tested
-  - [ ] Stripe API version set (defaults to `2024-06-20`)
+   - [ ] Google AI API key configured and tested
+   - [ ] Razorpay API key configured and tested
+   - [ ] Razorpay webhook secret configured
 
 - [ ] Deployment
   - [ ] Next.js app deployed to Vercel (or hosting platform)
@@ -196,10 +196,10 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - Pass bearer tokens in API requests
   - Update API routes to verify authentication
 
-- [ ] **Stripe webhook handler** (`/api/stripe/webhook`)
-  - Handle `checkout.session.completed` events
-  - Automatically create jobs upon successful payment
-  - Verify webhook signatures for security
+- [ ] **Razorpay webhook handler** (`/api/razorpay/webhook`)
+   - Handle `payment.captured` events
+   - Automatically create jobs upon successful payment
+   - Verify webhook signatures for security
 
 ### Medium Priority
 - [ ] Comprehensive error handling
@@ -262,7 +262,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 - **Package Manager**: Use `pnpm` for consistency (falls back to `npm` if unavailable)
 - **TypeScript**: Strict mode enabled — all code must be fully typed
 - **Service Role**: `supabaseService` client used in API routes only, never exposed to client
-- **Stripe API Version**: Configurable via `STRIPE_API_VERSION` env var (default: `2024-06-20`)
+- **Razorpay Integration**: Webhook secret validated, payment link creation for reports and lamps
 
 ---
 

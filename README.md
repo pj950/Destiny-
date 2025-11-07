@@ -9,7 +9,7 @@ Eastern Destiny is a lightweight MVP project that provides Chinese BaZi (八字)
 This application allows users to:
 - Input birth information (date, time, timezone) to generate BaZi charts
 - Receive AI-powered interpretations of their charts
-- Purchase detailed fortune reports via Stripe
+- Purchase detailed fortune reports via Razorpay
 - View and manage their generated charts
 
 ## Table of Contents
@@ -42,7 +42,7 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using Google Gemini 2.5 Pro
 - 🎲 **Daily Fortune** - Draw one fortune stick per day with AI-powered interpretations
 - 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
-- 💳 **Stripe Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
+- 💳 **Razorpay Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
 - 📱 **Modern UI** - Responsive design with Tailwind CSS and custom design system
 - 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL database
@@ -149,7 +149,7 @@ The homepage features a beautiful hero section with a prominent call-to-action f
 
 ![Pricing page showing different subscription tiers](./public/images/pricing%20page.png)
 
-The pricing page displays three tiers: **Basic** (free trial), **Professional** (¥199 one-time), and **Master** (¥599/year subscription). Each tier clearly shows included features such as BaZi chart computation, AI interpretations, and detailed reports. The Professional tier is highlighted as the most popular option. Users can purchase detailed fortune reports securely via Stripe.
+The pricing page displays three tiers: **Basic** (free trial), **Professional** (¥199 one-time), and **Master** (¥599/year subscription). Each tier clearly shows included features such as BaZi chart computation, AI interpretations, and detailed reports. The Professional tier is highlighted as the most popular option. Users can purchase detailed fortune reports securely via Razorpay.
 
 ### 🔮 Divination Tools Page ([/tools](http://localhost:3000/tools))
 
@@ -159,9 +159,9 @@ The tools page provides a comprehensive overview of all available divination too
 
 ### 🏮 Prayer Lamps Page ([/lamps](http://localhost:3000/lamps))
 
-The Prayer Lamps (祈福点灯) feature allows users to purchase and light virtual prayer lamps for blessings and good fortune. Each lamp costs $19.90 and features beautiful lighting effects when purchased. The page displays four unique lamps (福运灯, 安康灯, 财源灯, 事业灯) with glowing animations and persistent state. Users can securely purchase lamps via Stripe checkout, and the lit status is saved in the database.
+The Prayer Lamps (祈福点灯) feature allows users to purchase and light virtual prayer lamps for blessings and good fortune. Each lamp costs $19.90 and features beautiful lighting effects when purchased. The page displays four unique lamps (福运灯, 安康灯, 财源灯, 事业灯) with glowing animations and persistent state. Users can securely purchase lamps via Razorpay checkout, and the lit status is saved in the database.
 
-**Note**: For demo purposes, Stripe should be in test mode. Use test card numbers provided by Stripe for testing the purchase flow.
+**Note**: For demo purposes, Razorpay should be in test mode. Use test payment methods provided by Razorpay for testing the purchase flow.
 
 ### Navigation Overview
 
@@ -191,7 +191,7 @@ The application follows a simple navigation structure:
 - **Styling**: Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
 - **AI**: Google Gemini 2.5 Pro
-- **Payments**: Stripe
+- **Payments**: Razorpay
 - **Package Manager**: pnpm (recommended) or npm
 
 ## Prerequisites
@@ -201,7 +201,7 @@ Before you begin, ensure you have the following:
 - **Node.js** 18+ and **pnpm** (or npm)
 - **Supabase** account and project
 - **Google AI Studio** account (for Gemini API key)
-- **Stripe** account (for payment processing)
+- **Razorpay** account (for payment processing)
 
 ## Quick Start
 
@@ -231,9 +231,9 @@ Required environment variables:
 | `GOOGLE_API_KEY` | Google AI API key for Gemini interpretations | `AIzaSy...` |
 | `GEMINI_MODEL_SUMMARY` | Gemini model for chart summaries (optional, defaults to gemini-2.5-pro) | `gemini-2.5-pro` or `gemini-2.5-flash` |
 | `GEMINI_MODEL_REPORT` | Gemini model for detailed reports (optional, defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
-| `STRIPE_SECRET_KEY` | Stripe secret key for payments (use test keys in development) | `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret used to verify webhooks | `whsec_...` |
-| `STRIPE_API_VERSION` | Stripe API version (optional, defaults to 2024-06-20) | `2024-06-20` |
+| `RAZORPAY_KEY_ID` | Razorpay key ID for payments (use test keys in development) | `rzp_test_...` |
+| `RAZORPAY_KEY_SECRET` | Razorpay key secret for payments (use test keys in development) | `rzp_test_...` |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook secret used to verify webhooks | `whsec_...` |
 | `NEXT_PUBLIC_SITE_URL` | Your site URL for redirects | `http://localhost:3000` |
 
 **Security Note**: The `SUPABASE_SERVICE_ROLE_KEY` is used only in API routes (server-side) and never exposed to the client. All server-side database writes use the service role client (`supabaseService`) to bypass RLS policies in this MVP.
@@ -410,10 +410,10 @@ pnpm start
 ## Environment Setup
 
 - Copy the sample env file and fill values: `cp .env.example .env.local`
-- Required keys: Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY), Google AI (GOOGLE_API_KEY, optional GEMINI_MODEL_SUMMARY/GEMINI_MODEL_REPORT), Stripe (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, optional STRIPE_API_VERSION), and NEXT_PUBLIC_SITE_URL
+- Required keys: Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY), Google AI (GOOGLE_API_KEY, optional GEMINI_MODEL_SUMMARY/GEMINI_MODEL_REPORT), Razorpay (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET), and NEXT_PUBLIC_SITE_URL
 - See the detailed guides below:
   - [Supabase Setup](#supabase-setup)
-  - [Stripe Configuration](#stripe-configuration)
+  - [Razorpay Configuration](#razorpay-configuration)
   - [Google AI Setup](#google-ai-setup)
 - The background worker uses the same `.env.local` file when run with `pnpm worker`
 
@@ -445,7 +445,7 @@ pnpm start
 │       ├── fortune/draw.ts      # Draw daily fortune
 │       ├── my/charts.ts          # List recent charts
 │       ├── my/jobs.ts            # List recent jobs
-│       ├── stripe/webhook.ts     # Stripe webhook handler
+│       ├── razorpay/webhook.ts   # Razorpay webhook handler
 │       └── jobs/[id].ts          # Job status endpoint
 ├── styles/
 │   └── globals.css     # Global styles with Tailwind directives
@@ -477,7 +477,7 @@ See [docs/bazi-algorithm.md](docs/bazi-algorithm.md) for detailed algorithm docu
 Uses Google's Gemini 2.5 Pro model (configurable via `GEMINI_MODEL_SUMMARY`) to generate short interpretations (150-200 characters) of BaZi charts. Premium reports use the same model (configurable via `GEMINI_MODEL_REPORT`) for longer, more detailed analysis.
 
 ### Payment Processing
-Stripe Checkout integration for purchasing detailed fortune reports. After successful payment, a job is created in the database for async processing by the worker. The Stripe API version is configurable via `STRIPE_API_VERSION` (defaults to 2024-06-20).
+Razorpay Checkout integration for purchasing detailed fortune reports. After successful payment, a job is created in the database for async processing by the worker.
 
 ### Background Jobs
 The `worker/worker.ts` script polls the `jobs` table for pending report generation tasks and processes them asynchronously.
@@ -491,8 +491,8 @@ Key routes:
 - GET `/api/my/jobs` — List recent jobs (optional filter by chart_id)
 - GET `/api/jobs/[id]` — Get single job by ID
 - POST `/api/ai/interpret` — Generate AI summary and store it
-- POST `/api/reports/generate` — Create Stripe Checkout session
-- POST `/api/stripe/webhook` — Stripe webhook (server-to-server, signature verified)
+- POST `/api/reports/generate` — Create Razorpay Checkout session
+- POST `/api/razorpay/webhook` — Razorpay webhook (server-to-server, signature verified)
 - GET `/api/fortune/today` — Check if user has drawn fortune today
 - POST `/api/fortune/draw` — Draw daily fortune stick with AI interpretation
 
@@ -591,7 +591,7 @@ Generate AI interpretation for a chart.
 ```
 
 ### POST `/api/reports/generate`
-Create a Stripe checkout session for purchasing a detailed report.
+Create a Razorpay checkout session for purchasing a detailed report.
 
 **Request body:**
 ```json
@@ -604,7 +604,7 @@ Create a Stripe checkout session for purchasing a detailed report.
 ```json
 {
   "ok": true,
-  "url": "https://checkout.stripe.com/..."
+  "url": "https://rzp.io/rzp/..."
 }
 ```
 
@@ -633,7 +633,7 @@ curl "http://localhost:3000/api/my/jobs?chart_id=uuid-here&limit=10"
       "job_type": "deep_report",
       "status": "pending",
       "result_url": null,
-      "metadata": { "checkout_session_id": "cs_test_..." },
+      "metadata": { "razorpay_payment_link_id": "plink_..." },
       "created_at": "2024-01-15T08:30:00Z",
       "updated_at": "2024-01-15T08:40:00Z"
     }
@@ -649,8 +649,8 @@ Get a single job by ID with status and result URL (if available).
 curl "http://localhost:3000/api/jobs/uuid-here"
 ```
 
-### POST `/api/stripe/webhook`
-Stripe webhook handler for `checkout.session.completed` events. Validates signature using `STRIPE_WEBHOOK_SECRET` and creates/updates jobs idempotently. This is a server-to-server endpoint triggered by Stripe; do not call it from the browser.
+### POST `/api/razorpay/webhook`
+Razorpay webhook handler for `payment.captured` events. Validates signature using `RAZORPAY_WEBHOOK_SECRET` and creates/updates jobs idempotently. This is a server-to-server endpoint triggered by Razorpay; do not call it from the browser.
 
 ### GET `/api/lamps/status`
 Retrieve current status of all prayer lamps.
@@ -678,7 +678,7 @@ Retrieve current status of all prayer lamps.
 ```
 
 ### POST `/api/lamps/checkout`
-Create a Stripe checkout session for purchasing a prayer lamp.
+Create a Razorpay checkout session for purchasing a prayer lamp.
 
 **Request body:**
 ```json
@@ -690,7 +690,7 @@ Create a Stripe checkout session for purchasing a prayer lamp.
 **Response:**
 ```json
 {
-  "url": "https://checkout.stripe.com/pay/cs_test_..."
+  "url": "https://rzp.io/rzp/..."
 }
 ```
 
@@ -827,13 +827,13 @@ For high-volume usage:
 3. Create a storage bucket named `reports` with public access
 4. Copy your project URL and API keys to your environment variables
 
-### Stripe Configuration
+### Razorpay Configuration
 
-1. Create a Stripe account at [stripe.com](https://stripe.com)
-2. Get your API keys from the Stripe dashboard
-3. **Important**: Use test keys (`sk_test_...`) in development, not live keys
-4. Configure a webhook endpoint pointing to `/api/stripe/webhook` and set `STRIPE_WEBHOOK_SECRET` (use Stripe CLI locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`)
-5. Optionally set `STRIPE_API_VERSION` in environment variables (defaults to 2024-06-20)
+1. Create a Razorpay account at [razorpay.com](https://razorpay.com)
+2. Get your API keys from the Razorpay dashboard
+3. **Important**: Use test keys (`rzp_test_...`) in development, not live keys
+4. Configure a webhook endpoint pointing to `/api/razorpay/webhook` and set `RAZORPAY_WEBHOOK_SECRET` (use Razorpay webhook testing tools locally)
+5. Test mode uses Indian Rupees (INR) by default - configure currency settings as needed
 
 ### OpenAI Setup
 
@@ -855,7 +855,7 @@ This is an MVP (Minimum Viable Product) with the following known limitations:
 - Covered by unit tests in `lib/bazi.test.ts`; still an MVP and not a substitute for professional reading
 
 ### Payment Flow
-- Stripe webhook handler implemented at `/api/stripe/webhook` with signature verification and idempotent updates
+- Razorpay webhook handler implemented at `/api/razorpay/webhook` with signature verification and idempotent updates
 - Jobs are created at checkout and also ensured by the webhook; idempotent updates prevent duplicate processing
 
 ### Error Handling
@@ -955,7 +955,7 @@ This is an MVP project. For production use, consider:
 - Implementing proper authentication (Supabase Auth)
 - Adding comprehensive RLS policies
 - Replacing placeholder BaZi logic with accurate calculations
-- Adding Stripe webhook handlers
+- Adding Razorpay webhook handlers
 - Implementing proper error handling and logging
 - Adding tests (unit, integration, e2e)
 - Setting up monitoring and analytics
@@ -969,5 +969,5 @@ Private project - all rights reserved.
 For issues or questions, please check:
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Supabase Documentation](https://supabase.com/docs)
-- [Stripe Documentation](https://stripe.com/docs)
-- [OpenAI Documentation](https://platform.openai.com/docs)
+- [Razorpay Documentation](https://razorpay.com/docs)
+- [Google AI Documentation](https://ai.google.dev/docs)

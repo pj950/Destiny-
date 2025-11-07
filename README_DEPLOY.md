@@ -12,7 +12,7 @@ This document provides step-by-step instructions for deploying the Eastern Desti
 4. [Environment Variables](#4-environment-variables)
 5. [Deploy Next.js Application](#5-deploy-nextjs-application)
 6. [Deploy Background Worker](#6-deploy-background-worker)
-7. [Stripe Configuration](#7-stripe-configuration)
+7. [Razorpay Configuration](#7-razorpay-configuration)
 8. [Testing Your Deployment](#8-testing-your-deployment)
 9. [Production Checklist](#9-production-checklist)
 10. [Troubleshooting](#10-troubleshooting)
@@ -386,10 +386,10 @@ GOOGLE_API_KEY=AIzaSy...
 GEMINI_MODEL_SUMMARY=gemini-2.5-pro # optional, for AI summaries
 GEMINI_MODEL_REPORT=gemini-2.5-pro # optional, for deep reports
 
-# Stripe
-STRIPE_SECRET_KEY=sk_test_... # or sk_live_... for production
-STRIPE_WEBHOOK_SECRET=whsec_... # from Stripe CLI or webhook endpoint settings
-STRIPE_API_VERSION=2024-06-20
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_... # or rzp_live_... for production
+RAZORPAY_KEY_SECRET=rzp_test_... # or rzp_live_... for production
+RAZORPAY_WEBHOOK_SECRET=whsec_... # from Razorpay webhook endpoint settings
 
 # Site URL
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
@@ -410,9 +410,9 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 | `GOOGLE_API_KEY` | Yes | Google AI API key for Gemini interpretations | `AIzaSy...` |
 | `GEMINI_MODEL_SUMMARY` | No | Gemini model for AI summaries (defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
 | `GEMINI_MODEL_REPORT` | No | Gemini model for deep report generation (defaults to gemini-2.5-pro) | `gemini-2.5-pro` |
-| `STRIPE_SECRET_KEY` | Yes | Stripe secret key for payments | `sk_test_...` or `sk_live_...` |
-| `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook signing secret for verifying webhook events | `whsec_...` |
-| `STRIPE_API_VERSION` | No | Stripe API version (defaults to 2024-06-20) | `2024-06-20` |
+| `RAZORPAY_KEY_ID` | Yes | Razorpay key ID for payments | `rzp_test_...` or `rzp_live_...` |
+| `RAZORPAY_KEY_SECRET` | Yes | Razorpay key secret for payments | `rzp_test_...` or `rzp_live_...` |
+| `RAZORPAY_WEBHOOK_SECRET` | Yes | Razorpay webhook signing secret for verifying webhook events | `whsec_...` |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Your site URL for redirects | `https://yourdomain.com` |
 
 ---
@@ -429,7 +429,7 @@ Before deploying to Vercel, ensure you have:
 - ✅ **API Keys Ready**: 
   - Supabase credentials (URL, anon key, service role key)
   - Google API key from Google AI Studio
-  - Stripe secret key and webhook secret
+  - Razorpay key ID, key secret, and webhook secret
 
 ### Step 5.1: Push Code to GitHub
 
@@ -472,8 +472,9 @@ This is the most critical step. Add all environment variables before deploying.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase anonymous/public key (from Supabase Settings > API) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGc...` | Production, Preview, Development | Supabase service role key - **KEEP SECRET** (from Supabase Settings > API) |
 | `GOOGLE_API_KEY` | `AIzaSy...` | Production, Preview, Development | Google AI API key for Gemini interpretations (from Google AI Studio) |
-| `STRIPE_SECRET_KEY` | `sk_test_...` or `sk_live_...` | Production, Preview, Development | Stripe secret key for payments (use `sk_test_` for testing) |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...` | Production, Preview, Development | Stripe webhook signing secret (see Step 5.6 below) |
+| `RAZORPAY_KEY_ID` | `rzp_test_...` or `rzp_live_...` | Production, Preview, Development | Razorpay key ID for payments (use `rzp_test_` for testing) |
+| `RAZORPAY_KEY_SECRET` | `rzp_test_...` or `rzp_live_...` | Production, Preview, Development | Razorpay key secret for payments (use `rzp_test_` for testing) |
+| `RAZORPAY_WEBHOOK_SECRET` | `whsec_...` | Production, Preview, Development | Razorpay webhook signing secret (see Step 7.3 below) |
 | `NEXT_PUBLIC_SITE_URL` | `https://your-app.vercel.app` | Production, Preview, Development | Your Vercel deployment URL (update after first deploy) |
 
 #### Optional Environment Variables (with defaults)
@@ -482,12 +483,11 @@ This is the most critical step. Add all environment variables before deploying.
 |---------------|---------------|-------------|-------------|
 | `GEMINI_MODEL_SUMMARY` | `gemini-2.5-pro` | Production, Preview, Development | Gemini model for AI interpretations (can also use gemini-2.5-flash for cost optimization) |
 | `GEMINI_MODEL_REPORT` | `gemini-2.5-pro` | Production, Preview, Development | Gemini model for deep report generation (higher quality) |
-| `STRIPE_API_VERSION` | `2024-06-20` | Production, Preview, Development | Stripe API version to use |
 
 **Important Notes**:
 - ⚠️ For each variable, select **Production**, **Preview**, and **Development** environments
-- ⚠️ Leave `STRIPE_WEBHOOK_SECRET` blank initially - you'll add it after deployment (Step 5.6)
-- ⚠️ Use `sk_test_` Stripe keys for Preview/Development, `sk_live_` for Production
+- ⚠️ Leave `RAZORPAY_WEBHOOK_SECRET` blank initially - you'll add it after deployment (Step 7.3)
+- ⚠️ Use `rzp_test_` Razorpay keys for Preview/Development, `rzp_live_` for Production
 - ⚠️ `NEXT_PUBLIC_SITE_URL` should be updated after first deployment with your actual Vercel URL
 
 ### Step 5.4: Deploy
@@ -517,44 +517,7 @@ After your first deployment:
    - Click **"..."** on latest deployment
    - Select **"Redeploy"**
 
-### Step 5.6: Configure Stripe Webhook
-
-The Stripe webhook is required for payment confirmation and report generation.
-
-#### Step 5.6.1: Add Webhook Endpoint in Stripe
-
-1. Go to [Stripe Dashboard](https://dashboard.stripe.com)
-2. Navigate to **Developers** > **Webhooks**
-3. Click **"Add endpoint"**
-4. Configure endpoint:
-   - **Endpoint URL**: `https://eastern-destiny.vercel.app/api/stripe/webhook` (use your actual Vercel URL)
-   - **Description**: `Eastern Destiny - Checkout completed`
-   - **Events to listen to**: Click **"Select events"**
-     - ✅ Check `checkout.session.completed`
-   - **API version**: Match your `STRIPE_API_VERSION` (e.g., `2024-06-20`)
-5. Click **"Add endpoint"**
-
-#### Step 5.6.2: Get Webhook Signing Secret
-
-1. After creating the endpoint, click on it to view details
-2. Reveal and copy the **Signing secret** (starts with `whsec_`)
-3. Go to your Vercel project: **Settings** > **Environment Variables**
-4. Update `STRIPE_WEBHOOK_SECRET`:
-   - Paste the signing secret as the value
-   - Select **Production**, **Preview**, and **Development**
-   - Click **"Save"**
-5. Redeploy your application (see Step 5.5)
-
-#### Step 5.6.3: Test Webhook (Optional)
-
-1. In Stripe Dashboard, go to **Developers** > **Webhooks**
-2. Click on your webhook endpoint
-3. Click **"Send test webhook"**
-4. Select `checkout.session.completed`
-5. Click **"Send test webhook"**
-6. Verify the webhook was received successfully (check response status)
-
-### Step 5.7: Post-Deployment Verification
+### Step 5.6: Post-Deployment Verification
 
 After deployment, verify everything is working:
 
@@ -588,7 +551,7 @@ After deployment, verify everything is working:
 #### Test 5: Pricing Page
 - Visit `/pricing` page
 - Verify pricing information displays correctly
-- Check Stripe integration (if clicking generate report button)
+- Check Razorpay integration (if clicking generate report button)
 
 #### Test 6: API Health Check
 Test critical API routes:
@@ -602,7 +565,7 @@ curl -X POST https://your-app.vercel.app/api/profiles \
 # Should return: {"id": "...", "name": "Test", ...}
 ```
 
-### Step 5.8: Monitor Logs
+### Step 5.7: Monitor Logs
 
 Vercel provides real-time logging for debugging:
 
@@ -616,7 +579,7 @@ Vercel provides real-time logging for debugging:
 
 **Tip**: Filter logs by function (e.g., `/api/profiles`) for easier debugging
 
-### Step 5.9: Custom Domain (Optional)
+### Step 5.8: Custom Domain (Optional)
 
 To use a custom domain instead of `.vercel.app`:
 
@@ -627,7 +590,7 @@ To use a custom domain instead of `.vercel.app`:
    - Add DNS records (A, CNAME)
    - Verify domain ownership
 5. Update `NEXT_PUBLIC_SITE_URL` environment variable
-6. Update Stripe webhook URL in Stripe Dashboard
+6. Update Razorpay webhook URL in Razorpay Dashboard
 
 ### Troubleshooting Vercel Deployment
 
@@ -670,12 +633,12 @@ git push
 - Upgrade to Vercel Pro for 60s timeout
 - Or implement client-side polling for long operations
 
-#### Stripe Webhook: "No signatures found"
+#### Razorpay Webhook: "Signature verification failed"
 
-**Cause**: `STRIPE_WEBHOOK_SECRET` is incorrect or missing
+**Cause**: `RAZORPAY_WEBHOOK_SECRET` is incorrect or missing
 
 **Solution**:
-1. Re-check signing secret in Stripe Dashboard
+1. Re-check webhook secret in Razorpay Dashboard
 2. Update environment variable in Vercel
 3. Ensure no extra spaces or line breaks in secret
 4. Redeploy
@@ -841,96 +804,102 @@ OPENAI_REPORT_MODEL=gpt-4o
 
 ---
 
-## 7. Stripe Configuration
+## 7. Razorpay Configuration
 
-### Step 7.1: Get Stripe API Keys
+### Step 7.1: Get Razorpay API Keys
 
-1. Go to [stripe.com](https://stripe.com) and sign in
-2. Navigate to **Developers** > **API keys**
-3. Copy your **Secret key** (starts with `sk_test_` or `sk_live_`)
-4. Add it to your environment variables as `STRIPE_SECRET_KEY`
+1. Go to [razorpay.com](https://razorpay.com) and sign in
+2. Navigate to **Settings** > **API Keys**
+3. Copy your **Key ID** (starts with `rzp_test_` or `rzp_live_`)
+4. Copy your **Key Secret** (starts with `rzp_test_` or `rzp_live_`)
+5. Add them to your environment variables as `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`
 
-### Step 7.2: Configure Stripe Products (Optional)
+### Step 7.2: Configure Razorpay Products (Optional)
 
 For the report generation feature to work with real payments:
 
-1. Navigate to **Products** in Stripe dashboard
+1. Navigate to **Products** in Razorpay dashboard
 2. Create a new product:
    - **Name**: "BaZi Fortune Report"
-   - **Price**: Set your desired price (e.g., $9.99 USD)
-3. Copy the **Price ID** (starts with `price_`)
-4. Update your code in `/pages/api/reports/generate.ts` to use this price ID
+   - **Description**: "Detailed AI-powered BaZi fortune analysis"
+   - **Price**: Set your desired price (e.g., ₹999 INR)
+   - **Type**: One-time payment
+3. Note the **Product ID** for your records
+4. Update your code in `/pages/api/reports/generate.ts` to use this product configuration
 
-### Step 7.3: Stripe Webhooks
+### Step 7.3: Razorpay Webhooks
 
-The application uses Stripe webhooks to finalize the report purchase flow after successful payment.
+The application uses Razorpay webhooks to finalize the report purchase flow after successful payment.
 
-#### Development Testing with Stripe CLI
+#### Development Testing with Razorpay Webhook Tools
 
-For local development, use the Stripe CLI to forward webhook events:
+For local development, use Razorpay's webhook testing tools:
 
-1. **Install Stripe CLI**: Follow instructions at [stripe.com/docs/stripe-cli](https://stripe.com/docs/stripe-cli)
-
-2. **Login to Stripe CLI**:
+1. **Install Razorpay CLI** (optional) or use the dashboard webhook testing:
    ```bash
-   stripe login
+   npm install -g razorpay-cli
    ```
 
-3. **Forward webhook events to your local server**:
-   ```bash
-   stripe listen --forward-to localhost:3000/api/stripe/webhook
-   ```
+2. **Test webhook events locally**:
+   - Use a tool like `ngrok` to expose your local server:
+     ```bash
+     ngrok http 3000
+     ```
+   - Configure webhook endpoint in Razorpay dashboard to point to your ngrok URL
+   - Endpoint URL: `https://your-ngrok-url.ngrok.io/api/razorpay/webhook`
 
-4. **Copy the webhook signing secret**: The CLI will display a webhook signing secret (starts with `whsec_`). Add it to your `.env.local`:
-   ```env
-   STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-   ```
+3. **Configure webhook secret**:
+   - Add the webhook secret to your `.env.local`:
+     ```env
+     RAZORPAY_WEBHOOK_SECRET=your_webhook_secret_here
+     ```
 
-5. **Test with a real checkout**: 
+4. **Test with a real checkout**: 
    - Start your Next.js app: `pnpm dev`
    - Create a chart and initiate report generation
-   - Complete the Stripe checkout (use test card `4242 4242 4242 4242`)
-   - Watch the Stripe CLI forward the `checkout.session.completed` event
+   - Complete the Razorpay checkout (use test card details from Razorpay docs)
+   - Watch the webhook event being received
    - Verify a job is created/updated in the `jobs` table with `status='pending'`
 
-6. **Test with Stripe CLI trigger** (optional):
-   ```bash
-   stripe trigger checkout.session.completed
-   ```
+5. **Test with Razorpay dashboard trigger** (optional):
+   - Use the webhook testing section in Razorpay dashboard
+   - Trigger a `payment.captured` event with test data
 
 #### Production Setup
 
 For production deployment:
 
-1. Navigate to **Developers** > **Webhooks** in Stripe Dashboard
-2. Click **"Add endpoint"**
-3. Endpoint URL: `https://yourdomain.com/api/stripe/webhook`
+1. Navigate to **Settings** > **Webhooks** in Razorpay Dashboard
+2. Click **"Add a Webhook"**
+3. Endpoint URL: `https://yourdomain.com/api/razorpay/webhook`
 4. Select events to listen for:
-   - `checkout.session.completed`
-5. Copy the **Signing secret** and add to your environment variables as `STRIPE_WEBHOOK_SECRET`
+   - `payment.captured`
+   - `payment.failed` (optional, for error handling)
+5. Copy the **Webhook Secret** and add to your environment variables as `RAZORPAY_WEBHOOK_SECRET`
 6. Deploy your application with the new environment variable
 
 #### How the Webhook Works
 
-1. User completes Stripe checkout
-2. Stripe sends `checkout.session.completed` event to your webhook endpoint
-3. Webhook validates the signature using `STRIPE_WEBHOOK_SECRET`
-4. Webhook extracts `chart_id` from session metadata
-5. Webhook finds the job by `checkout_session_id` in metadata
-6. If job exists, updates it to `status='pending'` and adds `payment_confirmed: true`
+1. User completes Razorpay checkout
+2. Razorpay sends `payment.captured` event to your webhook endpoint
+3. Webhook validates the signature using `RAZORPAY_WEBHOOK_SECRET`
+4. Webhook extracts `razorpay_payment_link_id` from event payload
+5. Webhook finds the job by `razorpay_payment_link_id` in metadata
+6. If job exists, updates it to `status='pending'` and adds `payment_confirmed: true` and `razorpay_payment_id`
 7. If job doesn't exist (edge case), creates a new job
 8. Webhook implements idempotency by storing `last_webhook_event_id` to prevent duplicate processing
 9. Background worker picks up pending jobs and generates reports
 
 #### Event Mapping
 
-| Stripe Event | Action | Database Update |
-|--------------|--------|-----------------|
-| `checkout.session.completed` | Payment successful | Update job to `status='pending'`, add `payment_confirmed: true` in metadata |
+| Razorpay Event | Action | Database Update |
+|----------------|--------|-----------------|
+| `payment.captured` | Payment successful | Update job to `status='pending'`, add `payment_confirmed: true` and `razorpay_payment_id` in metadata |
+| `payment.failed` | Payment failed | Update job to `status='failed'`, add error details in metadata |
 
 #### Security Features
 
-- **Signature Verification**: All webhook events are verified using Stripe's signature
+- **Signature Verification**: All webhook events are verified using Razorpay's signature
 - **Idempotency**: Duplicate events are detected and ignored using `last_webhook_event_id`
 - **Quick Response**: Webhook returns 200 status quickly to avoid timeouts
 - **Error Logging**: All errors are logged with `[Webhook]` prefix for debugging
@@ -962,7 +931,7 @@ DELETE FROM profiles WHERE name = 'Test Deploy';
 2. Fill out the profile creation form on the homepage
 3. Submit and verify you're redirected to `/compute`
 4. Check that the BaZi chart is displayed
-5. Test the "Generate Report" button (Stripe checkout)
+5. Test the "Generate Report" button (Razorpay checkout)
 
 ### Step 8.3: Verify Data in Supabase
 
@@ -975,7 +944,7 @@ DELETE FROM profiles WHERE name = 'Test Deploy';
 
 - **Vercel**: Go to your project > **Deployments** > Click on latest deployment > View **Function Logs**
 - **Supabase**: Navigate to **Logs** to see database queries
-- **Stripe**: Check **Developers** > **Events** for payment events
+- **Razorpay**: Check **Settings** > **Webhooks** > **Event Logs** for payment events
 
 ---
 
@@ -986,7 +955,7 @@ Before going live, ensure you've completed:
 ### Security
 - [ ] All environment variables are set correctly in production
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` is never exposed to client-side code
-- [ ] Stripe is using live keys (`sk_live_...`) not test keys
+- [ ] Razorpay is using live keys (`rzp_live_...`) not test keys
 - [ ] HTTPS/SSL is enabled on your domain
 
 ### Database
@@ -1002,10 +971,10 @@ Before going live, ensure you've completed:
 - [ ] Background worker is running (if applicable)
 
 ### Third-Party Services
-- [ ] OpenAI API key is valid and has credits
-- [ ] Stripe integration is tested (use test mode first)
-- [ ] Stripe webhook endpoint is configured in Stripe Dashboard
-- [ ] STRIPE_WEBHOOK_SECRET is set correctly in production environment
+- [ ] Google AI API key is valid and accessible
+- [ ] Razorpay integration is tested (use test mode first)
+- [ ] Razorpay webhook endpoint is configured in Razorpay Dashboard
+- [ ] RAZORPAY_WEBHOOK_SECRET is set correctly in production environment
 
 ### Testing
 - [ ] End-to-end user flow tested (profile → chart → report)
@@ -1048,11 +1017,11 @@ Before going live, ensure you've completed:
 2. Check that it's named exactly `reports` (case-sensitive)
 3. Run the storage migration (Step 1.2, Migration 3)
 
-#### Issue: Stripe checkout not working
+#### Issue: Razorpay checkout not working
 
 **Solution**:
-1. Verify `STRIPE_SECRET_KEY` is set correctly
-2. Check Stripe dashboard for errors in **Developers** > **Logs**
+1. Verify `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set correctly
+2. Check Razorpay dashboard for errors in **Settings** > **Webhooks**
 3. Ensure `NEXT_PUBLIC_SITE_URL` is set correctly for redirects
 
 #### Issue: Worker not processing jobs
@@ -1067,7 +1036,7 @@ Before going live, ensure you've completed:
 
 - **Supabase**: [docs.supabase.com](https://docs.supabase.com)
 - **Next.js**: [nextjs.org/docs](https://nextjs.org/docs)
-- **Stripe**: [stripe.com/docs](https://stripe.com/docs)
+- **Razorpay**: [razorpay.com/docs](https://razorpay.com/docs)
 - **Vercel**: [vercel.com/docs](https://vercel.com/docs)
 
 ---
@@ -1082,11 +1051,11 @@ Your application now has:
 - ✅ Storage bucket for PDF reports
 - ✅ Next.js application deployed
 - ✅ Background worker for async jobs
-- ✅ Stripe payment integration
+- ✅ Razorpay payment integration
 
 For production improvements, consider:
 - Implementing proper authentication (Supabase Auth)
-- Adding Stripe webhook handlers
+- Adding Razorpay webhook handlers
 - Replacing placeholder BaZi logic with accurate calculations
 - Adding comprehensive error handling and logging
 - Setting up monitoring and analytics

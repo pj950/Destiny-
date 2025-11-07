@@ -1,4 +1,4 @@
-# Eastern Destiny — V1 TypeScript 项目 (Next.js + Supabase + OpenAI + Stripe)
+# Eastern Destiny — V1 TypeScript 项目 (Next.js + Supabase + Google AI + Razorpay)
 
 说明：下列内容为完整项目文件集（项目骨架与示例实现），供开发者直接使用。把整个文档复制到你的代码编辑器，按文件名拆分为对应文件即可。
 
@@ -45,7 +45,7 @@ README.md
 
 This is a lightweight MVP project for Eastern Destiny.
 
-Tech: Next.js (App Router), TypeScript, TailwindCSS, Supabase, OpenAI, Stripe.
+Tech: Next.js (App Router), TypeScript, TailwindCSS, Supabase, Google AI, Razorpay.
 
 ## Quick start
 
@@ -92,8 +92,8 @@ package.json
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "solarlunar": "^1.2.0",
-    "stripe": "^12.14.0",
-    "openai": "^4.3.0",
+    "razorpay": "^2.9.0",
+    "@google/generative-ai": "^0.2.1",
     "tailwindcss": "^3.5.0"
   },
   "devDependencies": {
@@ -158,7 +158,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-url.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=public-anon-key
 SUPABASE_SERVICE_ROLE_KEY=service-role-key
 OPENAI_API_KEY=sk-xxxxx
-STRIPE_SECRET_KEY=sk_live_xxx
+RAZORPAY_KEY_ID=rzp_live_xxx
+RAZORPAY_KEY_SECRET=rzp_live_xxx
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
@@ -459,16 +460,19 @@ pages/api/reports/generate.ts
 ```ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabase } from '../../../lib/supabase'
-import Stripe from 'stripe'
+import Razorpay from 'razorpay'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-11-15' })
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || '',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || ''
+})
 
 export default async function handler(req:NextApiRequest,res:NextApiResponse){
   if (req.method !== 'POST') return res.status(405).end()
   const { chart_id } = req.body
-  // create a Stripe Checkout session for purchasing deep report
-  try {
-    const session = await stripe.checkout.sessions.create({
+  // create a Razorpay payment link for purchasing deep report
+
+  const paymentLink = await razorpay.paymentLink.create({
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: [{ price_data: { currency: 'usd', product_data: { name: 'Deep Destiny Report' }, unit_amount: 1999 }, quantity: 1 }],
@@ -586,13 +590,13 @@ README_DEPLOY.md
 3. Create a storage bucket named "reports" and set it to public (or manage policies)
 4. Configure row level security as in docs
 5. Add environment variables to Vercel
-6. Set up Stripe webhook to confirm payment and create job only after successful payment (webhook handler not included in MVP)
+6. Set up Razorpay webhook to confirm payment and create job only after successful payment (webhook handler not included in MVP)
 ```
 
 ---
 
 # 说明与后续
-- 以上代码为 MVP 可运行骨架：包含 TypeScript、Supabase、OpenAI、Stripe Checkout 的基本纳入与演示。请务必替换 `lib/bazi.ts` 里的简化算法为更精确的天干地支 / 大运逻辑（我可以协助实现更严谨的规则层）。
+- 以上代码为 MVP 可运行骨架：包含 TypeScript、Supabase、Google AI、Razorpay 的基本纳入与演示。请务必替换 `lib/bazi.ts` 里的简化算法为更精确的天干地支 / 大运逻辑（我可以协助实现更严谨的规则层）。
 
 - 我已将所有文件内容生成在此画布。请告诉我是否需要我把这些文件打包成 zip 下载或直接生成 GitHub 仓库初始化文件（我可生成 README + gitignore + 初始 commit 的脚本）。
 
