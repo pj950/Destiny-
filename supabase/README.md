@@ -19,7 +19,11 @@ This directory contains SQL migration files for setting up the Eastern Destiny d
 | `20241104000001_create_tables.sql` | Creates `profiles`, `charts`, and `jobs` tables with proper relationships, indexes, and constraints |
 | `20241104000002_enable_rls.sql` | Enables Row Level Security on all tables and creates policies for user data access |
 | `20241104000003_create_storage.sql` | Creates the `reports` storage bucket for PDF report files with public read access |
+| `20241106000001_create_lamps_table.sql` | Creates `lamps` table for Prayer Lamps feature with Stripe checkout session tracking |
+| `20241106000002_create_fortunes_table.sql` | Creates `fortunes` table for Daily Fortune feature with session-based tracking |
+| `20241106000003_add_razorpay_columns.sql` | **NEW**: Adds Razorpay payment columns to lamps table while preserving Stripe legacy data |
 | `99_test_setup.sql` | Test script to verify database setup (optional) |
+| `99_test_razorpay_migration.sql` | Test script to verify Razorpay migration (optional) |
 
 ## Database Schema
 
@@ -64,14 +68,48 @@ Tracks async background jobs (e.g., report generation).
 | `status` | TEXT | Job status: 'pending', 'processing', 'done', 'failed' |
 | `result_url` | TEXT | URL to generated result (optional) |
 | `created_at` | TIMESTAMPTZ | Timestamp when job was created |
+| `metadata` | JSONB | Additional job metadata (e.g., razorpay_payment_link_id/razorpay_payment_id for payment tracking) |
+
+#### `lamps`
+Stores prayer lamp state and payment information for the Prayer Lamps feature.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key (auto-generated) |
+| `user_id` | UUID | Foreign key to `auth.users` (NULL for MVP) |
+| `lamp_key` | TEXT | Unique lamp identifier (p1, p2, p3, p4) corresponding to image files |
+| `status` | TEXT | Current state: 'unlit' (available) or 'lit' (purchased) |
+| `checkout_session_id` | TEXT | **LEGACY**: Stripe checkout session ID (deprecated) |
+| `razorpay_payment_link_id` | TEXT | Razorpay payment link ID for pending payments |
+| `razorpay_payment_id` | TEXT | Razorpay payment ID for completed payments |
+| `created_at` | TIMESTAMPTZ | Timestamp when lamp record was created |
+| `updated_at` | TIMESTAMPTZ | Timestamp when lamp record was last updated |
+
+#### `fortunes`
+Stores daily fortune draws with session-based tracking.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key (auto-generated) |
+| `session_id` | TEXT | Session identifier for one-draw-per-day tracking |
+| `category` | TEXT | Fortune category (15 types: 事业, 财运, 爱情, 健康, 学业, 旅行, 交友, 家庭, 投资, 创意, 运动, 购物, 娱乐, 美食, 宠物) |
+| `fortune_text` | TEXT | The fortune text/content |
+| `ai_analysis` | TEXT | AI-generated interpretation and analysis |
+| `created_at` | TIMESTAMPTZ | Timestamp when fortune was drawn |
 
 ### Indexes
 
 - `idx_profiles_user_id` — Speeds up queries filtering by user_id
 - `idx_charts_profile_id` — Speeds up queries filtering by profile_id
 - `idx_jobs_chart_id` — Speeds up queries filtering by chart_id
-- `idx_jobs_status` — Speeds up queries filtering by job status
+- `idx_jobs_status` — Speeds up queries filtering by job_status
 - `idx_jobs_user_id` — Speeds up queries filtering by user_id
+- `idx_lamps_user_id` — Speeds up queries filtering by user_id
+- `idx_lamps_lamp_key` — Speeds up queries filtering by lamp_key
+- `idx_lamps_status` — Speeds up queries filtering by status
+- `idx_lamps_checkout_session_id` — Speeds up queries filtering by Stripe session ID (legacy)
+- `idx_lamps_razorpay_payment_link_id` — Speeds up queries filtering by Razorpay payment link ID
+- `idx_lamps_razorpay_payment_id` — Speeds up queries filtering by Razorpay payment ID
 
 ## Row Level Security (RLS)
 
