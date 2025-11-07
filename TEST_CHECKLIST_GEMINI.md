@@ -10,7 +10,7 @@ Before testing, ensure you have:
 - [x] Set `GOOGLE_API_KEY` in `.env.local`
 - [x] Set `GEMINI_MODEL_SUMMARY` (optional, defaults to gemini-2.5-pro)
 - [x] Set `GEMINI_MODEL_REPORT` (optional, defaults to gemini-2.5-pro)
-- [x] All other environment variables configured (Supabase, Stripe, etc.)
+- [x] All other environment variables configured (Supabase, Razorpay, etc.)
 
 ## Build & Dependency Tests
 
@@ -87,7 +87,7 @@ curl -X POST http://localhost:3000/api/ai/interpret \
 
 ### 1. Create a Deep Report Job
 
-First, create a Stripe checkout session to generate a job:
+First, create a Razorpay checkout session to generate a job:
 
 ```bash
 curl -X POST http://localhost:3000/api/reports/generate \
@@ -98,8 +98,8 @@ curl -X POST http://localhost:3000/api/reports/generate \
 ```
 
 - [ ] Returns 200 status
-- [ ] Returns Stripe checkout URL
-- [ ] Complete the test payment (use Stripe test card: 4242 4242 4242 4242)
+- [ ] Returns Razorpay checkout URL
+- [ ] Complete the test payment (use Razorpay test payment methods)
 - [ ] Verify job created in Supabase `jobs` table with status='pending'
 
 ### 2. Run the Worker

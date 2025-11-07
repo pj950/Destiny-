@@ -360,7 +360,7 @@ if (!authResult) {
   return res.status(401).json({ ok: false, message: 'Unauthorized' })
 }
 
-// Verify chart ownership before creating Stripe session
+// Verify chart ownership before creating Razorpay session
 const { data: chart, error: chartError } = await supabaseService
   .from('charts')
   .select('id, profile_id, profiles!inner(user_id)')
@@ -889,7 +889,7 @@ export const FEATURES = {
 - [x] Supabase Auth service availability
 - [x] Email delivery for magic links (Supabase email provider)
 - [x] OpenAI API (no changes needed)
-- [x] Stripe API (no changes needed)
+- [x] Razorpay API (no changes needed)
 
 **Internal Dependencies**:
 - [x] Supabase client library (`@supabase/supabase-js` v2.29.0)
@@ -982,7 +982,7 @@ export const FEATURES = {
 **A2**: 30 days minimum, 90 days ideal - balance between user convenience and technical debt
 
 **Q3**: What happens to paid reports in anonymous profiles?  
-**A3**: Must allow claiming - store checkout_session_id in metadata, verify payment before claim
+**A3**: Must allow claiming - store razorpay_payment_link_id in metadata, verify payment before claim
 
 **Q4**: Should we support OAuth providers in Phase 1?  
 **A4**: No - start with magic links, add OAuth in Phase 4 if needed (complexity vs. value)

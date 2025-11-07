@@ -11,7 +11,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - [x] `next-env.d.ts` generated
   - [x] `styles/globals.css` with Tailwind directives
 - [x] Create base configuration files
-  - [x] `package.json` with all dependencies (Next.js, TypeScript, Tailwind, Supabase, OpenAI, Stripe, etc.)
+  - [x] `package.json` with all dependencies (Next.js, TypeScript, Tailwind, Supabase, Google AI, Razorpay, etc.)
   - [x] `tsconfig.json` with strict mode enabled
   - [x] `next.config.js` for Next.js configuration
   - [x] `tailwind.config.js` with default configuration
@@ -71,8 +71,8 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 ### Implemented Routes
 - [x] `pages/api/profiles.ts` — Create user profiles (uses `supabaseService`)
 - [x] `pages/api/charts/compute.ts` — Compute BaZi charts
-- [x] `pages/api/ai/interpret.ts` — Generate AI interpretations via OpenAI
-- [x] `pages/api/reports/generate.ts` — Create Stripe checkout session for report purchase
+- [x] `pages/api/ai/interpret.ts` — Generate AI interpretations via Google Gemini
+- [x] `pages/api/reports/generate.ts` — Create Razorpay checkout session for report purchase
 - [x] `pages/api/jobs/[id].ts` — Retrieve job status by ID
 
 ### Missing Routes
@@ -81,7 +81,7 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
   - Should return list of charts for a user/profile
 
 ### Future Routes (Post-MVP)
-- [ ] `pages/api/stripe/webhook.ts` — Handle Stripe webhook events for payment confirmation
+- [ ] `pages/api/razorpay/webhook.ts` — Handle Razorpay webhook events for payment confirmation
 
 ---
 
