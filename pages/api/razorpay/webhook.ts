@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!isValid) {
       console.error('[Razorpay Webhook] Signature verification failed')
-      return res.status(400).json({ error: 'Webhook signature verification failed' })
+      return res.status(401).json({ error: 'Webhook signature verification failed' })
     }
 
     // Parse the webhook body
@@ -80,21 +80,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (!existingLamp) {
           console.error(`[Razorpay Webhook] Event ${event.id}: Lamp ${lamp_key} not found`)
-          return res.status(404).json({ error: 'Lamp not found' })
+          return res.status(200).json({ received: true, message: 'Lamp not found' })
         }
 
-        // Check if already lit or already processed this webhook
+        // Check if we've already processed this exact webhook event (idempotency using event ID)
+        if (existingLamp.last_webhook_event_id === event.id) {
+          console.log(`[Razorpay Webhook] Event ${event.id}: Already processed for lamp ${lamp_key}, returning success`)
+          return res.status(200).json({ received: true, message: 'Event already processed' })
+        }
+
+        // Check if already lit
         if (existingLamp.status === 'lit') {
+          // Enhanced idempotency: verify payment ID matches to prevent duplicate processing
+          if (existingLamp.razorpay_payment_id && payment?.id && existingLamp.razorpay_payment_id !== payment.id) {
+            console.log(`[Razorpay Webhook] Event ${event.id}: Lamp ${lamp_key} is lit but payment ID differs (existing: ${existingLamp.razorpay_payment_id}, new: ${payment.id})`)
+          }
           console.log(`[Razorpay Webhook] Event ${event.id}: Lamp ${lamp_key} is already lit`)
           return res.status(200).json({ received: true, message: 'Lamp already lit' })
         }
 
-        // Update lamp to lit status with payment ID
+        // Update lamp to lit status with payment ID and webhook event ID (handle undefined paymentId gracefully)
         const { error: updateError } = await supabaseService
           .from('lamps')
           .update({
             status: 'lit',
-            razorpay_payment_id: payment.id,
+            razorpay_payment_id: payment?.id || null,
+            last_webhook_event_id: event.id,
             updated_at: new Date().toISOString()
           })
           .eq('lamp_key', lamp_key)
@@ -111,7 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Handle report generation
         console.log(`[Razorpay Webhook] Event ${event.id}: Processing payment link ${paymentLink.id} for chart ${chart_id}`)
 
-        // Check if we've already processed this event (idempotency check)
+        // Find the job associated with this payment link
         const { data: existingJob, error: searchError } = await supabaseService
           .from('jobs')
           .select('*')
@@ -125,7 +136,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if (existingJob) {
-          // Check if we've already processed this exact webhook event
+          // Check if we've already processed this exact webhook event (idempotency using event ID)
           const lastEventId = existingJob.metadata?.last_webhook_event_id
           if (lastEventId === event.id) {
             console.log(`[Razorpay Webhook] Event ${event.id}: Already processed, returning success`)
@@ -144,7 +155,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 payment_confirmed: true,
                 last_webhook_event_id: event.id,
                 payment_confirmed_at: new Date().toISOString(),
-                razorpay_payment_id: payment.id
+                razorpay_payment_id: payment?.id || null
               },
               updated_at: new Date().toISOString()
             })
@@ -169,7 +180,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           if (chartError || !chart) {
             console.error(`[Razorpay Webhook] Event ${event.id}: Chart ${chart_id} not found`)
-            return res.status(404).json({ error: 'Chart not found' })
+            return res.status(200).json({ received: true, message: 'Chart not found' })
           }
 
           const { error: insertError } = await supabaseService
@@ -187,7 +198,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 payment_confirmed: true,
                 last_webhook_event_id: event.id,
                 payment_confirmed_at: new Date().toISOString(),
-                razorpay_payment_id: payment.id
+                razorpay_payment_id: payment?.id || null
               }
             })
 
