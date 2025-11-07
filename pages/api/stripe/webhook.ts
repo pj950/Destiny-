@@ -1,24 +1,25 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
-import Stripe from 'stripe'
+// import Stripe from 'stripe' // TODO: Migrate to Razorpay in follow-up ticket
 import { buffer } from 'stream/consumers'
 
+// TODO: Replace with Razorpay implementation in follow-up ticket
 // Guard: Check for required environment variables
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is not configured. Please set it in your .env.local file.')
-}
+// if (!process.env.STRIPE_SECRET_KEY) {
+//   throw new Error('STRIPE_SECRET_KEY environment variable is not configured. Please set it in your .env.local file.')
+// }
 
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not configured. Please set it in your .env.local file.')
-}
+// if (!process.env.STRIPE_WEBHOOK_SECRET) {
+//   throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not configured. Please set it in your .env.local file.')
+// }
 
-const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2024-06-20') as Stripe.LatestApiVersion
+// const stripeApiVersion = (process.env.STRIPE_API_VERSION || '2024-06-20') as Stripe.LatestApiVersion
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { 
-  apiVersion: stripeApiVersion 
-})
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { 
+//   apiVersion: stripeApiVersion 
+// })
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+// const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 // Disable body parsing, need raw body for signature verification
 export const config = {
@@ -28,6 +29,13 @@ export const config = {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // TODO: Replace with Razorpay webhook implementation in follow-up ticket
+  // Temporary placeholder for build to succeed
+  console.log('[Webhook] TODO: Implement Razorpay webhook handler')
+  return res.status(501).json({ error: 'Webhook integration temporarily disabled during Razorpay migration' })
+
+  // Original implementation below - to be replaced with Razorpay
+  /*
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -213,4 +221,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error('[Webhook] Unexpected error:', err)
     return res.status(500).json({ error: `Webhook error: ${err.message || 'Unknown error'}` })
   }
+  */
 }
