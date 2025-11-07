@@ -808,9 +808,12 @@ If you need a continuously running worker:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `OPENAI_API_KEY`
-   - `OPENAI_REPORT_MODEL` (optional)
-   - `STRIPE_SECRET_KEY`
+   - `GOOGLE_API_KEY`
+   - `GEMINI_MODEL_SUMMARY` (optional)
+   - `GEMINI_MODEL_REPORT` (optional)
+   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_SECRET`
+   - `RAZORPAY_WEBHOOK_SECRET`
 5. Deploy
 
 **Cost**: Railway has a free tier with 500 hours/month, then $5/month after.
