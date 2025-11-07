@@ -149,7 +149,7 @@ The homepage features a beautiful hero section with a prominent call-to-action f
 
 ![Pricing page showing different subscription tiers](./public/images/pricing%20page.png)
 
-The pricing page displays three tiers: **Basic** (free trial), **Professional** (¥199 one-time), and **Master** (¥599/year subscription). Each tier clearly shows included features such as BaZi chart computation, AI interpretations, and detailed reports. The Professional tier is highlighted as the most popular option. Users can purchase detailed fortune reports securely via Stripe.
+The pricing page displays three tiers: **Basic** (free trial), **Professional** (¥199 one-time), and **Master** (¥599/year subscription). Each tier clearly shows included features such as BaZi chart computation, AI interpretations, and detailed reports. The Professional tier is highlighted as the most popular option. Users can purchase detailed fortune reports securely via Razorpay.
 
 ### 🔮 Divination Tools Page ([/tools](http://localhost:3000/tools))
 
@@ -159,9 +159,9 @@ The tools page provides a comprehensive overview of all available divination too
 
 ### 🏮 Prayer Lamps Page ([/lamps](http://localhost:3000/lamps))
 
-The Prayer Lamps (祈福点灯) feature allows users to purchase and light virtual prayer lamps for blessings and good fortune. Each lamp costs $19.90 and features beautiful lighting effects when purchased. The page displays four unique lamps (福运灯, 安康灯, 财源灯, 事业灯) with glowing animations and persistent state. Users can securely purchase lamps via Stripe checkout, and the lit status is saved in the database.
+The Prayer Lamps (祈福点灯) feature allows users to purchase and light virtual prayer lamps for blessings and good fortune. Each lamp costs $19.90 and features beautiful lighting effects when purchased. The page displays four unique lamps (福运灯, 安康灯, 财源灯, 事业灯) with glowing animations and persistent state. Users can securely purchase lamps via Razorpay checkout, and the lit status is saved in the database.
 
-**Note**: For demo purposes, Stripe should be in test mode. Use test card numbers provided by Stripe for testing the purchase flow.
+**Note**: For demo purposes, Razorpay should be in test mode. Use test payment methods provided by Razorpay for testing the purchase flow.
 
 ### Navigation Overview
 

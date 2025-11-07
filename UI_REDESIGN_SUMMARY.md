@@ -48,13 +48,13 @@ The UI has been completely redesigned with a modern, elegant aesthetic featuring
   - List of included features with checkmarks
   - Call-to-action button
 - FAQ section with 5 common questions
-- Integration with Stripe checkout via `/api/reports/generate`
+- Integration with Razorpay checkout via `/api/reports/generate`
 - Responsive grid layout (1 column on mobile, 3 on desktop)
 
 **Functionality:**
 - "Coming Soon" badge and disabled state for Master tier
 - Free tier redirects to home page
-- Professional tier initiates Stripe checkout flow
+- Professional tier initiates Razorpay checkout flow
 - Loading states during payment processing
 
 ### 3. Tools Page (/tools)
@@ -220,7 +220,7 @@ All existing API integrations remain intact:
 - `/api/profiles` - Create user profiles
 - `/api/charts/compute` - Generate BaZi charts
 - `/api/ai/interpret` - Get AI interpretations
-- `/api/reports/generate` - Purchase reports via Stripe
+- `/api/reports/generate` - Purchase reports via Razorpay
 - All other existing endpoints
 
 ## README Updates
