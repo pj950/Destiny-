@@ -2,12 +2,19 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import FortuneAnimationStage from '../components/FortuneAnimationStage'
+import FortuneCard from '../components/FortuneCard'
+import {
+  categories,
+  categoryGradients,
+  categoryIcons,
+  levelColors,
+  type FortuneCategory,
+} from '../lib/fortuneConstants'
 
-type FortuneState = 'idle' | 'select' | 'shake' | 'fallen' | 'result'
-type FortuneCategory = 
-  | '事业运' | '财富运' | '感情运' | '婚姻运' | '家庭运' 
-  | '健康运' | '考试运' | '官司诉讼' | '旅行出行' | '求子育儿' 
-  | '置业投资' | '买房置业' | '风水运势' | '寻物失物' | '综合运途'
+// Re-export for backward compatibility
+export type { FortuneCategory }
+export { categories, categoryIcons, categoryGradients, levelColors }
 
 interface Fortune {
   id: string
@@ -19,55 +26,7 @@ interface Fortune {
   created_at: string
 }
 
-const categories: FortuneCategory[] = [
-  '事业运', '财富运', '感情运', '婚姻运', '家庭运',
-  '健康运', '考试运', '官司诉讼', '旅行出行', '求子育儿',
-  '置业投资', '买房置业', '风水运势', '寻物失物', '综合运途'
-]
-
-const categoryIcons: Record<FortuneCategory, string> = {
-  '事业运': '💼',
-  '财富运': '💰',
-  '感情运': '❤️',
-  '婚姻运': '💑',
-  '家庭运': '👨‍👩‍👧‍👦',
-  '健康运': '🏥',
-  '考试运': '📚',
-  '官司诉讼': '⚖️',
-  '旅行出行': '✈️',
-  '求子育儿': '👶',
-  '置业投资': '📈',
-  '买房置业': '🏠',
-  '风水运势': '🏮',
-  '寻物失物': '🔍',
-  '综合运途': '🌟'
-}
-
-const categoryGradients: Record<FortuneCategory, string> = {
-  '事业运': 'from-blue-500 to-blue-600',
-  '财富运': 'from-yellow-500 to-yellow-600',
-  '感情运': 'from-red-500 to-pink-600',
-  '婚姻运': 'from-pink-500 to-rose-600',
-  '家庭运': 'from-orange-500 to-orange-600',
-  '健康运': 'from-green-500 to-green-600',
-  '考试运': 'from-purple-500 to-purple-600',
-  '官司诉讼': 'from-indigo-500 to-indigo-600',
-  '旅行出行': 'from-cyan-500 to-cyan-600',
-  '求子育儿': 'from-amber-500 to-amber-600',
-  '置业投资': 'from-emerald-500 to-emerald-600',
-  '买房置业': 'from-stone-500 to-stone-600',
-  '风水运势': 'from-violet-500 to-violet-600',
-  '寻物失物': 'from-lime-500 to-lime-600',
-  '综合运途': 'from-fuchsia-500 to-fuchsia-600'
-}
-
-const levelColors = {
-  '上上': 'text-red-600',
-  '上吉': 'text-orange-600', 
-  '中吉': 'text-yellow-600',
-  '下吉': 'text-blue-600',
-  '凶': 'text-gray-600'
-}
+type FortuneState = 'idle' | 'select' | 'selected' | 'shake' | 'fallen' | 'result'
 
 const STORAGE_KEY = 'daily_fortune_cache_v1'
 
@@ -137,7 +96,7 @@ export default function Fortune() {
     try {
       const res = await fetch('/api/fortune/today')
       const data = await res.json()
-      
+
       if (res.ok && data.ok) {
         if (data.hasFortune && data.fortune) {
           setTodayFortune(data.fortune)
@@ -193,16 +152,30 @@ export default function Fortune() {
     setSelectedCategory(category)
     setError('')
     setNotice('')
+    setState('selected')
+  }
+
+  const handleStartShaking = () => {
+    if (loading || !selectedCategory) return
+
+    if (todayFortune) {
+      setStatusMessage('今日已抽签，请明天再来')
+      setState('result')
+      return
+    }
+
+    setError('')
+    setNotice('')
     setStatusMessage(`开始为您求签...`)
     setState('shake')
-    
+
     if (shakeTimeoutRef.current) {
       clearTimeout(shakeTimeoutRef.current)
     }
     shakeTimeoutRef.current = setTimeout(() => {
       shakeTimeoutRef.current = null
-      void drawFortune(category)
-    }, 2000)
+      void drawFortune(selectedCategory)
+    }, 3100)
   }
 
   const drawFortune = async (category: FortuneCategory) => {
@@ -210,16 +183,16 @@ export default function Fortune() {
     setError('')
     setNotice('')
     setStatusMessage('正在与神灵沟通...')
-    
+
     try {
       const res = await fetch('/api/fortune/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ category })
       })
-      
+
       const data = await res.json()
-      
+
       if (!res.ok || !data.ok) {
         if (data?.fortune) {
           setTodayFortune(data.fortune)
@@ -232,7 +205,7 @@ export default function Fortune() {
         const errorMsg = data?.message || '抽签失败，请重试'
         setError(errorMsg)
         setStatusMessage(`错误：${errorMsg}`)
-        setState('select')
+        setState('selected')
         return
       }
 
@@ -257,13 +230,13 @@ export default function Fortune() {
           setStatusMessage('')
           setState('result')
           revealTimeoutRef.current = null
-        }, 1500)
+        }, 2000)
         return
       }
 
       setError('未获取到签文，请重试')
       setStatusMessage('未获取到签文，请重试')
-      setState('select')
+      setState('selected')
     } catch (err) {
       console.error('Failed to draw fortune:', err)
       const errorMsg = '网络错误，请稍后重试'
@@ -286,15 +259,16 @@ export default function Fortune() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       {/* Accessibility: Skip navigation link */}
       <a href="#fortune-main" className="sr-only focus:not-sr-only">
         跳到主要内容
       </a>
-      
+
       <Section background="gradient" className="pt-20" spacing="spacious">
         <Container size="lg" id="fortune-main">
-          <div className="text-center">
+          {/* Header */}
+          <div className="text-center mb-12">
             <Heading level={1} className="mb-4">
               每日一签
             </Heading>
@@ -328,7 +302,7 @@ export default function Fortune() {
           {state === 'select' && (
             <div className="max-w-6xl mx-auto fortune-fade-in">
               <Card className="p-8">
-                <Heading level={2} className="mb-6 text-center">请选择求签类别</Heading>
+                <Heading level={2} className="mb-8 text-center">请选择求签类别</Heading>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-6">
                   {categories.map((category) => (
@@ -350,7 +324,7 @@ export default function Fortune() {
                     </button>
                   ))}
                 </div>
-                
+
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center animate-slide-up" role="alert">
                     <span className="font-semibold">错误：</span> {error}
@@ -360,121 +334,124 @@ export default function Fortune() {
             </div>
           )}
 
-          {/* Shake State */}
-          {state === 'shake' && (
-            <div className="max-w-2xl mx-auto fortune-fade-in">
-              <Card className="p-12 text-center">
-                <div className="mb-8" aria-hidden="false">
-                  <div className="inline-block fortune-shake">
-                    <div className="text-6xl mb-4">🎯</div>
+          {/* Selected Category - Show CTA to start shaking */}
+          {state === 'selected' && selectedCategory && (
+            <div className="max-w-4xl mx-auto fortune-fade-in">
+              <Card className="p-8">
+                <div className="text-center">
+                  <Heading level={2} className="mb-8">已选择求签类别</Heading>
+
+                  {/* Category badge */}
+                  <div className={`mb-8 inline-flex items-center px-8 py-4 rounded-full shadow-xl bg-gradient-to-br ${categoryGradients[selectedCategory]}`}>
+                    <span className="text-4xl mr-3" aria-hidden="true">
+                      {categoryIcons[selectedCategory]}
+                    </span>
+                    <span className="text-white font-bold text-xl">{selectedCategory}</span>
                   </div>
-                </div>
-                
-                <Heading level={2} className="mb-4">正在为您求签...</Heading>
-                <div className="flex items-center justify-center gap-2">
-                  <Text size="lg" color="secondary">
-                    诚心祈祷，静待佳音
+
+                  {/* Description */}
+                  <Text size="lg" color="secondary" className="mb-10">
+                    诚心祈祷，虔心向神灵请求指引，让我们开始摇签吧
                   </Text>
-                  <span className="inline-flex gap-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                  </span>
-                </div>
-                
-                {selectedCategory && (
-                  <div className="mt-6 inline-flex items-center px-4 py-2 bg-brand-primary-100 text-brand-primary-700 rounded-full">
-                    <span className="text-2xl mr-2" aria-hidden="true">{categoryIcons[selectedCategory]}</span>
-                    <Text weight="semibold">{selectedCategory}</Text>
+
+                  {/* CTA Button */}
+                  <div className="flex gap-4 justify-center">
+                   <Button
+                     onClick={handleStartShaking}
+                     disabled={loading}
+                     aria-label="开始摇签求卜"
+                     className={`px-8 py-4 text-lg font-bold text-white shadow-lg hover:shadow-xl transition-all bg-gradient-to-br ${categoryGradients[selectedCategory]}`}
+                   >
+                     {loading ? '处理中...' : '🎯 开始摇签'}
+                   </Button>
+                    <Button
+                      variant="outline"
+                      onClick={reset}
+                      disabled={loading}
+                      aria-label="返回类别选择"
+                    >
+                      返回选择
+                    </Button>
                   </div>
-                )}
+                </div>
               </Card>
             </div>
           )}
 
+          {/* Shake State */}
+          {state === 'shake' && selectedCategory && (
+            <div className="max-w-4xl mx-auto fortune-fade-in">
+              <FortuneAnimationStage
+                state="shake"
+                selectedCategory={selectedCategory}
+                statusMessage={statusMessage}
+              />
+            </div>
+          )}
+
           {/* Fallen State */}
-          {state === 'fallen' && (
-            <div className="max-w-2xl mx-auto fortune-fade-in">
-              <Card className="p-12 text-center">
-                <div className="mb-8">
-                  <div className="inline-block fortune-fall">
-                    <div className="text-6xl mb-4">📜</div>
-                  </div>
-                </div>
-                
-                <Heading level={2} className="mb-4">签文已出</Heading>
-                <div className="flex items-center justify-center gap-2">
-                  <Text size="lg" color="secondary">
-                    正在为您解读...
-                  </Text>
-                  <span className="inline-flex gap-1">
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                  </span>
-                </div>
-              </Card>
+          {state === 'fallen' && selectedCategory && (
+            <div className="max-w-4xl mx-auto fortune-fade-in">
+              <FortuneAnimationStage
+                state="fallen"
+                selectedCategory={selectedCategory}
+                statusMessage={statusMessage}
+              />
             </div>
           )}
 
           {/* Result State */}
           {state === 'result' && todayFortune && (
-            <div className="max-w-4xl mx-auto fortune-fade-in">
-              <Card className="p-8">
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center px-4 py-2 bg-brand-primary-100 text-brand-primary-700 rounded-full mb-4">
-                    <span className="text-2xl mr-2" aria-hidden="true">{categoryIcons[todayFortune.category as FortuneCategory]}</span>
-                    <Text weight="semibold">{todayFortune.category}</Text>
-                  </div>
-                  
-                  <div className="text-4xl mb-4" aria-hidden="true">📜</div>
-                  
-                  <Heading level={2} className="mb-2">第 {todayFortune.stick_id} 签</Heading>
-                  <Text size="xl" weight="bold" className={`${levelColors[todayFortune.stick_level as keyof typeof levelColors]} mb-4`}>
-                    {todayFortune.stick_level}
-                  </Text>
-                  
-                  <div className="bg-gradient-to-r from-brand-primary-50 to-brand-secondary-50 rounded-xl p-6 mb-6">
-                    <Text size="xl" weight="semibold" className="text-gray-900">
-                      {todayFortune.stick_text}
-                    </Text>
-                  </div>
-                </div>
-                
-                {todayFortune.ai_analysis && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-                    <Heading level={3} className="mb-4 flex items-center">
-                      <span className="text-2xl mr-2" aria-hidden="true">🤖</span>
+            <div className="max-w-5xl mx-auto fortune-fade-in">
+              <div className="mb-8">
+                <FortuneCard
+                  stick_id={todayFortune.stick_id}
+                  stick_level={todayFortune.stick_level}
+                  stick_text={todayFortune.stick_text}
+                  category={todayFortune.category as FortuneCategory}
+                  isRevealing={true}
+                />
+              </div>
+
+              {/* AI Analysis */}
+              {todayFortune.ai_analysis && (
+                <div className="max-w-4xl mx-auto mb-8">
+                  <Card className="p-8">
+                    <Heading level={3} className="mb-6 flex items-center">
+                      <span className="text-2xl mr-3" aria-hidden="true">🤖</span>
                       AI 解签
                     </Heading>
                     <div className="prose prose-gray max-w-none">
-                      <Text className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+                      <Text className="whitespace-pre-wrap text-gray-700 leading-relaxed text-base">
                         {todayFortune.ai_analysis}
                       </Text>
                     </div>
-                  </div>
-                )}
-                
-                <div className="text-center">
-                  <Text size="sm" color="muted" className="mb-4">
-                    抽签时间：{new Date(todayFortune.created_at).toLocaleString('zh-CN')}
-                  </Text>
-                  
-                  <Button 
-                    variant="outline" 
-                    onClick={reset} 
-                    disabled={loading}
-                    aria-label="返回类别选择页面"
-                  >
-                    重新选择
-                  </Button>
+                  </Card>
                 </div>
-              </Card>
-              
-              <div className="text-center mt-8">
-                <Text color="muted" className="font-semibold">
-                  ✓ 每日仅可抽签一次，请明日再来
-                </Text>
+              )}
+
+              {/* Actions */}
+              <div className="max-w-4xl mx-auto">
+                <Card className="p-8 bg-gradient-to-r from-brand-primary-50 to-brand-secondary-50">
+                  <div className="text-center">
+                    <Text size="sm" color="muted" className="mb-6">
+                      抽签时间：{new Date(todayFortune.created_at).toLocaleString('zh-CN')}
+                    </Text>
+
+                    <Button
+                      variant="outline"
+                      onClick={reset}
+                      disabled={loading}
+                      aria-label="返回类别选择页面"
+                    >
+                      返回选择
+                    </Button>
+
+                    <Text size="xs" color="muted" className="mt-6 font-semibold">
+                      ✓ 每日仅可抽签一次，请明日再来
+                    </Text>
+                  </div>
+                </Card>
               </div>
             </div>
           )}

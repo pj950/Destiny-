@@ -128,7 +128,10 @@ body {
   .fortune-fall,
   .fortune-glow,
   .fortune-fade-in,
-  .animate-slide-up {
+  .animate-slide-up,
+  .fortune-stick-shake,
+  .fortune-stick-fall,
+  .fortune-card-reveal {
     animation: none;
     opacity: 1;
     transform: none;
@@ -139,6 +142,76 @@ body {
 button:focus-visible {
   outline: 3px solid #0ea5e9;
   outline-offset: 2px;
+}
+
+/* Enhanced 3D Fortune Stick Animations */
+@keyframes stickShake {
+  0%, 100% { 
+    transform: translateX(0) rotateZ(0deg) rotateX(0deg) rotateY(0deg);
+  }
+  15% { 
+    transform: translateX(-6px) rotateZ(-3deg) rotateX(-2deg) rotateY(3deg);
+  }
+  30% { 
+    transform: translateX(6px) rotateZ(3deg) rotateX(2deg) rotateY(-3deg);
+  }
+  45% { 
+    transform: translateX(-4px) rotateZ(-2deg) rotateX(-1deg) rotateY(2deg);
+  }
+  60% { 
+    transform: translateX(4px) rotateZ(2deg) rotateX(1deg) rotateY(-2deg);
+  }
+  75% { 
+    transform: translateX(-2px) rotateZ(-1deg) rotateX(-0.5deg) rotateY(1deg);
+  }
+}
+
+@keyframes stickFall {
+  0% {
+    transform: translateY(-150px) rotateZ(0deg) rotateX(0deg) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(0px) rotateZ(180deg) rotateX(45deg) scale(1);
+    opacity: 1;
+  }
+  85% {
+    transform: translateY(40px) rotateZ(360deg) rotateX(90deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0px) rotateZ(360deg) rotateX(90deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cardReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) rotateX(20deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotateX(0deg);
+  }
+}
+
+/* Applied 3D animations */
+.fortune-stick-shake {
+  animation: stickShake 3s ease-in-out;
+  transform-style: preserve-3d;
+}
+
+.fortune-stick-fall {
+  animation: stickFall 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transform-style: preserve-3d;
+}
+
+.fortune-card-reveal {
+  animation: cardReveal 0.8s ease-out;
 }
 
 /* Skip to main content link for accessibility */
