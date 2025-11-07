@@ -96,10 +96,10 @@ export default function Pricing() {
       
       const data = await res.json()
       
-      if (data.ok && data.checkout_url) {
-        window.location.href = data.checkout_url
+      if (data.ok && data.url) {
+        window.location.href = data.url
       } else {
-        alert(data.error || '创建支付失败，请重试')
+        alert(data.error || data.message || '创建支付失败，请重试')
       }
     } catch (err) {
       alert('网络错误，请稍后重试')
@@ -214,7 +214,7 @@ export default function Pricing() {
             <Card className="p-6">
               <Heading level={3} size="lg" className="mb-3">💳 支付安全吗？</Heading>
               <Text color="secondary">
-                我们使用国际领先的Stripe支付平台，采用银行级加密技术，保障您的支付安全。支持多种支付方式，安全便捷。
+                我们使用国际领先的支付平台，采用银行级加密技术，保障您的支付安全。支持多种支付方式，安全便捷。
               </Text>
             </Card>
 

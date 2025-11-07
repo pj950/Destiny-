@@ -15,6 +15,8 @@ interface Job {
   result_url: string | null
   metadata: {
     checkout_session_id?: string
+    razorpay_payment_link_id?: string
+    purchase_type?: string
     payment_confirmed?: boolean
     error?: string
   }
