@@ -18,6 +18,7 @@ import {
   isLocalStorageAvailable
 } from '../lib/lamp-storage'
 import { Button, Heading, Text } from '../components/ui'
+import { FALLBACK_LAMPS, type Lamp } from '../lib/lamps.config'
 
 interface LampStatus {
   lamp_key: string
@@ -25,50 +26,12 @@ interface LampStatus {
   last_updated?: string
 }
 
-interface Lamp {
-  key: string
-  name: string
-  image: string
-  price: number
-  description: string
-}
-
 type LampState = 'unlit' | 'purchasing' | 'lit'
-
-const LAMPS: Lamp[] = [
-  {
-    key: 'p1',
-    name: '福运灯',
-    image: '/images/p1.jpg',
-    price: 19.9,
-    description: '祈愿福泽绵延，守护家庭顺遂与喜乐。'
-  },
-  {
-    key: 'p2',
-    name: '安康灯',
-    image: '/images/p2.jpg',
-    price: 19.9,
-    description: '点亮身心安泰之光，为爱的人带来平安守护。'
-  },
-  {
-    key: 'p3',
-    name: '财源灯',
-    image: '/images/p3.jpg',
-    price: 19.9,
-    description: '招聚金气财富，助事业与财运蒸蒸日上。'
-  },
-  {
-    key: 'p4',
-    name: '事业灯',
-    image: '/images/p4.jpg',
-    price: 19.9,
-    description: '赐予勇气与灵感，护佑事业突破新境界。'
-  },
-]
 
 export default function LampsPage() {
   const router = useRouter()
   const [lampStates, setLampStates] = useState<Record<string, LampState>>({})
+  const [lamps, setLamps] = useState<Lamp[]>(FALLBACK_LAMPS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [usingCache, setUsingCache] = useState(false)
@@ -84,6 +47,7 @@ export default function LampsPage() {
 
   useEffect(() => {
     fetchLampStatuses()
+    fetchLampsConfig()
   }, [])
 
   useEffect(() => {
@@ -208,6 +172,23 @@ export default function LampsPage() {
     }
   }, [fetchLampStatuses])
 
+  const fetchLampsConfig = useCallback(async () => {
+    try {
+      const response = await fetch('/api/lamps/config')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.lamps && data.lamps.length > 0) {
+          setLamps(data.lamps)
+          console.log('Loaded lanterns from API:', data.lamps.length)
+        }
+      } else {
+        console.log('API not available, using fallback lanterns')
+      }
+    } catch (error) {
+      console.log('Failed to fetch lanterns config, using fallback:', error)
+    }
+  }, [])
+
   const handleBuyLamp = useCallback(async (lampKey: string) => {
     if (lampStates[lampKey] === 'purchasing') return
 
@@ -270,10 +251,39 @@ export default function LampsPage() {
 
         <main className="relative z-10 pt-24 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-6xl">
-            <div className="text-center max-w-3xl mx-auto">
-              <Heading level={1} gradient className="font-serif mb-6">
-                祈福点灯 · 点亮一份祝愿
-              </Heading>
+            {/* Header Image */}
+            <div className="mb-12">
+              <div className="relative w-full h-[300px] sm:h-[350px] lg:h-[400px] overflow-hidden rounded-3xl border border-mystical-gold-700/30 shadow-mystical-deep">
+                <img
+                  src="/images/祈福点灯.png"
+                  alt="祈福点灯"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Try SVG fallback if PNG doesn't exist
+                    const target = e.target as HTMLImageElement
+                    target.src = "/images/祈福点灯.svg"
+                    target.onerror = () => {
+                      // Final fallback to gradient background
+                      target.style.display = 'none'
+                      target.parentElement?.classList.add('bg-gradient-mystical-hero')
+                    }
+                  }}
+                />
+                {/* Overlay text for better readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-mystical-purple-950/80 via-mystical-purple-950/40 to-transparent flex items-end justify-center pb-8">
+                  <div className="text-center">
+                    <Heading level={1} gradient className="font-serif mb-2">
+                      祈福点灯
+                    </Heading>
+                    <Text size="lg" className="text-mystical-gold-400/90">
+                      点亮一份祝愿，守护一份心愿
+                    </Text>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center max-w-3xl mx-auto mb-8">
               <Text size="lg" className="text-mystical-gold-500/85 mb-3">
                 深紫夜幕下的金色灯笼，承载着真诚的祝福与光明
               </Text>
@@ -310,11 +320,11 @@ export default function LampsPage() {
               </div>
             ) : (
               <div
-                className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+                className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
                 role="region"
                 aria-label="祈福灯列表"
               >
-                {LAMPS.map((lamp) => {
+                {lamps.map((lamp) => {
                   const state = lampStates[lamp.key] || 'unlit'
                   const isLit = state === 'lit'
                   const isPurchasing = state === 'purchasing'
@@ -331,6 +341,17 @@ export default function LampsPage() {
                     >
                       <div className="lamp-card-layer" aria-hidden="true" />
                       <div className="lamp-card-shimmer" aria-hidden="true" />
+
+                      {/* Name Label Above Image */}
+                      <div className="relative z-10 border-b border-mystical-gold-700/30 bg-gradient-to-r from-mystical-purple-900/90 via-mystical-purple-800/80 to-mystical-purple-900/90 backdrop-blur-sm">
+                        <div className="px-4 py-3 text-center">
+                          <Text size="base" weight="semibold" className="text-mystical-gold-400 font-serif tracking-wide">
+                            {lamp.name}
+                          </Text>
+                        </div>
+                        {/* Gold accent line */}
+                        <div className="h-[1px] bg-gradient-to-r from-transparent via-mystical-gold-600/60 to-transparent" />
+                      </div>
 
                       <div className="relative aspect-[4/5] overflow-hidden">
                         <img
@@ -363,9 +384,6 @@ export default function LampsPage() {
 
                       <div className="relative p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                          <Text size="lg" className="font-semibold text-mystical-gold-500/90">
-                            {lamp.name}
-                          </Text>
                           <span className="text-lg font-semibold text-mystical-gold-500">
                             ${lamp.price}
                           </span>
