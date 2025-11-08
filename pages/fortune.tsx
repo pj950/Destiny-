@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -8,13 +9,15 @@ import {
   categories,
   categoryGradients,
   categoryIcons,
-  levelColors,
-  type FortuneCategory,
+} from '../lib/fortuneConstants'
+import type {
+  FortuneCategory,
 } from '../lib/fortuneConstants'
 
 // Re-export for backward compatibility
 export type { FortuneCategory }
-export { categories, categoryIcons, categoryGradients, levelColors }
+export { categories, categoryIcons, categoryGradients }
+export { levelColors } from '../lib/fortuneConstants'
 
 interface Fortune {
   id: string
@@ -76,6 +79,7 @@ export default function Fortune() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
+  const [showInterpretation, setShowInterpretation] = useState(false)
 
   const shakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,6 +89,7 @@ export default function Fortune() {
     const cached = readFortuneCache()
     if (cached) {
       setTodayFortune(cached)
+      setShowInterpretation(false)
       setState('result')
       setNotice(message ?? '')
     } else if (message) {
@@ -101,6 +106,7 @@ export default function Fortune() {
         if (data.hasFortune && data.fortune) {
           setTodayFortune(data.fortune)
           storeFortuneCache(data.fortune)
+          setShowInterpretation(false)
           setState('result')
           setNotice('')
         } else {
@@ -134,9 +140,10 @@ export default function Fortune() {
   // Transition to select state after initial check
   useEffect(() => {
     if (state === 'idle' && !loading) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setState('select')
       }, 300)
+      return () => clearTimeout(timer)
     }
   }, [state, loading])
 
@@ -145,6 +152,7 @@ export default function Fortune() {
 
     if (todayFortune) {
       setStatusMessage('今日已抽签，请明天再来')
+      setNotice('已为您保留今日之签，明日可再次求签')
       setState('result')
       return
     }
@@ -160,13 +168,15 @@ export default function Fortune() {
 
     if (todayFortune) {
       setStatusMessage('今日已抽签，请明天再来')
+      setNotice('已为您保留今日之签，明日可再次求签')
       setState('result')
       return
     }
 
     setError('')
     setNotice('')
-    setStatusMessage(`开始为您求签...`)
+    setShowInterpretation(false)
+    setStatusMessage('开始为您摇动金色签筒...')
     setState('shake')
 
     if (shakeTimeoutRef.current) {
@@ -182,6 +192,7 @@ export default function Fortune() {
     setLoading(true)
     setError('')
     setNotice('')
+    setShowInterpretation(false)
     setStatusMessage('正在与神灵沟通...')
 
     try {
@@ -197,6 +208,7 @@ export default function Fortune() {
         if (data?.fortune) {
           setTodayFortune(data.fortune)
           storeFortuneCache(data.fortune)
+          setShowInterpretation(false)
           setNotice(data?.message || '今日已抽签，请明天再来')
           setStatusMessage('')
           setState('result')
@@ -212,6 +224,7 @@ export default function Fortune() {
       if (data.alreadyDrawn && data.fortune) {
         setTodayFortune(data.fortune)
         storeFortuneCache(data.fortune)
+        setShowInterpretation(false)
         setNotice(data.message || '今日已抽签，请明天再来')
         setStatusMessage(data.message || '今日已抽签，请明天再来')
         setState('result')
@@ -221,7 +234,8 @@ export default function Fortune() {
       if (data.fortune) {
         setTodayFortune(data.fortune)
         storeFortuneCache(data.fortune)
-        setStatusMessage('签文已出，正在为您解读...')
+        setShowInterpretation(false)
+        setStatusMessage('签文已出，正在为您呈现...')
         setState('fallen')
         if (revealTimeoutRef.current) {
           clearTimeout(revealTimeoutRef.current)
@@ -254,57 +268,83 @@ export default function Fortune() {
     setError('')
     setNotice('')
     setStatusMessage('')
+    setShowInterpretation(false)
+  }
+
+  const handleDrawAgain = () => {
+    setShowInterpretation(false)
+    setSelectedCategory(null)
+    setStatusMessage('')
+    setError('')
+    setNotice('已为您保留今日之签，再次求签将呈现相同指引')
+    setTodayFortune(null)
+    setState('select')
+  }
+
+  const handleRevealInterpretation = () => {
+    setShowInterpretation(true)
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-mystical-hero text-mystical-gold-500">
       <Navbar />
 
       {/* Accessibility: Skip navigation link */}
-      <a href="#fortune-main" className="sr-only focus:not-sr-only">
+      <a href="#fortune-main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-mystical-purple-950 focus:px-4 focus:py-2 focus:text-mystical-gold-500">
         跳到主要内容
       </a>
 
-      <Section background="gradient" className="pt-20" spacing="spacious">
-        <Container size="lg" id="fortune-main">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <Heading level={1} className="mb-4">
-              每日一签
-            </Heading>
-            <Text size="xl" color="secondary" className="mb-8">
-              求签问卜，知吉凶祸福，得人生指引
-            </Text>
-            <Text size="sm" color="muted" className="mb-8">
-              <span className="font-semibold">特别提示：</span>每天限制抽签一次，请明天再来
-            </Text>
-          </div>
+      <main className="flex-1">
+        <Section id="fortune-section" background="mystical" spacing="spacious" className="relative overflow-hidden">
+          <div className="mystical-grid-pattern" />
+          <div className="mystical-fog" />
+          <div className="mystical-stars" />
+          <div className="floating-lantern floating-lantern--one" aria-hidden="true" />
+          <div className="floating-lantern floating-lantern--two" aria-hidden="true" />
+          <div className="floating-lantern floating-lantern--three" aria-hidden="true" />
 
-          {/* Accessibility: Live region for status updates */}
-          <div
-            ref={statusLiveRef}
-            aria-live="polite"
-            aria-atomic="true"
-            className="sr-only"
-          >
-            {statusMessage}
-          </div>
-
-          {notice && (
-            <div className="max-w-3xl mx-auto mb-6 animate-slide-up">
-              <div className="bg-brand-primary-50 border border-brand-primary-100 text-brand-primary-700 px-4 py-3 rounded-xl text-sm text-center">
-                {notice}
-              </div>
+          <Container size="xl" className="relative z-10" id="fortune-main">
+            <div className="text-center max-w-3xl mx-auto">
+              <Heading level={1} gradient className="font-serif mb-6">
+                每日一签 · 神秘占卜殿堂
+              </Heading>
+              <Text size="xl" className="mb-4 text-mystical-gold-500/90">
+                沉浸在深紫与金光之间，虔心向神灵请示今日的吉凶祸福
+              </Text>
+              <Text size="sm" className="text-mystical-gold-600/70">
+                <span className="font-semibold text-mystical-gold-500">提示：</span>每天仅可摇签一次，金色签文已为您留存
+              </Text>
             </div>
-          )}
 
-          {/* Select Category State */}
-          {state === 'select' && (
-            <div className="max-w-6xl mx-auto fortune-fade-in">
-              <Card className="p-8">
-                <Heading level={2} className="mb-8 text-center">请选择求签类别</Heading>
+            {/* Accessibility: Live region for status updates */}
+            <div
+              ref={statusLiveRef}
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {statusMessage}
+            </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-6">
+            {notice && (
+              <div className="mx-auto mt-10 max-w-3xl animate-slide-up">
+                <div className="rounded-2xl border border-mystical-gold-700/30 bg-mystical-purple-950/60 px-6 py-4 text-center text-sm text-mystical-gold-500 shadow-gold-glow">
+                  {notice}
+                </div>
+              </div>
+            )}
+
+            {/* Select Category State */}
+            {state === 'select' && (
+              <div className="mx-auto mt-14 max-w-6xl space-y-6">
+                <Heading level={2} weight="semibold" gradient className="text-3xl font-serif text-center">
+                  选择您想求取的智慧领域
+                </Heading>
+                <Text size="md" className="text-center text-mystical-gold-600/80">
+                  每一类签文都对应不同的福祉，请带着明确的问题与期待前来
+                </Text>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 mt-8">
                   {categories.map((category) => (
                     <button
                       key={category}
@@ -313,150 +353,183 @@ export default function Fortune() {
                       disabled={loading}
                       aria-label={`求签类别：${category}`}
                       aria-disabled={loading}
-                      className={`flex flex-col items-center p-4 rounded-xl border-2 border-gray-200 hover:border-transparent hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary-500 transition-all duration-200 cursor-pointer group disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-br ${categoryGradients[category]} hover:opacity-90`}
+                      className={`group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-mystical-gold-700/30 bg-mystical-purple-950/40 px-4 py-6 text-center text-mystical-gold-500 shadow-mystical-soft transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-mystical-gold-500 focus-visible:ring-offset-mystical-purple-950 disabled:cursor-not-allowed disabled:opacity-60 hover:-translate-y-1 hover:shadow-gold-glow`}
                     >
-                      <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-200">
-                        {categoryIcons[category]}
+                      <div className={`absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-70`}>
+                        <div className={`h-full w-full bg-gradient-to-br ${categoryGradients[category]} blur-2xl`} aria-hidden="true" />
                       </div>
-                      <Text weight="semibold" className="text-white text-center text-xs md:text-sm">
+                      <span className="relative text-3xl sm:text-4xl mb-3 drop-shadow" aria-hidden="true">
+                        {categoryIcons[category]}
+                      </span>
+                      <span className="relative text-xs sm:text-sm font-semibold tracking-[0.35em] uppercase">
                         {category}
-                      </Text>
+                      </span>
                     </button>
                   ))}
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center animate-slide-up" role="alert">
-                    <span className="font-semibold">错误：</span> {error}
+                  <div className="mx-auto max-w-3xl animate-slide-up" role="alert">
+                    <div className="rounded-2xl border border-mystical-rose-700/40 bg-mystical-rose-700/10 px-6 py-4 text-center text-sm text-mystical-gold-500">
+                      <span className="font-semibold">错误：</span> {error}
+                    </div>
                   </div>
                 )}
-              </Card>
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Selected Category - Show CTA to start shaking */}
-          {state === 'selected' && selectedCategory && (
-            <div className="max-w-4xl mx-auto fortune-fade-in">
-              <Card className="p-8">
-                <div className="text-center">
-                  <Heading level={2} className="mb-8">已选择求签类别</Heading>
+            {/* Selected Category - Show CTA to start shaking */}
+            {state === 'selected' && selectedCategory && (
+              <div className="mx-auto mt-16 max-w-4xl animate-slide-up">
+                <Card variant="mystical-gold" className="p-10">
+                  <div className="text-center">
+                    <Heading level={2} className="font-serif text-mystical-gold-500 mb-6">
+                      {selectedCategory} · 准备接受指引
+                    </Heading>
 
-                  {/* Category badge */}
-                  <div className={`mb-8 inline-flex items-center px-8 py-4 rounded-full shadow-xl bg-gradient-to-br ${categoryGradients[selectedCategory]}`}>
-                    <span className="text-4xl mr-3" aria-hidden="true">
-                      {categoryIcons[selectedCategory]}
-                    </span>
-                    <span className="text-white font-bold text-xl">{selectedCategory}</span>
+                    <div className="mb-10 inline-flex items-center rounded-full border border-mystical-gold-700/40 bg-mystical-purple-950/40 px-10 py-5 shadow-gold-glow">
+                      <span className="text-4xl mr-4" aria-hidden="true">
+                        {categoryIcons[selectedCategory]}
+                      </span>
+                      <span className="text-xl font-semibold tracking-[0.45em] uppercase text-mystical-gold-500">
+                        {selectedCategory}
+                      </span>
+                    </div>
+
+                    <Text size="lg" className="mb-12 text-mystical-gold-500/90 max-w-2xl mx-auto">
+                      双手合十，闭目祈念。点击下方按钮，金色签筒将随您的心念轻摇，为您取出独属于今日的签文。
+                    </Text>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <Button
+                        onClick={handleStartShaking}
+                        disabled={loading}
+                        aria-label="开始摇签求卜"
+                        size="lg"
+                        variant="gold"
+                        className="px-10 py-4 text-lg font-bold text-mystical-purple-950 bg-gradient-to-br from-mystical-gold-700 via-mystical-gold-500 to-mystical-rose-700 hover:from-mystical-gold-600 hover:via-mystical-gold-500 hover:to-mystical-rose-700 shadow-gold-glow hover:shadow-gold-glow-lg"
+                      >
+                        {loading ? '处理中...' : '🌟 开启摇签'}
+                      </Button>
+                      <Button
+                        variant="mystical"
+                        onClick={reset}
+                        disabled={loading}
+                        aria-label="返回类别选择"
+                        size="lg"
+                      >
+                        返回选择
+                      </Button>
+                    </div>
                   </div>
+                </Card>
+              </div>
+            )}
 
-                  {/* Description */}
-                  <Text size="lg" color="secondary" className="mb-10">
-                    诚心祈祷，虔心向神灵请求指引，让我们开始摇签吧
-                  </Text>
-
-                  {/* CTA Button */}
-                  <div className="flex gap-4 justify-center">
-                   <Button
-                     onClick={handleStartShaking}
-                     disabled={loading}
-                     aria-label="开始摇签求卜"
-                     className={`px-8 py-4 text-lg font-bold text-white shadow-lg hover:shadow-xl transition-all bg-gradient-to-br ${categoryGradients[selectedCategory]}`}
-                   >
-                     {loading ? '处理中...' : '🎯 开始摇签'}
-                   </Button>
-                    <Button
-                      variant="outline"
-                      onClick={reset}
-                      disabled={loading}
-                      aria-label="返回类别选择"
-                    >
-                      返回选择
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Shake State */}
-          {state === 'shake' && selectedCategory && (
-            <div className="max-w-4xl mx-auto fortune-fade-in">
-              <FortuneAnimationStage
-                state="shake"
-                selectedCategory={selectedCategory}
-                statusMessage={statusMessage}
-              />
-            </div>
-          )}
-
-          {/* Fallen State */}
-          {state === 'fallen' && selectedCategory && (
-            <div className="max-w-4xl mx-auto fortune-fade-in">
-              <FortuneAnimationStage
-                state="fallen"
-                selectedCategory={selectedCategory}
-                statusMessage={statusMessage}
-              />
-            </div>
-          )}
-
-          {/* Result State */}
-          {state === 'result' && todayFortune && (
-            <div className="max-w-5xl mx-auto fortune-fade-in">
-              <div className="mb-8">
-                <FortuneCard
-                  stick_id={todayFortune.stick_id}
-                  stick_level={todayFortune.stick_level}
-                  stick_text={todayFortune.stick_text}
-                  category={todayFortune.category as FortuneCategory}
-                  isRevealing={true}
+            {/* Shake State */}
+            {state === 'shake' && selectedCategory && (
+              <div className="mx-auto mt-16 max-w-4xl animate-slide-up">
+                <FortuneAnimationStage
+                  state="shake"
+                  selectedCategory={selectedCategory}
+                  statusMessage={statusMessage}
                 />
               </div>
+            )}
 
-              {/* AI Analysis */}
-              {todayFortune.ai_analysis && (
-                <div className="max-w-4xl mx-auto mb-8">
-                  <Card className="p-8">
-                    <Heading level={3} className="mb-6 flex items-center">
-                      <span className="text-2xl mr-3" aria-hidden="true">🤖</span>
-                      AI 解签
-                    </Heading>
-                    <div className="prose prose-gray max-w-none">
-                      <Text className="whitespace-pre-wrap text-gray-700 leading-relaxed text-base">
-                        {todayFortune.ai_analysis}
-                      </Text>
-                    </div>
-                  </Card>
+            {/* Fallen State */}
+            {state === 'fallen' && selectedCategory && (
+              <div className="mx-auto mt-16 max-w-4xl animate-slide-up">
+                <FortuneAnimationStage
+                  state="fallen"
+                  selectedCategory={selectedCategory}
+                  statusMessage={statusMessage}
+                />
+              </div>
+            )}
+
+            {/* Result State */}
+            {state === 'result' && todayFortune && (
+              <div className="mx-auto mt-16 max-w-5xl space-y-12 animate-slide-up">
+                <div>
+                  <FortuneCard
+                    stick_id={todayFortune.stick_id}
+                    stick_level={todayFortune.stick_level}
+                    stick_text={todayFortune.stick_text}
+                    category={todayFortune.category as FortuneCategory}
+                    isRevealing={true}
+                  />
                 </div>
-              )}
 
-              {/* Actions */}
-              <div className="max-w-4xl mx-auto">
-                <Card className="p-8 bg-gradient-to-r from-brand-primary-50 to-brand-secondary-50">
-                  <div className="text-center">
-                    <Text size="sm" color="muted" className="mb-6">
+                {todayFortune.ai_analysis && (
+                  <div className="space-y-6">
+                    {!showInterpretation && (
+                      <div className="text-center">
+                        <p className="fortune-hint-pulse text-sm text-mystical-gold-500/80">
+                          点击开启智慧，聆听灵光与AI的深度解读
+                        </p>
+                        <Button
+                          variant="mystical"
+                          size="lg"
+                          className="mt-4 bg-gradient-to-r from-mystical-purple-700 to-mystical-purple-900 hover:from-mystical-purple-600 hover:to-mystical-purple-800 text-mystical-gold-500 shadow-mystical-medium"
+                          onClick={handleRevealInterpretation}
+                        >
+                          点击开启智慧
+                        </Button>
+                      </div>
+                    )}
+
+                    {showInterpretation && (
+                      <Card variant="mystical-gold" className="p-10">
+                        <div className="space-y-6">
+                          <div>
+                            <Heading level={3} className="mb-2 font-serif text-mystical-gold-500">
+                              签文解读
+                            </Heading>
+                            <Text className="whitespace-pre-wrap text-mystical-gold-500/90 leading-relaxed">
+                              {todayFortune.ai_analysis}
+                            </Text>
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                <Card variant="mystical" className="p-10">
+                  <div className="flex flex-col items-center gap-6 text-center">
+                    <Text size="sm" className="text-mystical-gold-500/80">
                       抽签时间：{new Date(todayFortune.created_at).toLocaleString('zh-CN')}
                     </Text>
 
-                    <Button
-                      variant="outline"
-                      onClick={reset}
-                      disabled={loading}
-                      aria-label="返回类别选择页面"
-                    >
-                      返回选择
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Button
+                        variant="gold"
+                        size="lg"
+                        className="bg-gradient-to-br from-mystical-gold-700 via-mystical-gold-500 to-mystical-rose-700 text-mystical-purple-950 shadow-gold-glow hover:shadow-gold-glow-lg"
+                        onClick={handleDrawAgain}
+                        disabled={loading}
+                      >
+                        再抽一签
+                      </Button>
+                      <Link
+                        href="/dashboard"
+                        className="text-sm font-semibold text-mystical-gold-500 underline decoration-transparent underline-offset-4 transition hover:text-mystical-gold-600 hover:decoration-mystical-gold-600"
+                      >
+                        查看历史
+                      </Link>
+                    </div>
 
-                    <Text size="xs" color="muted" className="mt-6 font-semibold">
-                      ✓ 每日仅可抽签一次，请明日再来
+                    <Text size="xs" className="text-mystical-gold-500/70">
+                      ✓ 已为您保留今日之签，灵光将在明日再次照拂
                     </Text>
                   </div>
                 </Card>
               </div>
-            </div>
-          )}
-        </Container>
-      </Section>
+            )}
+          </Container>
+        </Section>
+      </main>
 
       <Footer />
     </div>

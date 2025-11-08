@@ -46,9 +46,9 @@ export const categoryGradients: Record<FortuneCategory, string> = {
 }
 
 export const levelColors = {
-  '上上': 'text-red-600',
-  '上吉': 'text-orange-600', 
-  '中吉': 'text-yellow-600',
-  '下吉': 'text-blue-600',
-  '凶': 'text-gray-600'
+  '上上': 'text-mystical-rose-700',
+  '上吉': 'text-mystical-gold-500',
+  '中吉': 'text-mystical-gold-600',
+  '下吉': 'text-mystical-cyan-900',
+  '凶': 'text-mystical-purple-800'
 }
