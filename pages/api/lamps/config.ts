@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { getLampsConfig } from '../../lib/lamps.config'
+import { getLampsConfig } from '../../../lib/lamps.config'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
