@@ -18,7 +18,7 @@ import {
   isLocalStorageAvailable
 } from '../lib/lamp-storage'
 import { Button, Heading, Text } from '../components/ui'
-import { FALLBACK_LAMPS, type Lamp } from '../lib/lamps.config'
+import { FALLBACK_LAMPS, type Lamp } from '../lib/lamps.client'
 
 interface LampStatus {
   lamp_key: string
@@ -345,7 +345,7 @@ export default function LampsPage() {
                       {/* Name Label Above Image */}
                       <div className="relative z-10 border-b border-mystical-gold-700/30 bg-gradient-to-r from-mystical-purple-900/90 via-mystical-purple-800/80 to-mystical-purple-900/90 backdrop-blur-sm">
                         <div className="px-4 py-3 text-center">
-                          <Text size="base" weight="semibold" className="text-mystical-gold-400 font-serif tracking-wide">
+                          <Text size="md" weight="semibold" className="text-mystical-gold-400 font-serif tracking-wide">
                             {lamp.name}
                           </Text>
                         </div>
