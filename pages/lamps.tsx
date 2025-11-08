@@ -18,7 +18,8 @@ import {
   isLocalStorageAvailable
 } from '../lib/lamp-storage'
 import { Button, Heading, Text } from '../components/ui'
-import { FALLBACK_LAMPS, type Lamp } from '../lib/lamps.client'
+import { FALLBACK_LAMPS } from '../lib/lamps.client'
+import type { LampConfig } from '../lib/lamps.config'
 
 interface LampStatus {
   lamp_key: string
@@ -31,7 +32,7 @@ type LampState = 'unlit' | 'purchasing' | 'lit'
 export default function LampsPage() {
   const router = useRouter()
   const [lampStates, setLampStates] = useState<Record<string, LampState>>({})
-  const [lamps, setLamps] = useState<Lamp[]>(FALLBACK_LAMPS)
+  const [lamps, setLamps] = useState<LampConfig[]>(FALLBACK_LAMPS)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [usingCache, setUsingCache] = useState(false)
@@ -320,7 +321,7 @@ export default function LampsPage() {
               </div>
             ) : (
               <div
-                className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+                className="mt-14 grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-3 xl:grid-cols-4"
                 role="region"
                 aria-label="祈福灯列表"
               >
@@ -328,6 +329,8 @@ export default function LampsPage() {
                   const state = lampStates[lamp.key] || 'unlit'
                   const isLit = state === 'lit'
                   const isPurchasing = state === 'purchasing'
+                  const price = typeof lamp.price === 'number' && !Number.isNaN(lamp.price) ? lamp.price : 19.9
+                  const description = lamp.description ?? '点亮此灯，为愿望添一份光。'
 
                   return (
                     <div
@@ -343,14 +346,10 @@ export default function LampsPage() {
                       <div className="lamp-card-shimmer" aria-hidden="true" />
 
                       {/* Name Label Above Image */}
-                      <div className="relative z-10 border-b border-mystical-gold-700/30 bg-gradient-to-r from-mystical-purple-900/90 via-mystical-purple-800/80 to-mystical-purple-900/90 backdrop-blur-sm">
-                        <div className="px-4 py-3 text-center">
-                          <Text size="md" weight="semibold" className="text-mystical-gold-400 font-serif tracking-wide">
-                            {lamp.name}
-                          </Text>
-                        </div>
-                        {/* Gold accent line */}
-                        <div className="h-[1px] bg-gradient-to-r from-transparent via-mystical-gold-600/60 to-transparent" />
+                      <div className="relative z-10 bg-gradient-to-r from-mystical-purple-900 to-mystical-purple-800 border-b-2 border-mystical-gold-500 px-4 py-3 text-center shadow-inner">
+                        <h3 className="text-mystical-gold-400 font-serif text-lg font-bold tracking-wide">
+                          {lamp.name}
+                        </h3>
                       </div>
 
                       <div className="relative aspect-[4/5] overflow-hidden">
@@ -385,12 +384,12 @@ export default function LampsPage() {
                       <div className="relative p-6 space-y-4">
                         <div className="flex items-center justify-between">
                           <span className="text-lg font-semibold text-mystical-gold-500">
-                            ${lamp.price}
+                            ${price.toFixed(1)}
                           </span>
                         </div>
 
                         <Text size="sm" className="text-mystical-gold-500/75 leading-relaxed">
-                          {lamp.description}
+                          {description}
                         </Text>
 
                         <Button
@@ -410,10 +409,10 @@ export default function LampsPage() {
                               ? `${lamp.name}已点亮，感谢您的祈福`
                               : isPurchasing
                                 ? `正在为${lamp.name}创建支付链接`
-                                : `为${lamp.name}点灯，价格${lamp.price}美元`
+                                : `为${lamp.name}点灯，价格${price.toFixed(1)}美元`
                           }
                         >
-                          {isLit ? '已点亮 ✨' : isPurchasing ? '处理中...' : '点亮这盏灯'}
+                          {isLit ? '已点亮✨' : isPurchasing ? '处理中...' : '立即点灯'}
                         </Button>
                       </div>
                     </div>

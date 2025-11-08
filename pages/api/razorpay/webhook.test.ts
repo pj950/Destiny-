@@ -137,12 +137,14 @@ describe('Razorpay Webhook API', () => {
     it('should extract lamp_key from notes', async () => {
       const paymentLink = {
         notes: {
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
+          lamp_name: '福运灯',
           purchase_type: 'lamp_purchase',
         },
       }
 
-      expect(paymentLink.notes.lamp_key).toBe('p1')
+      expect(paymentLink.notes.lamp_key).toBe('lamp_1')
+      expect(paymentLink.notes.lamp_name).toBe('福运灯')
       expect(paymentLink.notes.purchase_type).toBe('lamp_purchase')
     })
 
@@ -178,7 +180,7 @@ describe('Razorpay Webhook API', () => {
       mockSupabaseService.maybeSingle.mockResolvedValue({
         data: {
           id: 'lamp-1',
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
           status: 'unlit',
           razorpay_payment_link_id: 'plink_123',
         },
@@ -186,7 +188,7 @@ describe('Razorpay Webhook API', () => {
       })
 
       const { data } = await mockSupabaseService.maybeSingle()
-      expect(data.lamp_key).toBe('p1')
+      expect(data.lamp_key).toBe('lamp_1')
       expect(data.status).toBe('unlit')
     })
 
@@ -250,7 +252,7 @@ describe('Razorpay Webhook API', () => {
       mockSupabaseService.maybeSingle.mockResolvedValue({
         data: {
           id: 'lamp-1',
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
           status: 'lit',
           razorpay_payment_id: 'pay_existing_456',
         },
@@ -362,7 +364,7 @@ describe('Razorpay Webhook API', () => {
     it('should recognize duplicate webhook by event ID', async () => {
       const lamp = {
         id: 'lamp-1',
-        lamp_key: 'p1',
+        lamp_key: 'lamp_1',
         status: 'lit',
         last_webhook_event_id: 'evt_test_001',
       }
@@ -378,7 +380,7 @@ describe('Razorpay Webhook API', () => {
     it('should skip processing if event already processed for lamp', async () => {
       mockSupabaseService.maybeSingle.mockResolvedValue({
         data: {
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
           last_webhook_event_id: 'evt_test_001',
         },
       })
@@ -562,7 +564,7 @@ describe('Razorpay Webhook API', () => {
     it('should handle concurrent webhooks for same lamp', async () => {
       mockSupabaseService.maybeSingle.mockResolvedValue({
         data: {
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
           status: 'unlit',
           last_webhook_event_id: null,
         },

@@ -51,8 +51,8 @@ describe('Lamp Storage Utilities (Simplified)', () => {
   describe('saveLampStatesToStorage', () => {
     it('should save lamp states to localStorage', () => {
       const lamps = [
-        { lamp_key: 'p1', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' },
-        { lamp_key: 'p2', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
+        { lamp_key: 'lamp_1', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' },
+        { lamp_key: 'lamp_2', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
       ]
 
       saveLampStatesToStorage(lamps)
@@ -67,7 +67,7 @@ describe('Lamp Storage Utilities (Simplified)', () => {
   describe('getLampStatesFromStorage', () => {
     it('should retrieve valid lamp states from storage', () => {
       const lamps = [
-        { lamp_key: 'p1', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' }
+        { lamp_key: 'lamp_1', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' }
       ]
 
       localStorageMock.setItem('eastern-destiny-lamps', JSON.stringify({
@@ -101,7 +101,7 @@ describe('Lamp Storage Utilities (Simplified)', () => {
   describe('updateLampStateInStorage', () => {
     it('should update existing lamp state', () => {
       const existingLamps = [
-        { lamp_key: 'p1', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
+        { lamp_key: 'lamp_1', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
       ]
 
       localStorageMock.setItem('eastern-destiny-lamps', JSON.stringify({
@@ -110,7 +110,7 @@ describe('Lamp Storage Utilities (Simplified)', () => {
         timestamp: Date.now()
       }))
 
-      updateLampStateInStorage('p1', 'lit')
+      updateLampStateInStorage('lamp_1', 'lit')
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'eastern-destiny-lamps',
@@ -119,11 +119,11 @@ describe('Lamp Storage Utilities (Simplified)', () => {
     })
 
     it('should add new lamp state if not exists', () => {
-      updateLampStateInStorage('p1', 'lit')
+      updateLampStateInStorage('lamp_1', 'lit')
 
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'eastern-destiny-lamps',
-        expect.stringContaining('"lamp_key":"p1"')
+        expect.stringContaining('"lamp_key":"lamp_1"')
       )
     })
   })
@@ -131,30 +131,30 @@ describe('Lamp Storage Utilities (Simplified)', () => {
   describe('mergeLampStates', () => {
     it('should merge API data with cache data', () => {
       const apiLamps = [
-        { lamp_key: 'p1', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' },
-        { lamp_key: 'p2', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
+        { lamp_key: 'lamp_1', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' },
+        { lamp_key: 'lamp_2', status: 'unlit' as const, last_updated: '2024-01-01T00:00:00Z' }
       ]
 
       const cacheLamps = [
-        { lamp_key: 'p1', status: 'lit' as const, last_updated: '2024-01-01T01:00:00Z' }, // More recent
-        { lamp_key: 'p3', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' } // Not in API
+        { lamp_key: 'lamp_1', status: 'lit' as const, last_updated: '2024-01-01T01:00:00Z' }, // More recent
+        { lamp_key: 'lamp_3', status: 'lit' as const, last_updated: '2024-01-01T00:00:00Z' } // Not in API
       ]
 
       const result = mergeLampStates(apiLamps, cacheLamps)
 
       expect(result).toHaveLength(3)
-      expect(result.find(l => l.lamp_key === 'p1')?.status).toBe('lit') // Cache wins
-      expect(result.find(l => l.lamp_key === 'p2')?.status).toBe('unlit') // API data
-      expect(result.find(l => l.lamp_key === 'p3')?.status).toBe('lit') // Cache only
+      expect(result.find(l => l.lamp_key === 'lamp_1')?.status).toBe('lit') // Cache wins
+      expect(result.find(l => l.lamp_key === 'lamp_2')?.status).toBe('unlit') // API data
+      expect(result.find(l => l.lamp_key === 'lamp_3')?.status).toBe('lit') // Cache only
     })
 
     it('should use API data when cache is older', () => {
       const apiLamps = [
-        { lamp_key: 'p1', status: 'lit' as const, last_updated: '2024-01-01T02:00:00Z' }
+        { lamp_key: 'lamp_1', status: 'lit' as const, last_updated: '2024-01-01T02:00:00Z' }
       ]
 
       const cacheLamps = [
-        { lamp_key: 'p1', status: 'unlit' as const, last_updated: '2024-01-01T01:00:00Z' } // Older
+        { lamp_key: 'lamp_1', status: 'unlit' as const, last_updated: '2024-01-01T01:00:00Z' } // Older
       ]
 
       const result = mergeLampStates(apiLamps, cacheLamps)

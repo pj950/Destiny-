@@ -213,13 +213,13 @@ describe('Razorpay Module', () => {
     it('should support notes parameter', async () => {
       const result = await testHelper.createPaymentLink({
         notes: {
-          lamp_key: 'p1',
+          lamp_key: 'lamp_1',
           purchase_type: 'lamp_purchase',
         },
       })
 
       expect(result.notes).toBeTruthy()
-      expect(result.notes.lamp_key).toBe('p1')
+      expect(result.notes.lamp_key).toBe('lamp_1')
     })
 
     it('should support callback_url parameter', async () => {
