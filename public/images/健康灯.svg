@@ -1,0 +1,19 @@
+<!-- 健康灯 - Placeholder SVG -->
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="lampGradient3">
+      <stop offset="0%" style="stop-color:#f4af37;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#8b4789;stop-opacity:0.3" />
+    </radialGradient>
+  </defs>
+  <rect width="400" height="400" fill="#1a0f2e"/>
+  <circle cx="200" cy="150" r="80" fill="url(#lampGradient3)"/>
+  <path d="M 200 230 L 200 320" stroke="#8b4789" stroke-width="3"/>
+  <path d="M 150 320 Q 200 340 250 320" stroke="#8b4789" stroke-width="2" fill="none"/>
+  <text x="200" y="160" font-family="serif" font-size="36" fill="#1a0f2e" text-anchor="middle" font-weight="bold">
+    健康
+  </text>
+  <text x="200" y="380" font-family="serif" font-size="24" fill="#8b4789" text-anchor="middle">
+    健康灯
+  </text>
+</svg>
