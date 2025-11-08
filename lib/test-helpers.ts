@@ -15,14 +15,15 @@ export const mockPaymentLinkLamp = {
   created_at: 1699276800,
   currency: 'USD',
   customer: {},
-  description: '祈福点灯 - P1',
+  description: '祈福点灯 - 福运灯',
   expire_by: 1699278600,
   expired_at: null,
   first_min_partial_amount: null,
   id: 'plink_test_lamp_123',
   notify: { email: true, sms: true },
   notes: {
-    lamp_key: 'p1',
+    lamp_key: 'lamp_1',
+    lamp_name: '福运灯',
     purchase_type: 'lamp_purchase',
   },
   notified_at: null,
@@ -80,7 +81,7 @@ export const mockRazorpayPayment = {
   currency: 'USD',
   status: 'captured',
   method: 'upi',
-  description: '祈福点灯 - P1',
+  description: '祈福点灯 - 福运灯',
   amount_refunded: 0,
   refund_status: null,
   captured: true,
@@ -109,7 +110,7 @@ export const mockRazorpayPayment = {
  */
 export function createLampWebhookEvent(
   paymentLinkId: string = mockPaymentLinkLamp.id,
-  lampKey: string = 'p1',
+  lampKey: string = 'lamp_1',
   paymentId: string = mockRazorpayPayment.id,
   eventId: string = 'evt_test_lamp_001'
 ) {
@@ -187,7 +188,7 @@ export function createReportWebhookEvent(
  */
 export const mockLampRecord = {
   id: 'lamp-id-123',
-  lamp_key: 'p1',
+  lamp_key: 'lamp_1',
   status: 'unlit',
   razorpay_payment_link_id: null,
   razorpay_payment_id: null,

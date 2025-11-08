@@ -1,14 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { razorpayHelpers } from '../../../lib/razorpay'
+import { getLampsConfig } from '../../../lib/lamps.config'
 
 // Guard: Check for required environment variables
 if (!process.env.NEXT_PUBLIC_SITE_URL) {
   throw new Error('NEXT_PUBLIC_SITE_URL environment variable is not configured. Please set it in your .env.local file.')
 }
 
-const LAMP_PRICE = 1990 // $19.90 in cents, will be converted to INR or as per Razorpay currency
-const VALID_LAMP_KEYS = ['p1', 'p2', 'p3', 'p4']
+const DEFAULT_LAMP_PRICE = 19.9
+const MINOR_UNIT_MULTIPLIER = 100
+const PAYMENT_EXPIRY_SECONDS = 30 * 60
+
+const toMinorUnits = (price: number | undefined) => {
+  const safePrice = typeof price === 'number' && !Number.isNaN(price) ? price : DEFAULT_LAMP_PRICE
+  return Math.round(safePrice * MINOR_UNIT_MULTIPLIER)
+}
 
 interface CheckoutRequest {
   lamp_key: string
@@ -34,11 +41,16 @@ export default async function handler(
       return res.status(400).json({ error: 'lamp_key is required and must be a string' })
     }
 
-    if (!VALID_LAMP_KEYS.includes(lamp_key)) {
-      return res.status(400).json({ error: 'Invalid lamp_key. Must be one of: p1, p2, p3, p4' })
+    const availableLamps = getLampsConfig()
+    const lampConfig = availableLamps.find((lamp) => lamp.key === lamp_key)
+
+    if (!lampConfig) {
+      return res.status(400).json({ error: 'Invalid lamp_key. 请刷新页面后重试。' })
     }
 
-    console.log(`[Lamp Checkout] Creating Razorpay payment link for lamp: ${lamp_key}`)
+    const amountInMinorUnits = toMinorUnits(lampConfig.price)
+
+    console.log(`[Lamp Checkout] Creating Razorpay payment link for lamp: ${lamp_key} (${lampConfig.name})`)
 
     // Check lamp availability
     const { data: lamp, error: lampError } = await supabaseService
@@ -73,17 +85,18 @@ export default async function handler(
     // Create Razorpay payment link
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
     const paymentLink = await razorpayHelpers.createPaymentLink({
-      amount: LAMP_PRICE, // Amount in smallest unit (cents for USD)
+      amount: amountInMinorUnits,
       currency: 'USD',
-      description: `祈福点灯 - ${lamp_key.toUpperCase()}`,
+      description: `祈福点灯 - ${lampConfig.name}`,
       notes: {
         lamp_key,
+        lamp_name: lampConfig.name,
         purchase_type: 'lamp_purchase',
       },
       callback_url: `${siteUrl}/lamps`,
       callback_method: 'get',
       reference_id: lamp.id,
-      expire_by: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes
+      expire_by: Math.floor(Date.now() / 1000) + PAYMENT_EXPIRY_SECONDS,
     })
 
     console.log(`[Lamp Checkout] Created payment link ${paymentLink.id} for lamp ${lamp_key}`)
