@@ -52,20 +52,20 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <Section background="dark" className="pt-20" spacing="spacious">
+      <Section background="mystical" className="pt-20" spacing="spacious">
         <Container size="lg">
           <div className="text-center">
             <Heading level={1} gradient className="mb-6">
               探索命运的奥秘
             </Heading>
-            <Text size="xl" color="secondary" className="mb-4 max-w-3xl mx-auto">
+            <Text size="xl" className="mb-4 max-w-3xl mx-auto text-mystical-gold-400">
               结合千年东方智慧与现代AI技术
             </Text>
-            <Text size="lg" color="muted" className="mb-12 max-w-2xl mx-auto">
+            <Text size="lg" className="mb-12 max-w-2xl mx-auto text-mystical-gold-600/80">
               输入您的出生信息，获取专业的八字命盘分析和AI解读
             </Text>
             
-            <Card className="p-8 md:p-10 mx-auto max-w-2xl" gradient>
+            <Card className="p-8 md:p-10 mx-auto max-w-2xl" variant="mystical-gold">
               <Heading level={2} size="2xl" className="mb-6">免费试算您的命盘</Heading>
               
               <div className="space-y-4">
@@ -165,34 +165,34 @@ export default function Home() {
         </Container>
       </Section>
 
-      <Section background="white">
+      <Section background="mystical-gradient">
         <Container>
           <div className="text-center mb-16">
-            <Heading level={2} className="mb-4">为什么选择我们？</Heading>
-            <Text size="xl">专业、准确、值得信赖的命理服务</Text>
+            <Heading level={2} className="mb-4 text-mystical-gold-400">为什么选择我们？</Heading>
+            <Text size="xl" className="text-mystical-gold-600/80">专业、准确、值得信赖的命理服务</Text>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card hover className="p-8 text-center">
+            <Card hover className="p-8 text-center" variant="mystical">
               <div className="text-5xl mb-4">🎯</div>
-              <Heading level={3} size="xl" className="mb-3">精准计算</Heading>
-              <Text color="secondary">
+              <Heading level={3} size="xl" className="mb-3 text-mystical-gold-400">精准计算</Heading>
+              <Text className="text-mystical-gold-600/80">
                 基于正宗的八字命理算法，精确计算您的四柱八字和五行属性
               </Text>
             </Card>
             
-            <Card hover className="p-8 text-center">
+            <Card hover className="p-8 text-center" variant="mystical">
               <div className="text-5xl mb-4">🤖</div>
-              <Heading level={3} size="xl" className="mb-3">AI智能解读</Heading>
-              <Text color="secondary">
+              <Heading level={3} size="xl" className="mb-3 text-mystical-gold-400">AI智能解读</Heading>
+              <Text className="text-mystical-gold-600/80">
                 运用先进的人工智能技术，提供深入浅出的命运解析
               </Text>
             </Card>
             
-            <Card hover className="p-8 text-center">
+            <Card hover className="p-8 text-center" variant="mystical">
               <div className="text-5xl mb-4">🔒</div>
-              <Heading level={3} size="xl" className="mb-3">隐私保护</Heading>
-              <Text color="secondary">
+              <Heading level={3} size="xl" className="mb-3 text-mystical-gold-400">隐私保护</Heading>
+              <Text className="text-mystical-gold-600/80">
                 严格保护您的个人信息，所有数据加密存储，安全可靠
               </Text>
             </Card>
@@ -200,42 +200,42 @@ export default function Home() {
         </Container>
       </Section>
 
-      <Section background="gradient">
+      <Section background="mystical-dark">
         <Container>
           <div className="text-center mb-16">
-            <Heading level={2} className="mb-4">我们的服务</Heading>
-            <Text size="xl">多维度的命理分析，助您了解自我</Text>
+            <Heading level={2} className="mb-4 text-mystical-gold-400">我们的服务</Heading>
+            <Text size="xl" className="text-mystical-gold-600/80">多维度的命理分析，助您了解自我</Text>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="p-6">
+            <Card className="p-6" variant="mystical-gold">
               <div className="text-4xl mb-3">📅</div>
-              <Heading level={3} size="lg" className="mb-2">八字排盘</Heading>
-              <Text size="sm" color="secondary">
+              <Heading level={3} size="lg" className="mb-2 text-mystical-gold-400">八字排盘</Heading>
+              <Text size="sm" className="text-mystical-gold-600/80">
                 计算您的年月日时四柱，展示完整的八字命盘
               </Text>
             </Card>
             
-            <Card className="p-6">
+            <Card className="p-6" variant="mystical-gold">
               <div className="text-4xl mb-3">🌊</div>
-              <Heading level={3} size="lg" className="mb-2">五行分析</Heading>
-              <Text size="sm" color="secondary">
+              <Heading level={3} size="lg" className="mb-2 text-mystical-gold-400">五行分析</Heading>
+              <Text size="sm" className="text-mystical-gold-600/80">
                 分析金木水火土五行平衡，了解您的命理特质
               </Text>
             </Card>
             
-            <Card className="p-6">
+            <Card className="p-6" variant="mystical-gold">
               <div className="text-4xl mb-3">💼</div>
-              <Heading level={3} size="lg" className="mb-2">事业运势</Heading>
-              <Text size="sm" color="secondary">
+              <Heading level={3} size="lg" className="mb-2 text-mystical-gold-400">事业运势</Heading>
+              <Text size="sm" className="text-mystical-gold-600/80">
                 解读事业发展方向，把握职场机遇
               </Text>
             </Card>
             
-            <Card className="p-6">
+            <Card className="p-6" variant="mystical-gold">
               <div className="text-4xl mb-3">❤️</div>
-              <Heading level={3} size="lg" className="mb-2">感情分析</Heading>
-              <Text size="sm" color="secondary">
+              <Heading level={3} size="lg" className="mb-2 text-mystical-gold-400">感情分析</Heading>
+              <Text size="sm" className="text-mystical-gold-600/80">
                 了解感情运势，助您收获美满姻缘
               </Text>
             </Card>
@@ -243,18 +243,18 @@ export default function Home() {
         </Container>
       </Section>
 
-      <Section background="dark">
+      <Section background="mystical">
         <Container>
           <div className="text-center">
-            <Heading level={2} className="mb-6">立即开始您的命运探索</Heading>
-            <Text size="xl" color="secondary" className="mb-8 max-w-2xl mx-auto">
+            <Heading level={2} className="mb-6 text-mystical-gold-400">立即开始您的命运探索</Heading>
+            <Text size="xl" className="mb-8 max-w-2xl mx-auto text-mystical-gold-600/80">
               免费试算，深度报告，一站式命理服务
             </Text>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="primary" size="lg" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <Button variant="gold" size="lg" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                 免费试算
               </Button>
-              <Button variant="secondary" size="lg" onClick={() => router.push('/pricing')}>
+              <Button variant="mystical" size="lg" onClick={() => router.push('/pricing')}>
                 查看价格
               </Button>
             </div>

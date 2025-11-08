@@ -23,7 +23,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(({
   const baseStyles = 'w-full px-4 py-3 border rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed'
   const statusStyles = error 
     ? 'border-red-300 focus:border-red-500 focus:ring-red-500 bg-red-50' 
-    : 'border-gray-300 focus:border-brand-primary-500 focus:ring-brand-primary-500 bg-white'
+    : 'border-mystical-gold-700/40 focus:border-mystical-gold-500 focus:ring-mystical-gold-500 bg-mystical-purple-950/30 text-mystical-gold-500 placeholder:text-mystical-gold-700/50'
   
   const paddingStyles = leftIcon ? 'pl-12' : rightIcon ? 'pr-12' : ''
   

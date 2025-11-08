@@ -6,6 +6,14 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  
+  /* Mystical theme variables */
+  --mystical-purple-950: #1a0f2e;
+  --mystical-purple-900: #3f0f5c;
+  --mystical-cyan-950: #0f1c2e;
+  --mystical-gold-700: #d4af37;
+  --mystical-gold-600: #daa520;
+  --mystical-gold-500: #f4af37;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,11 +27,12 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+      135deg,
+      #1a0f2e 0%,
+      #0f1c2e 50%,
+      #1a0f2e 100%
+    );
+  min-height: 100vh;
 }
 
 /* Fortune drawing animations with reduced-motion support */

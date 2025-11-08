@@ -5,7 +5,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   className?: string
   hover?: boolean
   gradient?: boolean
-  variant?: 'default' | 'elevated' | 'outlined'
+  variant?: 'default' | 'elevated' | 'outlined' | 'mystical' | 'mystical-gold'
 }
 
 export default function Card({ 
@@ -21,7 +21,9 @@ export default function Card({
   const variants = {
     default: 'bg-white shadow-soft',
     elevated: 'bg-white shadow-medium',
-    outlined: 'bg-white border border-gray-200'
+    outlined: 'bg-white border border-gray-200',
+    mystical: 'bg-gradient-to-br from-mystical-purple-900/80 to-mystical-cyan-950/80 shadow-mystical-medium border border-mystical-gold-700/20 text-mystical-gold-500',
+    'mystical-gold': 'bg-gradient-to-br from-mystical-purple-900/60 to-mystical-cyan-950/60 shadow-gold-glow border border-mystical-gold-700/40 text-mystical-gold-500',
   }
   
   const hoverStyles = hover 

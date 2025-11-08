@@ -36,7 +36,7 @@ export default function Text({
     primary: 'text-gray-900 dark:text-white',
     secondary: 'text-gray-700 dark:text-gray-300',
     muted: 'text-gray-500 dark:text-gray-400',
-    accent: 'text-brand-accent-600',
+    accent: 'text-mystical-gold-500',
     danger: 'text-red-600 dark:text-red-400'
   }
   

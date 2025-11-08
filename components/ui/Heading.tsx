@@ -35,7 +35,7 @@ export default function Heading({
   }
   
   const gradientClasses = gradient 
-    ? 'bg-gradient-to-r from-brand-primary-300 via-brand-secondary-300 to-brand-accent-300 bg-clip-text text-transparent'
+    ? 'bg-gradient-to-r from-mystical-gold-700 via-mystical-gold-500 to-mystical-gold-600 bg-clip-text text-transparent'
     : 'text-gray-900 dark:text-white'
   
   const finalSize = size || defaultSizes[level]
