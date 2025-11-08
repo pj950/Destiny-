@@ -51,23 +51,23 @@
 @keyframes lamp-glow {
   0% {
     box-shadow: 
-      0 0 20px rgba(251, 146, 60, 0.3),
-      0 0 40px rgba(251, 146, 60, 0.2),
-      0 0 60px rgba(251, 146, 60, 0.1);
+      0 0 20px rgba(212, 175, 55, 0.3),
+      0 0 40px rgba(212, 175, 55, 0.2),
+      0 0 60px rgba(212, 175, 55, 0.1);
     transform: scale(1);
   }
   50% {
     box-shadow: 
-      0 0 30px rgba(251, 146, 60, 0.4),
-      0 0 60px rgba(251, 146, 60, 0.3),
-      0 0 90px rgba(251, 146, 60, 0.2);
+      0 0 30px rgba(212, 175, 55, 0.4),
+      0 0 60px rgba(212, 175, 55, 0.3),
+      0 0 90px rgba(212, 175, 55, 0.2);
     transform: scale(1.01);
   }
   100% {
     box-shadow: 
-      0 0 25px rgba(251, 146, 60, 0.5),
-      0 0 50px rgba(251, 146, 60, 0.3),
-      0 0 75px rgba(251, 146, 60, 0.15);
+      0 0 25px rgba(212, 175, 55, 0.5),
+      0 0 50px rgba(212, 175, 55, 0.3),
+      0 0 75px rgba(212, 175, 55, 0.15);
     transform: scale(1.005);
   }
 }
@@ -166,7 +166,7 @@
 .glow-particle:nth-child(1) {
   width: 4px;
   height: 4px;
-  background: rgba(251, 146, 60, 0.8);
+  background: rgba(244, 175, 55, 0.8);
   top: 20%;
   left: 30%;
   animation-delay: 0s;
@@ -175,7 +175,7 @@
 .glow-particle:nth-child(2) {
   width: 3px;
   height: 3px;
-  background: rgba(250, 204, 21, 0.6);
+  background: rgba(139, 71, 137, 0.5);
   top: 60%;
   right: 25%;
   animation-delay: 2s;
@@ -184,7 +184,7 @@
 .glow-particle:nth-child(3) {
   width: 2px;
   height: 2px;
-  background: rgba(251, 146, 60, 0.7);
+  background: rgba(244, 175, 55, 0.7);
   bottom: 30%;
   left: 40%;
   animation-delay: 4s;
@@ -241,12 +241,12 @@
 
 /* Focus styles for accessibility */
 .lamp-container:focus-within {
-  outline: 2px solid #fb923c;
+  outline: 2px solid #d4af37;
   outline-offset: 2px;
 }
 
 .lamp-button:focus {
-  outline: 2px solid #fb923c;
+  outline: 2px solid #d4af37;
   outline-offset: 2px;
 }
 
