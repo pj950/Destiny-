@@ -25,30 +25,30 @@ export default function Compute() {
   },[profile_id])
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-mystical-purple-950 to-mystical-cyan-950">
       <Navbar />
-      <div className="flex-grow p-8 bg-gray-50">
+      <div className="flex-grow p-8">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl mb-6 text-gray-900 font-bold">试算结果</h2>
+          <h2 className="text-3xl mb-6 text-mystical-gold-400 font-bold">试算结果</h2>
           {chart ? (
             <div className="space-y-6">
-              <Card className="p-6">
-                <h3 className="font-bold text-xl mb-4 text-gray-900">八字命盘数据</h3>
-                <pre className="bg-gray-100 p-4 text-gray-800 rounded border overflow-x-auto text-sm">{JSON.stringify(chart,null,2)}</pre>
+              <Card className="p-6" variant="mystical">
+                <h3 className="font-bold text-xl mb-4 text-mystical-gold-400">八字命盘数据</h3>
+                <pre className="bg-mystical-purple-900/50 p-4 text-mystical-gold-500 rounded border border-mystical-gold-700/30 overflow-x-auto text-sm">{JSON.stringify(chart,null,2)}</pre>
               </Card>
-              <Card className="p-6">
-                <h3 className="font-bold text-xl mb-4 text-gray-900">AI 智能解读</h3>
-                <p className="text-gray-700 leading-relaxed">{summary || '加载中...'}</p>
+              <Card className="p-6" variant="mystical-gold">
+                <h3 className="font-bold text-xl mb-4 text-mystical-gold-400">AI 智能解读</h3>
+                <p className="text-mystical-gold-600/80 leading-relaxed">{summary || '加载中...'}</p>
               </Card>
             </div>
           ) : (
-            <Card className="p-8 text-center">
+            <Card className="p-8 text-center" variant="mystical">
               <div className="flex items-center justify-center space-x-3">
-                <svg className="animate-spin h-6 w-6 text-purple-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-6 w-6 text-mystical-gold-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p className="text-gray-900 text-lg">正在计算您的命盘，请稍候...</p>
+                <p className="text-mystical-gold-400 text-lg">正在计算您的命盘，请稍候...</p>
               </div>
             </Card>
           )}

@@ -116,27 +116,27 @@ export default function Tools() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <Section background="dark" className="pt-20">
+      <Section background="mystical" className="pt-20">
         <Container>
           <div className="text-center">
             <Heading level={1} gradient className="mb-6">
               占卜工具
             </Heading>
-            <Text size="xl" color="secondary" className="mb-4 max-w-3xl mx-auto">
+            <Text size="xl" className="mb-4 max-w-3xl mx-auto text-mystical-gold-400">
               探索东方智慧，洞察命运玄机
             </Text>
-            <Text size="lg" color="muted" className="max-w-2xl mx-auto">
+            <Text size="lg" className="max-w-2xl mx-auto text-mystical-gold-600/80">
               我们提供全方位的命理分析工具，从基础排盘到深度解读，满足您的各种需求
             </Text>
           </div>
         </Container>
       </Section>
 
-      <Section background="gradient">
+      <Section background="mystical-dark">
         <Container>
           <div className="text-center mb-12">
-            <Heading level={2} className="mb-4">核心功能</Heading>
-            <Text size="xl">立即开始使用我们的核心服务</Text>
+            <Heading level={2} className="mb-4 text-mystical-gold-400">核心功能</Heading>
+            <Text size="xl" className="text-mystical-gold-600/80">立即开始使用我们的核心服务</Text>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16">
@@ -146,13 +146,13 @@ export default function Tools() {
                 className="p-8 cursor-pointer transform transition-all duration-300 hover:scale-105"
                 hover
                 onClick={() => handleToolClick(tool)}
-                variant="elevated"
+                variant="mystical-gold"
               >
                 <div className="text-center">
                   <div className="text-6xl mb-4">{tool.icon}</div>
-                  <Heading level={3} size="2xl" className="mb-3">{tool.name}</Heading>
-                  <Text color="secondary" className="mb-6">{tool.description}</Text>
-                  <Button variant="primary" size="md" fullWidth>
+                  <Heading level={3} size="2xl" className="mb-3 text-mystical-gold-400">{tool.name}</Heading>
+                  <Text className="mb-6 text-mystical-gold-600/80">{tool.description}</Text>
+                  <Button variant="gold" size="md" fullWidth>
                     立即使用
                   </Button>
                 </div>
@@ -162,11 +162,11 @@ export default function Tools() {
         </Container>
       </Section>
 
-      <Section background="white">
+      <Section background="mystical-gradient">
         <Container>
           <div className="text-center mb-12">
-            <Heading level={2} className="mb-4">更多工具</Heading>
-            <Text size="xl">更多精彩功能即将推出</Text>
+            <Heading level={2} className="mb-4 text-mystical-gold-400">更多工具</Heading>
+            <Text size="xl" className="text-mystical-gold-600/80">更多精彩功能即将推出</Text>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -176,10 +176,11 @@ export default function Tools() {
                 className="p-6 cursor-pointer relative overflow-hidden"
                 hover={!tool.comingSoon}
                 onClick={() => handleToolClick(tool)}
+                variant="mystical"
               >
                 {tool.comingSoon && (
                   <div className="absolute top-2 right-2">
-                    <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded">
+                    <span className="bg-mystical-rose-900/50 text-mystical-gold-400 text-xs font-semibold px-2 py-1 rounded border border-mystical-gold-700/50">
                       即将推出
                     </span>
                   </div>
@@ -187,8 +188,8 @@ export default function Tools() {
                 
                 <div className="text-center">
                   <div className="text-5xl mb-3">{tool.icon}</div>
-                  <Heading level={3} size="lg" className="mb-2">{tool.name}</Heading>
-                  <Text size="sm" color="secondary">{tool.description}</Text>
+                  <Heading level={3} size="lg" className="mb-2 text-mystical-gold-400">{tool.name}</Heading>
+                  <Text size="sm" className="text-mystical-gold-600/80">{tool.description}</Text>
                 </div>
               </Card>
             ))}
@@ -230,18 +231,18 @@ export default function Tools() {
         </Container>
       </Section>
 
-      <Section background="dark">
+      <Section background="mystical">
         <Container>
           <div className="text-center">
-            <Heading level={2} className="mb-6">开始您的命运探索之旅</Heading>
-            <Text size="xl" color="secondary" className="mb-8 max-w-2xl mx-auto">
+            <Heading level={2} className="mb-6 text-mystical-gold-400">开始您的命运探索之旅</Heading>
+            <Text size="xl" className="mb-8 max-w-2xl mx-auto text-mystical-gold-600/80">
               免费试算八字命盘，体验AI智能解读
             </Text>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="primary" size="lg" onClick={() => router.push('/')}>
+              <Button variant="gold" size="lg" onClick={() => router.push('/')}>
                 免费试算
               </Button>
-              <Button variant="secondary" size="lg" onClick={() => router.push('/pricing')}>
+              <Button variant="mystical" size="lg" onClick={() => router.push('/pricing')}>
                 查看价格
               </Button>
             </div>

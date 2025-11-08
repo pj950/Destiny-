@@ -1,7 +1,7 @@
 import { ButtonHTMLAttributes, ReactNode } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'mystical' | 'gold'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   children: ReactNode
   fullWidth?: boolean
@@ -25,7 +25,9 @@ export default function Button({
     secondary: 'bg-gradient-to-r from-brand-secondary-500 to-brand-secondary-600 hover:from-brand-secondary-600 hover:to-brand-secondary-700 text-white shadow-soft hover:shadow-medium focus:ring-brand-secondary-500',
     outline: 'border-2 border-brand-primary-500 text-brand-primary-600 hover:bg-brand-primary-50 focus:ring-brand-primary-500 bg-white',
     ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500 bg-white',
-    danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-soft hover:shadow-medium focus:ring-red-500'
+    danger: 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-soft hover:shadow-medium focus:ring-red-500',
+    mystical: 'bg-gradient-to-r from-mystical-purple-700 to-mystical-purple-900 hover:from-mystical-purple-600 hover:to-mystical-purple-800 text-mystical-gold-500 shadow-mystical-soft hover:shadow-mystical-medium focus:ring-mystical-gold-700 border border-mystical-gold-700/30',
+    gold: 'bg-gradient-to-r from-mystical-gold-700 to-mystical-gold-600 hover:from-mystical-gold-600 hover:to-mystical-gold-500 text-mystical-purple-950 shadow-gold-glow hover:shadow-gold-glow-lg font-bold focus:ring-mystical-gold-500',
   }
   
   const sizes = {
