@@ -172,13 +172,23 @@ const ensureSessionId = (req: NextApiRequest, res: NextApiResponse) => {
 
 // Initialize Gemini AI
 let genAI: GoogleGenerativeAI | null = null
+let genAIInitError: Error | null = null
+
 try {
   const apiKey = process.env.GOOGLE_API_KEY
   if (!apiKey) {
     throw new Error('GOOGLE_API_KEY environment variable is not set')
   }
+  
+  // Check for placeholder values
+  if (apiKey.includes('your-') || apiKey.includes('test') || apiKey === 'test-google-api-key') {
+    throw new Error('GOOGLE_API_KEY appears to be a placeholder value')
+  }
+  
   genAI = new GoogleGenerativeAI(apiKey)
+  console.log('Google Generative AI initialized successfully')
 } catch (error) {
+  genAIInitError = error as Error
   console.error('Failed to initialize Google Generative AI:', error)
 }
 
@@ -186,12 +196,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') return res.status(405).end()
   
   // Check environment configuration
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing Supabase configuration')
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing Supabase configuration:', { 
+      hasUrl: !!supabaseUrl, 
+      hasKey: !!supabaseServiceKey 
+    })
     return res.status(500).json({ 
       ok: false, 
       message: 'Database configuration error',
-      error: 'Supabase credentials not configured'
+      error: 'Supabase credentials not configured',
+      details: {
+        supabaseUrl: supabaseUrl ? 'configured' : 'missing',
+        serviceKey: supabaseServiceKey ? 'configured' : 'missing'
+      }
+    })
+  }
+  
+  // Check for placeholder values
+  if (supabaseUrl.includes('test') || supabaseUrl.includes('your-')) {
+    console.error('Supabase URL appears to be placeholder:', supabaseUrl)
+    return res.status(500).json({ 
+      ok: false, 
+      message: 'Database configuration error',
+      error: 'Supabase URL appears to be a placeholder value',
+      details: { url: supabaseUrl }
+    })
+  }
+  
+  if (supabaseServiceKey.includes('test') || supabaseServiceKey.includes('your-')) {
+    console.error('Supabase service key appears to be placeholder')
+    return res.status(500).json({ 
+      ok: false, 
+      message: 'Database configuration error', 
+      error: 'Supabase service key appears to be a placeholder value'
     })
   }
   
@@ -257,7 +297,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Generate AI analysis
     let aiAnalysis: string | null = null
-    if (!genAI) {
+    if (!genAI || genAIInitError) {
+      console.error('AI not available:', genAIInitError?.message)
       aiAnalysis = 'AI解签功能暂未配置，请稍后再试。'
     } else {
       try {
@@ -266,18 +307,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
         
         const prompt = getAnalysisPrompt(category, selectedStick.text, selectedStick.level)
+        console.log('Attempting AI analysis for category:', category, 'stick:', selectedStick.id)
+        
         const result = await Promise.race([
           model.generateContent(prompt),
           new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('AI analysis timeout')), 30000)
+            setTimeout(() => reject(new Error('AI analysis timeout after 30 seconds')), 30000)
           )
         ]) as any
         
         const text = typeof result?.response?.text === 'function' ? result.response.text() : null
         aiAnalysis = (typeof text === 'string' && text.trim().length > 0) ? text.trim() : null
-      } catch (aiError) {
-        console.error('AI analysis failed:', aiError)
-        aiAnalysis = 'AI解签暂时不可用，请稍后再试。'
+        
+        if (aiAnalysis) {
+          console.log('AI analysis successful, length:', aiAnalysis.length)
+        } else {
+          console.warn('AI analysis returned empty response')
+        }
+      } catch (aiError: any) {
+        console.error('AI analysis failed:', {
+          error: aiError.message,
+          stack: aiError.stack,
+          category,
+          stickId: selectedStick.id
+        })
+        
+        // Provide more specific error messages based on error type
+        if (aiError.message.includes('timeout')) {
+          aiAnalysis = 'AI解签响应超时，请稍后再试。'
+        } else if (aiError.message.includes('permission') || aiError.message.includes('forbidden')) {
+          aiAnalysis = 'AI服务权限不足，请联系管理员。'
+        } else if (aiError.message.includes('quota') || aiError.message.includes('limit')) {
+          aiAnalysis = 'AI服务使用已达限额，请稍后再试。'
+        } else {
+          aiAnalysis = 'AI解签暂时不可用，请稍后再试。'
+        }
       }
     }
     
