@@ -185,6 +185,16 @@ try {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
   
+  // Check environment configuration
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Missing Supabase configuration')
+    return res.status(500).json({ 
+      ok: false, 
+      message: 'Database configuration error',
+      error: 'Supabase credentials not configured'
+    })
+  }
+  
   // MVP: No authentication required
   // TODO (Post-MVP): Verify Bearer token and set user_id
   
@@ -212,6 +222,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .maybeSingle()
     
     if (checkError) {
+      console.error('Database check error:', checkError)
+      // Handle specific database errors
+      if (checkError.code === 'PGRST116') {
+        // Table doesn't exist or RLS policy issue
+        return res.status(500).json({ 
+          ok: false, 
+          message: 'Database schema error',
+          error: 'Fortunes table not accessible'
+        })
+      }
+      if (checkError.message.includes('fetch failed')) {
+        return res.status(500).json({ 
+          ok: false, 
+          message: 'Database connection error',
+          error: 'Unable to connect to database'
+        })
+      }
       return res.status(500).json({ ok: false, message: checkError.message })
     }
     
@@ -271,7 +298,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .maybeSingle()
     
     if (insertError) {
+      console.error('Database insert error:', insertError)
       if (insertError.code === '23505') {
+        // Unique constraint violation - user already drew today
         const { data: conflictFortune } = await supabaseService
           .from('fortunes')
           .select('*')
@@ -286,6 +315,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             fortune: buildFortunePayload(conflictFortune)
           })
         }
+      }
+      if (insertError.code === '42501') {
+        // Permission denied - RLS policy issue
+        return res.status(500).json({ 
+          ok: false, 
+          message: 'Database permission error',
+          error: 'RLS policy prevents fortune creation'
+        })
+      }
+      if (insertError.message.includes('fetch failed')) {
+        return res.status(500).json({ 
+          ok: false, 
+          message: 'Database connection error',
+          error: 'Unable to save fortune to database'
+        })
       }
       return res.status(500).json({ ok: false, message: insertError.message })
     }
