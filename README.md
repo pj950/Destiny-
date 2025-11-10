@@ -40,12 +40,15 @@ Eastern Destiny provides a complete BaZi fortune-telling experience with modern 
 - 🎯 **Profile Creation** - Input birth information with accurate timezone handling
 - 📊 **Chart Computation** - Generate Four Pillars (BaZi) with proper Gan-Zhi calculation
 - 🤖 **AI Interpretation** - Get instant AI-powered insights using Google Gemini 2.5 Pro
+- 📝 **AI Reports** - Generate comprehensive character profiles and yearly flow predictions
+- 🔍 **RAG-powered Q&A** - Ask questions about your BaZi report with vector-based semantic search
 - 🎲 **Daily Fortune** - Draw one fortune stick per day with AI-powered interpretations
 - 🏮 **Prayer Lamps** - Purchase and light virtual prayer lamps for blessings ($19.90 each)
-- 💳 **Razorpay Checkout** - Secure payment processing for detailed fortune reports and lamp purchases
+- 💎 **Subscription Tiers** - Free, Basic, Premium, and VIP plans with usage limits
+- 💳 **Razorpay Integration** - Secure payment processing for reports, lamps, and subscriptions
 - 📄 **Report Generation** - Background worker generates comprehensive fortune reports
-- 📱 **Modern UI** - Responsive design with Tailwind CSS and custom design system
-- 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL database
+- 📱 **Modern UI** - Responsive design with Tailwind CSS and mystical theme
+- 🔒 **Secure & Scalable** - Built on Supabase with PostgreSQL and pgvector
 
 ## Design System
 
