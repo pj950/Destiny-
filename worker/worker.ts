@@ -129,9 +129,16 @@ async function loadChartWithInsights(chartId: string): Promise<ChartWithInsights
     .eq('id', chartId)
     .single()
     
-  if (chartError || !chartRow) {
-    console.error(`[Worker] Error fetching chart ${chartId}:`, chartError)
-    throw new Error(`Chart not found: ${chartId}`)
+  if (chartError) {
+    console.error(`[Worker] Database error fetching chart ${chartId}:`, chartError)
+    throw new Error(`Failed to load chart: ${chartId} - ${chartError.message}`)
+  }
+  
+  if (!chartRow) {
+    const error = new Error(`Chart not found: ${chartId}`)
+    ;(error as any).isNotFound = true
+    console.error(`[Worker] Chart ${chartId} not found in database`)
+    throw error
   }
   
   const chart = chartRow as Chart
@@ -276,20 +283,23 @@ async function processDeepReport(job: Job): Promise<void> {
 
 async function processYearlyFlowReport(job: Job): Promise<void> {
   const startTime = Date.now()
-  logJobProgress(job.id, `Processing yearly_flow_report for chart ${job.chart_id}`)
+  logJobProgress(job.id, `[Stage 1/5] Processing yearly_flow_report for chart ${job.chart_id}`)
   
-  // Extract target year from metadata
+  // ===== Stage 1: Extract metadata =====
   const targetYear = job.metadata?.target_year || new Date().getFullYear()
-  logJobProgress(job.id, `Target year: ${targetYear}`)
+  const subscriptionTier = job.metadata?.subscription_tier || 'free'
+  logJobProgress(job.id, `[Stage 1] Metadata extracted - Year: ${targetYear}, Tier: ${subscriptionTier}`)
   
-  // Load chart with insights
+  // ===== Stage 2: Load chart and compute insights =====
+  logJobProgress(job.id, `[Stage 2/5] Loading chart and computing insights...`)
   const { chart, baziChart, insights, birthYear } = await loadChartWithInsights(job.chart_id)
+  logJobProgress(job.id, `[Stage 2] Chart loaded - Birth year: ${birthYear}`)
   
-  // Build prompt
+  // ===== Stage 3: Build prompt and call Gemini =====
+  logJobProgress(job.id, `[Stage 3/5] Building Gemini prompt...`)
   const prompt = buildYearlyFlowPrompt(baziChart, insights, targetYear)
-  logJobProgress(job.id, `Generating yearly flow report with Gemini...`)
+  logJobProgress(job.id, `[Stage 3] Prompt built (${prompt.length} chars), calling Gemini model: ${GEMINI_REPORT_MODEL}`)
   
-  // Call Gemini with retry
   const response = await withRetry(
     async () => {
       const geminiClient = getGeminiClient()
@@ -298,35 +308,42 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
     `Gemini generateText for yearly_flow_report job ${job.id}`
   )
   
-  logJobProgress(job.id, `Response received (${response.length} characters)`)
+  logJobProgress(job.id, `[Stage 3] Response received (${response.length} chars)`)
   
-  // Parse and validate response
+  // ===== Stage 4: Parse and validate response =====
+  logJobProgress(job.id, `[Stage 4/5] Parsing Gemini response...`)
   const payload = parseGeminiJsonResponse(response, YearlyFlowPayloadSchema)
-  logJobProgress(job.id, `Response parsed and validated`)
+  logJobProgress(job.id, `[Stage 4] Response validated - Target year: ${payload.targetYear}, Energy nodes: ${payload.energyIndex.length}`)
   
-  // Persist report to bazi_reports table
+  // ===== Stage 5: Persist to database =====
+  logJobProgress(job.id, `[Stage 5/5] Persisting report to database...`)
   const reportData: BaziReportInsert = {
     chart_id: job.chart_id,
     user_id: job.user_id,
     report_type: 'yearly_flow',
-    title: `Yearly Flow ${targetYear} - ${chart.id}`,
+    title: `${targetYear}年流年运势报告`,
     summary: {
       key_insights: payload.doList.slice(0, 3),
-      strengths: [payload.scorecard.career.toString(), payload.scorecard.wealth.toString()],
+      strengths: [
+        `事业运: ${payload.scorecard.career}分`,
+        `财运: ${payload.scorecard.wealth}分`,
+      ],
       areas_for_growth: payload.dontList.slice(0, 3),
+      lucky_elements: payload.keyDomains.career.theme ? [payload.keyDomains.career.theme] : [],
+      unlucky_elements: [],
     },
     structured: {
       sections: [
         {
-          title: 'Natal Analysis',
+          title: '原局结构解析',
           content: payload.natalAnalysis,
         },
         {
-          title: 'Decade Luck Analysis',
+          title: '大运与交替提示',
           content: payload.decadeLuckAnalysis,
         },
         {
-          title: 'Annual Flow Analysis',
+          title: '流年结构与核心命题',
           content: payload.annualFlowAnalysis,
         },
       ],
@@ -340,21 +357,21 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
   }
   
   const report = await persistReport(reportData)
-  logJobProgress(job.id, `Report persisted with id: ${report.id}`)
+  logJobProgress(job.id, `[Stage 5] Report persisted - Report ID: ${report.id}`)
   
-  // Update job metadata with report_id
+  // ===== Update job metadata and mark complete =====
+  const generationTimeMs = Date.now() - startTime
   const updatedMetadata = {
     ...job.metadata,
     report_id: report.id,
     target_year: targetYear,
     completed_at: new Date().toISOString(),
+    generation_time_ms: generationTimeMs,
+    tokens_used: null, // TODO: Extract from Gemini API response when available
   }
   
-  // Mark job as done
   await markJobStatus(job.id, 'done', { metadata: updatedMetadata })
-  
-  const duration = Date.now() - startTime
-  logJobProgress(job.id, `Completed successfully in ${duration}ms ✓`)
+  logJobProgress(job.id, `✓ Completed successfully in ${generationTimeMs}ms - Report: ${report.id}`)
 }
 
 // ============================================================================
@@ -367,15 +384,20 @@ async function processJob(job: Job): Promise<void> {
   // Mark as processing
   await markJobStatus(job.id, 'processing')
   
-  switch (job.job_type as SupportedJobType) {
-    case 'deep_report':
-      return await processDeepReport(job)
-    
-    case 'yearly_flow_report':
-      return await processYearlyFlowReport(job)
-    
-    default:
-      throw new Error(`Unknown job type: ${job.job_type}`)
+  try {
+    switch (job.job_type as SupportedJobType) {
+      case 'deep_report':
+        return await processDeepReport(job)
+      
+      case 'yearly_flow_report':
+        return await processYearlyFlowReport(job)
+      
+      default:
+        throw new Error(`Unknown job type: ${job.job_type}`)
+    }
+  } catch (err: any) {
+    // Re-throw to let the main processJobs handler deal with it
+    throw err
   }
 }
 
@@ -402,17 +424,23 @@ async function processJobs(): Promise<number> {
       
       const errorMessage = err?.message || String(err)
       const errorStack = err?.stack || ''
+      const isNotFound = err?.isNotFound === true
       
       const failedMetadata = {
         ...job.metadata,
         error: errorMessage,
         error_stack: errorStack,
         failed_at: new Date().toISOString(),
+        is_non_retryable: isNotFound, // Mark chart not found as non-retryable
       }
       
       try {
         await markJobStatus(job.id, 'failed', { metadata: failedMetadata })
-        logJobProgress(job.id, `Marked as failed ✗`)
+        if (isNotFound) {
+          logJobProgress(job.id, `Marked as failed (non-retryable: chart not found) ✗`)
+        } else {
+          logJobProgress(job.id, `Marked as failed ✗`)
+        }
       } catch (failError) {
         console.error(`[Worker] Error marking job ${job.id} as failed:`, failError)
       }
