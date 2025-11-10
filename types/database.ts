@@ -234,7 +234,7 @@ export interface SubscriptionMetadata {
 // Utility Types
 // ============================================================================
 
-export interface VectorSearchResult<T = BaziReportChunk> extends T {
+export type VectorSearchResult<T = BaziReportChunk> = T & {
   similarity: number
 }
 

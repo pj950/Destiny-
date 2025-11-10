@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { computeBazi } from '../../../lib/bazi'
+import { analyzeBaziInsights, toDBFormat } from '../../../lib/bazi-insights'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -30,13 +31,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Compute the BaZi chart
     const chart = computeBazi(profile.birth_local, profile.birth_timezone)
     
-    // Insert the chart into the database
+    // Analyze BaZi insights
+    const birthYear = new Date(profile.birth_local).getFullYear()
+    const insights = analyzeBaziInsights(chart, birthYear)
+    const insightsDB = toDBFormat(insights)
+    
+    // Insert the chart into the database with new insights fields
     const { data: inserted, error: insertErr } = await supabaseService
       .from('charts')
       .insert([{ 
         profile_id, 
         chart_json: chart, 
-        wuxing_scores: chart.wuxing 
+        wuxing_scores: chart.wuxing,
+        day_master: insightsDB.day_master,
+        ten_gods: insightsDB.ten_gods,
+        luck_cycles: insightsDB.luck_cycles
       }])
       .select()
       .single()
