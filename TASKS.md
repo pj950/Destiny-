@@ -94,11 +94,59 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 
 - [x] `worker/worker.ts` — Background job processor
   - Polls `jobs` table for pending report generation tasks
-  - Generates PDF reports and uploads to `reports` storage bucket
+  - Supports `yearly_flow_report` and `deep_report` job types
+  - Generates AI reports and uploads to `reports` storage bucket
+  - Processes text chunks for RAG (vectorization)
   - Updates job status to `completed` or `failed`
-- [ ] Add npm script to run worker
-  - Example: `"worker": "node -r esbuild-register worker/worker.ts"` or similar
-  - Document how to run worker locally in `README.md`
+- [x] Add npm scripts to run worker
+  - `"worker": "tsx --env-file=.env.local worker/worker.ts"` - Run worker
+  - `"worker:test": "vitest run --config vitest.worker.config.ts"` - Run tests
+  - `"worker:debug": "DEBUG=* tsx --env-file=.env.local worker/worker.ts"` - Debug mode
+- [x] Worker testing suite
+  - Unit tests for job processing functions
+  - Integration tests for complete workflows
+  - Mock Supabase and Gemini dependencies
+  - Test error handling and edge cases
+- [x] Worker documentation in README_DEPLOY.md
+  - Environment variables and setup
+  - Local development instructions
+  - Deployment options (Vercel Cron, External Cron, Railway)
+  - Monitoring and logging guidance
+
+### Running Worker Locally
+
+1. **Start Worker**
+   ```bash
+   npm run worker
+   ```
+
+2. **Manual Job Creation (Testing)**
+   In Supabase, directly insert job records:
+   ```sql
+   INSERT INTO jobs (
+     user_id, chart_id, job_type, metadata, status, created_by
+   ) VALUES (
+     'test-user', 
+     'your-chart-id', 
+     'yearly_flow_report',
+     '{"target_year": 2026, "subscription_tier": "premium"}',
+     'pending',
+     'test-user'
+   );
+   ```
+
+3. **Monitor Progress**
+   - Check Worker console output for stage-by-stage progress
+   - Monitor `jobs` table status changes (`pending` → `processing` → `done/failed`)
+   - Verify `bazi_reports` table for generated reports
+   - Check `bazi_report_chunks` table for RAG processing
+   - Review Supabase Storage for uploaded files
+
+4. **Debug Common Issues**
+   - Missing environment variables → Check `.env.local`
+   - Chart not found → Verify `chart_id` exists in `charts` table
+   - Gemini API errors → Check `GOOGLE_API_KEY` validity
+   - RAG failures → Non-fatal, check logs for chunking errors
 
 ---
 
