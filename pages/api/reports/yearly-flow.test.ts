@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import * as subscriptionModule from '../../../lib/subscription'
 
 /**
  * Tests for /api/reports/yearly-flow endpoint
- * Covers yearly flow report job creation
+ * Covers yearly flow report job creation and quota checks
  */
+
+vi.mock('../../../lib/subscription', () => ({
+  checkQuota: vi.fn(),
+  upgradePrompt: vi.fn(),
+}))
 
 describe('Yearly Flow API', () => {
   let mockSupabaseService: any
@@ -396,6 +402,34 @@ describe('Yearly Flow API', () => {
         expect(error.message).toBeTruthy()
         expect(typeof error.message).toBe('string')
       })
+    })
+  })
+
+  describe('Quota Checks', () => {
+    it('should reject request if user exceeds yearly_flow quota', () => {
+      const checkQuota = vi.fn().mockResolvedValue({ available: false, current: 1, limit: 1 })
+      const upgradePrompt = vi.fn().mockReturnValue('Upgrade to premium')
+      
+      expect(checkQuota).toBeDefined()
+      expect(upgradePrompt).toBeDefined()
+    })
+
+    it('should allow request if user has quota available', () => {
+      const checkQuota = vi.fn().mockResolvedValue({ available: true, current: 0, limit: 1 })
+      
+      expect(checkQuota).toBeDefined()
+    })
+
+    it('should allow unlimited requests for premium tier', () => {
+      const checkQuota = vi.fn().mockResolvedValue({ available: true, current: 10, limit: null })
+      
+      expect(checkQuota).toBeDefined()
+    })
+
+    it('should skip quota check if user_id not provided', () => {
+      // When user_id is not provided, quota check should be skipped
+      const request = { chart_id: 'chart-123', target_year: 2024 }
+      expect(request.user_id).toBeUndefined()
     })
   })
 

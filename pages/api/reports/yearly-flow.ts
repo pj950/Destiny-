@@ -1,11 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { YEARLY_FLOW_PROMPT_VERSION } from '../../../lib/gemini/schemas'
+import { checkQuota, upgradePrompt } from '../../../lib/subscription'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { chart_id, target_year, subscription_tier = 'free' } = req.body
+  const { chart_id, target_year, subscription_tier = 'free', user_id } = req.body
 
   if (!chart_id || typeof chart_id !== 'string') {
     return res.status(400).json({ ok: false, message: 'chart_id is required' })
@@ -18,6 +19,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Check quota if user_id is provided
+    if (user_id) {
+      const quotaCheck = await checkQuota(user_id, 'yearly_flow')
+      if (!quotaCheck.available) {
+        return res.status(429).json({
+          ok: false,
+          message: upgradePrompt(subscription_tier, 'yearly_flow_unlimited'),
+          quota_limit_reached: true,
+          used: quotaCheck.current,
+          limit: quotaCheck.limit,
+        })
+      }
+    }
+
     // Verify chart exists
     const { data: chart, error: chartError } = await supabaseService
       .from('charts')
