@@ -445,3 +445,220 @@ export async function searchSimilarChunks(
     return []
   }
 }
+
+/**
+ * Enhanced search for QA with context chunk formatting
+ */
+export async function searchQaContextChunks(
+  reportId: string,
+  query: string,
+  limit: number = 5,
+  similarityThreshold: number = 0.5
+): Promise<Array<{ 
+  id: number; 
+  content: string; 
+  similarity: number; 
+  metadata: any 
+}>> {
+  try {
+    // Generate query embedding
+    const client = getGeminiClient()
+    const queryEmbedding = await client.generateEmbedding({
+      input: query,
+      model: EMBEDDING_MODEL,
+      timeoutMs: 30000,
+    })
+
+    // Use RPC function for vector search with threshold
+    const { data, error } = await supabaseService.rpc('search_chunks', {
+      report_id: reportId,
+      query_embedding: queryEmbedding,
+      similarity_threshold: similarityThreshold,
+      match_count: limit,
+    })
+
+    if (error) {
+      console.error('[RAG] Error searching QA chunks:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('[RAG] Error in searchQaContextChunks:', error)
+    return []
+  }
+}
+
+/**
+ * Format citations for QA responses
+ */
+export function formatCitations(chunks: Array<{ id: number; similarity?: number }>): number[] {
+  if (!chunks || chunks.length === 0) {
+    return []
+  }
+
+  // Return unique chunk IDs in order of relevance
+  const uniqueIds = new Set<number>()
+  chunks.forEach(chunk => {
+    if (chunk.id) {
+      uniqueIds.add(chunk.id)
+    }
+  })
+
+  return Array.from(uniqueIds)
+}
+
+/**
+ * Extract and format context chunks for QA prompt
+ */
+export function extractQaContextChunks(
+  searchResults: Array<{ 
+    id: number; 
+    content: string; 
+    similarity: number; 
+    metadata: any 
+  }>,
+  maxChunks: number = 5
+): Array<{ 
+  id: number; 
+  content: string; 
+  metadata: any; 
+  similarity: number 
+}> {
+  if (!searchResults || searchResults.length === 0) {
+    return []
+  }
+
+  // Sort by similarity and take top chunks
+  const sortedResults = searchResults
+    .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+    .slice(0, maxChunks)
+
+  return sortedResults.map(chunk => ({
+    id: chunk.id,
+    content: chunk.content.trim(),
+    metadata: chunk.metadata,
+    similarity: chunk.similarity || 0,
+  }))
+}
+
+/**
+ * Generate follow-up questions based on context and answer
+ */
+export function generateFollowUpQuestions(
+  question: string,
+  answer: string,
+  contextTopics: string[] = []
+): string[] {
+  const followUps: string[] = []
+
+  // Extract key topics from the answer
+  const answerLower = answer.toLowerCase()
+  const questionLower = question.toLowerCase()
+
+  // Common BaZi topics to suggest follow-ups for
+  const topicSuggestions = [
+    { keywords: ['事业', '工作', '职业'], question: '关于我的事业发展，有什么具体的建议吗？' },
+    { keywords: ['财运', '金钱', '财富'], question: '我的财运状况如何？如何改善？' },
+    { keywords: ['感情', '爱情', '婚姻'], question: '我的感情运势怎么样？需要注意什么？' },
+    { keywords: ['健康', '身体'], question: '从命理角度看，我应该如何注意健康？' },
+    { keywords: ['五行', '平衡'], question: '我的五行平衡情况如何？该如何调理？' },
+    { keywords: ['大运', '流年'], question: '接下来几年的大运走势如何？' },
+    { keywords: ['十神', '关系'], question: '十神关系对我的性格有什么影响？' },
+    { keywords: ['日主', '自身'], question: '我的日主特质如何发挥优势？' },
+  ]
+
+  // Check which topics are relevant
+  for (const topic of topicSuggestions) {
+    const hasKeyword = topic.keywords.some(keyword => 
+      answerLower.includes(keyword) || questionLower.includes(keyword)
+    )
+    
+    if (hasKeyword) {
+      followUps.push(topic.question)
+    }
+  }
+
+  // If no specific topics found, provide generic follow-ups
+  if (followUps.length === 0) {
+    followUps.push(
+      '能详细解释一下刚才提到的内容吗？',
+      '基于这个分析，我有什么需要注意的地方吗？',
+      '这个情况在不同时期会有变化吗？'
+    )
+  }
+
+  // Return 2-3 most relevant follow-ups
+  return followUps.slice(0, 3)
+}
+
+/**
+ * Validate and normalize search results
+ */
+export function validateSearchResults(
+  results: any[]
+): Array<{ id: number; content: string; similarity: number; metadata: any }> {
+  if (!Array.isArray(results)) {
+    return []
+  }
+
+  return results
+    .filter(result => {
+      // Basic validation
+      return result && 
+             typeof result.id === 'number' && 
+             typeof result.content === 'string' &&
+             result.content.trim().length > 0
+    })
+    .map(result => ({
+      id: result.id,
+      content: result.content.trim(),
+      similarity: typeof result.similarity === 'number' ? result.similarity : 0.5,
+      metadata: result.metadata || {},
+    }))
+    .sort((a, b) => b.similarity - a.similarity) // Sort by relevance
+}
+
+/**
+ * Search across multiple reports (for VIP family comparison feature)
+ */
+export async function searchAcrossReports(
+  reportIds: string[],
+  query: string,
+  limit: number = 10
+): Promise<Array<{ 
+  report_id: string; 
+  chunk_id: number; 
+  content: string; 
+  similarity: number; 
+  metadata: any 
+}>> {
+  try {
+    // Generate query embedding
+    const client = getGeminiClient()
+    const queryEmbedding = await client.generateEmbedding({
+      input: query,
+      model: EMBEDDING_MODEL,
+      timeoutMs: 30000,
+    })
+
+    // Use RPC function for cross-report search
+    const { data, error } = await supabaseService.rpc('search_chunks_across_reports', {
+      user_id: null, // Will be set when auth is implemented
+      query_embedding: queryEmbedding,
+      similarity_threshold: 0.5,
+      match_count: limit,
+      report_ids: reportIds,
+    })
+
+    if (error) {
+      console.error('[RAG] Error searching across reports:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('[RAG] Error in searchAcrossReports:', error)
+    return []
+  }
+}
