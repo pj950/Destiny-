@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import type { SubscriptionTier } from '../../../types/database'
 
 /**
  * Tests for /api/reports/[id] endpoint
@@ -137,7 +138,7 @@ describe('Report Get API', () => {
         structured: { sections: [] },
       }
 
-      const tier = 'premium'
+      const tier: SubscriptionTier = 'premium' as SubscriptionTier
       const isPaid = tier !== 'free'
 
       if (isPaid) {
@@ -147,7 +148,7 @@ describe('Report Get API', () => {
     })
 
     it('should return limited content for free users', async () => {
-      const tier = 'free'
+      const tier: SubscriptionTier = 'free'
       const isPaid = tier !== 'free'
 
       if (!isPaid) {
@@ -177,13 +178,13 @@ describe('Report Get API', () => {
     })
 
     it('should handle vip tier', async () => {
-      const tier = 'vip'
+      const tier: SubscriptionTier = 'vip'
       const isPaid = tier !== 'free'
       expect(isPaid).toBe(true)
     })
 
     it('should handle basic tier', async () => {
-      const tier = 'basic'
+      const tier: SubscriptionTier = 'basic'
       const isPaid = tier !== 'free'
       expect(isPaid).toBe(true)
     })
@@ -321,7 +322,7 @@ describe('Report Get API', () => {
         structured: { sections: [{ title: 'T', content: 'C' }] },
       }
 
-      const tier = 'premium'
+      const tier: SubscriptionTier = 'premium'
       const isPaid = tier !== 'free'
 
       if (isPaid) {

@@ -92,11 +92,31 @@ This is a living checklist of all MVP development work for the Eastern Destiny B
 
 ## E. Background Worker
 
-- [x] `worker/worker.ts` — Background job processor
-  - Polls `jobs` table for pending report generation tasks
-  - Generates PDF reports and uploads to `reports` storage bucket
-  - Updates job status to `completed` or `failed`
-- [ ] Add npm script to run worker
+- [x] `worker/worker.ts` — Refactored background job processor
+  - Supports multiple job types: `deep_report` (legacy) and `yearly_flow_report` (new)
+  - Extracted common functions: `fetchPendingJobs`, `markJobStatus`, `loadChartWithInsights`, `persistReport`, `chunkReportContent`, `storeEmbeddings`
+  - Added failure retry and backoff with Gemini Client integration
+  - For `yearly_flow_report`:
+    - Reads metadata (target year, subscription tier)
+    - Uses new Prompt generators with Gemini
+    - Parses structured JSON with schema validation
+    - Writes to `bazi_reports` table
+    - Records `report_id` and `completed_at` in job metadata
+    - Chunks long content (~500 Chinese characters)
+    - Generates embeddings and stores in `bazi_report_chunks`
+    - Generates frontend-accessible URLs (`/reports/{id}`)
+- [x] `worker/worker.test.ts` — Comprehensive unit tests
+  - Mocks Supabase, Gemini client, and dependencies
+  - Tests all job types and error scenarios
+  - Tests chunking, embedding, and state transitions
+- [x] Updated deployment documentation in `README_DEPLOY.md`
+  - Added Worker testing guide with SQL examples
+  - Updated environment variables for Gemini integration
+  - Added monitoring and troubleshooting sections
+- [x] Updated database types in `types/database.ts`
+  - Added `Job`, `JobStatus`, `JobType` interfaces
+  - Supports new job metadata structure
+- [x] Add npm script to run worker
   - Example: `"worker": "node -r esbuild-register worker/worker.ts"` or similar
   - Document how to run worker locally in `README.md`
 
