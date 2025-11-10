@@ -707,7 +707,12 @@ Refer to each platform's documentation for Next.js deployment instructions.
 
 ## 6. Deploy Background Worker
 
-The background worker (`worker/worker.ts`) processes async jobs like report generation. Since Vercel is a serverless platform, it cannot run long-running background processes. You have several options:
+The background worker (`worker/worker.ts`) processes async jobs like report generation. The worker has been refactored to support multiple job types:
+
+- **`deep_report`**: Legacy deep report generation with Supabase Storage
+- **`yearly_flow_report`**: New structured yearly flow reports with embeddings and chunking
+
+Since Vercel is a serverless platform, it cannot run long-running background processes. You have several options:
 
 ### Option A: Vercel Cron Jobs (Recommended for Vercel deployments)
 
@@ -720,7 +725,11 @@ Create a new file `/pages/api/cron/process-jobs.ts`:
 ```typescript
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseService } from '@/lib/supabase';
-// Import worker logic here or create a shared function
+import { getGeminiClient } from '@/lib/gemini/client';
+import { buildYearlyFlowPrompt } from '@/lib/gemini/prompts';
+import { parseGeminiJsonResponse } from '@/lib/gemini/parser';
+import { YearlyFlowPayloadSchema } from '@/lib/gemini/schemas';
+import { analyzeBaziInsights } from '@/lib/bazi-insights';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Verify cron secret to prevent unauthorized access
@@ -729,23 +738,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Process pending jobs (copy logic from worker/worker.ts)
-    const { data: jobs, error } = await supabaseService
-      .from('jobs')
-      .select('*')
-      .eq('status', 'pending')
-      .eq('job_type', 'deep_report')
-      .limit(10);
+    // Import and run worker logic
+    const { processJobs } = await import('../../../worker/worker');
+    const processedCount = await processJobs();
 
-    if (error) throw error;
-
-    // Process each job...
-    // (Implement worker logic here)
-
-    res.status(200).json({ processed: jobs?.length || 0 });
+    res.status(200).json({ 
+      processed: processedCount,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
     console.error('[Cron Worker]', error);
-    res.status(500).json({ error: 'Worker failed' });
+    res.status(500).json({ 
+      error: 'Worker failed',
+      timestamp: new Date().toISOString()
+    });
   }
 }
 ```
@@ -796,10 +802,12 @@ Popular free options:
 1. Sign up for a cron service (e.g., cron-job.org)
 2. Create a new cron job:
    - **URL**: `https://your-app.vercel.app/api/cron/process-jobs`
-   - **Interval**: Every 5 minutes
+   - **Interval**: Every 5 minutes (recommended for job processing)
    - **HTTP Method**: GET or POST
    - **Headers**: `Authorization: Bearer YOUR_CRON_SECRET`
 3. Save and enable the cron job
+
+**Note**: The worker supports multiple job types and will process all pending jobs regardless of type.
 
 ### Option C: Deploy Worker to Railway (Separate service)
 
@@ -813,11 +821,12 @@ If you need a continuously running worker:
    - **Start command**: `npm run worker`
 4. Add environment variables (same as your Vercel deployment):
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
-   - `OPENAI_API_KEY`
-   - `OPENAI_REPORT_MODEL` (optional)
-   - `STRIPE_SECRET_KEY`
+   - `GOOGLE_API_KEY` (required for Gemini)
+   - `GEMINI_MODEL_REPORT` (optional, defaults to 'gemini-2.5-pro')
+   - `GEMINI_MODEL_EMBEDDING` (optional, defaults to 'text-embedding-004')
+   - `GEMINI_CLIENT_MAX_RETRIES` (optional, defaults to 3)
+   - `GEMINI_CLIENT_RETRY_DELAY_MS` (optional, defaults to 800)
 5. Deploy
 
 **Cost**: Railway has a free tier with 500 hours/month, then $5/month after.
@@ -839,11 +848,78 @@ Create a `.env.local` file with production credentials:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
-OPENAI_API_KEY=sk-proj-...
-OPENAI_REPORT_MODEL=gpt-4o
+GOOGLE_API_KEY=your_gemini_api_key
+GEMINI_MODEL_REPORT=gemini-2.5-pro
+GEMINI_MODEL_EMBEDDING=text-embedding-004
 ```
 
 **Security Note**: Only run the worker locally during MVP testing. In production, use Options A, B, or C.
+
+### Worker Testing Guide
+
+#### Testing Job Types
+
+The refactored worker supports two job types:
+
+1. **`deep_report`** (Legacy):
+   - Generates plain text reports
+   - Stores in Supabase Storage
+   - Returns public URL
+
+2. **`yearly_flow_report`** (New):
+   - Generates structured JSON reports
+   - Stores in `bazi_reports` table
+   - Creates embeddings and chunks in `bazi_report_chunks`
+   - Returns frontend URL (`/reports/{id}`)
+
+#### Manual Testing
+
+To test the worker manually:
+
+1. **Insert a test job**:
+```sql
+-- Test yearly_flow_report
+INSERT INTO jobs (chart_id, job_type, status, metadata)
+VALUES (
+  'your-chart-id',
+  'yearly_flow_report',
+  'pending',
+  '{"target_year": 2024, "subscription_tier": "premium"}'::jsonb
+);
+
+-- Test deep_report (legacy)
+INSERT INTO jobs (chart_id, job_type, status)
+VALUES (
+  'your-chart-id',
+  'deep_report',
+  'pending'
+);
+```
+
+2. **Run the worker**:
+```bash
+npm run worker
+```
+
+3. **Check results**:
+```sql
+-- Check job status
+SELECT * FROM jobs WHERE status IN ('done', 'failed');
+
+-- Check yearly flow reports
+SELECT * FROM bazi_reports WHERE report_type = 'yearly_flow';
+
+-- Check chunks and embeddings
+SELECT * FROM bazi_report_chunks WHERE report_id = 'your-report-id';
+```
+
+#### Monitoring Worker Logs
+
+The worker provides detailed logging:
+- `[Worker]` prefix for all messages
+- Processing time for each job
+- Error details with stack traces
+- Chunking and embedding progress
 
 ### Recommendation
 

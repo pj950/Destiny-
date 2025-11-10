@@ -28,6 +28,26 @@ export type ReportType = 'character_profile' | 'yearly_flow'
 
 export type ReportStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
+export type JobStatus = 'pending' | 'processing' | 'done' | 'failed'
+
+export type JobType = 'deep_report' | 'yearly_flow_report'
+
+// ============================================================================
+// Jobs Table
+// ============================================================================
+
+export interface Job {
+  id: UUID
+  user_id: UUID | null
+  chart_id: UUID
+  job_type: JobType
+  status: JobStatus
+  result_url: string | null
+  metadata: Record<string, any> | null
+  created_at: Timestamp
+  updated_at: Timestamp
+}
+
 // ============================================================================
 // Extended Charts Table
 // ============================================================================

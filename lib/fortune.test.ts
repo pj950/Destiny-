@@ -1,5 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// Mock localStorage
+const localStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorage,
+  writable: true,
+})
+
 // Mock the fortune stick data
 const FORTUNE_STICKS = [
   { id: 1, level: '上上', text: '龙凤呈祥，万事亨通' },
