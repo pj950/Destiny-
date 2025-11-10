@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getGeminiClient, parseGeminiJsonResponse, buildYearlyFlowPrompt } from '../lib/gemini'
 import { analyzeBaziInsights } from '../lib/bazi-insights'
 import { YearlyFlowPayloadSchema, YEARLY_FLOW_PROMPT_VERSION } from '../lib/gemini/schemas'
+import { processReportChunks } from '../lib/rag'
 import type { Chart, BaziReport, BaziReportInsert } from '../types/database'
 import type { BaziChart } from '../lib/bazi'
 
@@ -254,31 +255,67 @@ async function processDeepReport(job: Job): Promise<void> {
   )
   
   logJobProgress(job.id, `Report generated (${reportText.length} characters)`)
-  
-  // Upload report to Supabase Storage
-  const reportPath = `${job.id}.txt`
-  logJobProgress(job.id, `Uploading report to storage bucket 'reports' as ${reportPath}...`)
-  
-  const { error: uploadError } = await supabaseService.storage
-    .from('reports')
-    .upload(reportPath, Buffer.from(reportText), { upsert: true })
-    
-  if (uploadError) {
-    console.error(`[Worker] Error uploading report:`, uploadError)
-    throw uploadError
-  }
-  
-  logJobProgress(job.id, `Report uploaded successfully`)
-  
-  // Generate public URL
-  const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reports/${reportPath}`
-  logJobProgress(job.id, `Public URL: ${publicUrl}`)
-  
-  // Mark job as done
-  await markJobStatus(job.id, 'done', { result_url: publicUrl })
-  
-  const duration = Date.now() - startTime
-  logJobProgress(job.id, `Completed successfully in ${duration}ms ✓`)
+
+   // Persist report to bazi_reports for consistency
+   const reportData: BaziReportInsert = {
+     chart_id: job.chart_id,
+     user_id: job.user_id,
+     report_type: 'character_profile',
+     title: '深度命盘分析报告',
+     summary: {
+       key_insights: ['详细命盘分析已生成'],
+     },
+     structured: {
+       sections: [{
+         title: '命盘分析',
+         content: reportText,
+       }],
+     },
+     body: reportText,
+     model: GEMINI_REPORT_MODEL,
+     prompt_version: 'v1',
+     tokens: null,
+     status: 'completed',
+     completed_at: new Date().toISOString(),
+   }
+
+   const report = await persistReport(reportData)
+   logJobProgress(job.id, `Report persisted to database - Report ID: ${report.id}`)
+
+   // Process chunks and embeddings for RAG
+   logJobProgress(job.id, `Processing text chunks and generating embeddings for RAG...`)
+   try {
+     await processReportChunks(report.id, reportText)
+     logJobProgress(job.id, `RAG chunks processed successfully`)
+   } catch (ragError: any) {
+     console.error(`[Worker] Non-fatal error processing RAG chunks for report ${report.id}:`, ragError)
+     logJobProgress(job.id, `RAG chunk processing skipped due to error: ${ragError.message}`)
+   }
+
+   // Upload report to Supabase Storage (for backward compatibility)
+   const reportPath = `${job.id}.txt`
+   logJobProgress(job.id, `Uploading report to storage bucket 'reports' as ${reportPath}...`)
+
+   const { error: uploadError } = await supabaseService.storage
+     .from('reports')
+     .upload(reportPath, Buffer.from(reportText), { upsert: true })
+
+   if (uploadError) {
+     console.error(`[Worker] Error uploading report:`, uploadError)
+     throw uploadError
+   }
+
+   logJobProgress(job.id, `Report uploaded successfully`)
+
+   // Generate public URL
+   const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reports/${reportPath}`
+   logJobProgress(job.id, `Public URL: ${publicUrl}`)
+
+   // Mark job as done
+   await markJobStatus(job.id, 'done', { result_url: publicUrl })
+
+   const duration = Date.now() - startTime
+   logJobProgress(job.id, `Completed successfully in ${duration}ms ✓`)
 }
 
 async function processYearlyFlowReport(job: Job): Promise<void> {
@@ -358,7 +395,20 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
   
   const report = await persistReport(reportData)
   logJobProgress(job.id, `[Stage 5] Report persisted - Report ID: ${report.id}`)
-  
+
+  // ===== Stage 6: Process chunks and embeddings for RAG =====
+  logJobProgress(job.id, `[Stage 6/6] Processing text chunks and generating embeddings for RAG...`)
+  try {
+    // Extract report body for chunking - use structured payload for complete content
+    const reportBodyForChunking = `${payload.natalAnalysis}\n\n${payload.decadeLuckAnalysis}\n\n${payload.annualFlowAnalysis}`
+    await processReportChunks(report.id, reportBodyForChunking)
+    logJobProgress(job.id, `[Stage 6] RAG chunks processed successfully`)
+  } catch (ragError: any) {
+    console.error(`[Worker] Non-fatal error processing RAG chunks for report ${report.id}:`, ragError)
+    logJobProgress(job.id, `[Stage 6] RAG chunk processing skipped due to error: ${ragError.message}`)
+    // Don't fail the entire job - chunking is a nice-to-have feature
+  }
+
   // ===== Update job metadata and mark complete =====
   const generationTimeMs = Date.now() - startTime
   const updatedMetadata = {
@@ -369,7 +419,7 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
     generation_time_ms: generationTimeMs,
     tokens_used: null, // TODO: Extract from Gemini API response when available
   }
-  
+
   await markJobStatus(job.id, 'done', { metadata: updatedMetadata })
   logJobProgress(job.id, `✓ Completed successfully in ${generationTimeMs}ms - Report: ${report.id}`)
 }
