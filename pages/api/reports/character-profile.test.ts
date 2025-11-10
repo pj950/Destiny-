@@ -9,7 +9,6 @@ describe('Character Profile API', () => {
   let mockSupabaseService: any
   let mockGeminiClient: any
   let mockRequest: any
-  let mockResponse: any
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -17,14 +16,6 @@ describe('Character Profile API', () => {
     mockRequest = {
       method: 'POST',
       body: { chart_id: 'chart-123' },
-    }
-
-    mockResponse = {
-      _status: 200,
-      _jsonData: null,
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
-      end: vi.fn(),
     }
 
     mockSupabaseService = {
@@ -131,19 +122,22 @@ describe('Character Profile API', () => {
     })
 
     it('should generate new report if cache miss', async () => {
+      // First call: get chart - should succeed
       mockSupabaseService.single.mockResolvedValueOnce({
         data: { id: 'chart-123' },
         error: null,
       })
 
-      // Empty cache
+      // Second call: check cache - should return null (cache miss)
       mockSupabaseService.single.mockResolvedValueOnce({
         data: null,
         error: { message: 'No reports' },
       })
 
+      // Test the cache check (second call)
       const { data, error } = await mockSupabaseService.single()
       expect(data).toBeNull()
+      expect(error).toEqual({ message: 'No reports' })
     })
   })
 

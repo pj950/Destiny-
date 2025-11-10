@@ -424,6 +424,9 @@ describe('My Jobs API (Updated)', () => {
     })
 
     it('should handle concurrent requests', async () => {
+      const mockPromise = vi.fn().mockResolvedValue({ data: [], error: null })
+      mockSupabaseService.single = mockPromise
+      
       const requests = [
         mockSupabaseService.single(),
         mockSupabaseService.single(),
@@ -432,6 +435,7 @@ describe('My Jobs API (Updated)', () => {
 
       const results = await Promise.all(requests)
       expect(results).toHaveLength(3)
+      expect(mockPromise).toHaveBeenCalledTimes(3)
     })
 
     it('should handle jobs without reports', async () => {

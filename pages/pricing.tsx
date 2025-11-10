@@ -101,7 +101,7 @@ export default function Pricing() {
       } else {
         alert(data.error || data.message || '创建支付失败，请重试')
       }
-    } catch (err) {
+    } catch {
       alert('网络错误，请稍后重试')
     } finally {
       setLoading(null)
@@ -131,7 +131,7 @@ export default function Pricing() {
       <Section background="mystical-dark" spacing="spacious">
         <Container size="xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingTiers.map((tier, index) => (
+            {pricingTiers.map((tier) => (
               <div key={tier.nameEn} className="relative">
                 {tier.recommended && (
                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
@@ -235,7 +235,7 @@ export default function Pricing() {
             <Card className="p-6" variant="mystical">
               <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">⏰ 报告多久能生成？</Heading>
               <Text className="text-mystical-gold-600/80">
-                付款成功后，系统会自动开始生成深度报告。通常在5-10分钟内完成，您可以在"我的命盘"页面查看进度并下载报告。
+                付款成功后，系统会自动开始生成深度报告。通常在5-10分钟内完成，您可以在&ldquo;我的命盘&rdquo;页面查看进度并下载报告。
               </Text>
             </Card>
           </div>

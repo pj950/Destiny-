@@ -41,7 +41,7 @@ export default function Home() {
       } else {
         setError(j.error || '创建失败，请重试')
       }
-    } catch (err) {
+    } catch {
       setError('网络错误，请稍后重试')
     } finally {
       setLoading(false)
