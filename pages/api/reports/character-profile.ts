@@ -7,9 +7,9 @@ import type { BaziReport, Chart } from '../../../types/database'
 import type { BaziChart } from '../../../lib/bazi'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).end()
+  if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
 
-  const { chart_id } = req.body
+  const { chart_id } = req.method === 'POST' ? req.body : req.query
 
   if (!chart_id || typeof chart_id !== 'string') {
     return res.status(400).json({ ok: false, message: 'chart_id is required' })
