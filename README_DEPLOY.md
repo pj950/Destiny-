@@ -417,6 +417,46 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com # or http://localhost:3000 for local
 
 ---
 
+## 4.3: Razorpay Subscription Configuration
+
+To enable subscription tiers and quota management, ensure Razorpay environment variables are properly configured:
+
+```env
+# Razorpay
+RAZORPAY_KEY_ID=rzp_live_xxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=your_live_key_secret
+RAZORPAY_WEBHOOK_SECRET=your_webhook_signing_secret
+```
+
+### Setting Up Razorpay Webhooks for Subscriptions
+
+1. Go to [Razorpay Dashboard](https://dashboard.razorpay.com)
+2. Navigate to **Settings** > **Webhooks**
+3. Click **Add Webhook**
+4. Configure as follows:
+   - **URL**: `https://yourdomain.com/api/razorpay/webhook` (or `http://localhost:3000/api/razorpay/webhook` for local)
+   - **Events to Listen**: Select all of the following:
+     - `payment_link.paid` - For subscription payment completion
+     - `subscription.activated` - Future enhancement
+     - `subscription.renewed` - Future enhancement
+     - `payment.failed` - For failed payment handling
+5. Click **Create Webhook**
+6. Copy the **Signing Secret** and set it as `RAZORPAY_WEBHOOK_SECRET`
+
+### Subscription Plans in Razorpay (Optional)
+
+The current implementation uses Payment Links for simplicity. For automatic renewal with Razorpay Subscriptions API:
+
+1. Go to **Products** > **Plans** in Razorpay Dashboard
+2. Create plans matching your pricing:
+   - **Basic**: ₹299/month or ₹2,999/year
+   - **Premium**: ₹699/month or ₹6,999/year
+   - **VIP**: ₹1,499/month or ₹14,999/year
+
+See [Subscription System Documentation](./docs/SUBSCRIPTION_SYSTEM.md) for full details.
+
+---
+
 ## 5. Deploy Next.js Application to Vercel (Recommended)
 
 ### Prerequisites

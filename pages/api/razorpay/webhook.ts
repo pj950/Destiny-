@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { razorpayHelpers } from '../../../lib/razorpay'
+import { createOrUpdateSubscription } from '../../../lib/subscription'
 import { buffer } from 'stream/consumers'
 
 // Guard: Check for required environment variables
@@ -61,8 +62,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const purchaseType = paymentLink.notes?.purchase_type
       const lamp_key = paymentLink.notes?.lamp_key
       const chart_id = paymentLink.notes?.chart_id || paymentLink.reference_id
+      const plan_id = paymentLink.notes?.plan_id
+      const user_id = paymentLink.notes?.user_id
+      const billing_cycle = paymentLink.notes?.billing_cycle
 
-      if (purchaseType === 'lamp_purchase' && lamp_key) {
+      if (purchaseType === 'subscription' && user_id && plan_id) {
+        // Handle subscription purchase
+        console.log(`[Razorpay Webhook] Event ${event.id}: Processing subscription payment for user ${user_id}, plan ${plan_id}`)
+
+        // Check if we've already processed this event for this user
+        const { data: existingSubscription, error: searchError } = await supabaseService
+          .from('user_subscriptions')
+          .select('*')
+          .eq('user_id', user_id)
+          .eq('status', 'active')
+          .maybeSingle()
+
+        if (searchError) {
+          console.error(`[Razorpay Webhook] Event ${event.id}: Error searching for subscription:`, searchError)
+          return res.status(500).json({ error: 'Database error while searching for subscription' })
+        }
+
+        // Check if we've already processed this exact webhook event
+        if (existingSubscription?.metadata?.last_webhook_event_id === event.id) {
+          console.log(`[Razorpay Webhook] Event ${event.id}: Already processed for user ${user_id}, returning success`)
+          return res.status(200).json({ received: true, message: 'Event already processed' })
+        }
+
+        // Create or update subscription
+        const subscription = await createOrUpdateSubscription(
+          user_id,
+          plan_id as any,
+          `razorpay_${payment?.id}`,
+          'razorpay'
+        )
+
+        if (!subscription) {
+          console.error(`[Razorpay Webhook] Event ${event.id}: Failed to create/update subscription for user ${user_id}`)
+          return res.status(500).json({ error: 'Failed to create subscription' })
+        }
+
+        // Update subscription metadata with webhook event ID
+        const { error: updateError } = await supabaseService
+          .from('user_subscriptions')
+          .update({
+            metadata: {
+              ...(existingSubscription?.metadata || {}),
+              last_webhook_event_id: event.id,
+              payment_link_id: paymentLink.id,
+              razorpay_payment_id: payment?.id,
+              billing_cycle,
+              payment_confirmed_at: new Date().toISOString(),
+            },
+          })
+          .eq('id', subscription.id)
+
+        if (updateError) {
+          console.error(`[Razorpay Webhook] Event ${event.id}: Error updating subscription metadata:`, updateError)
+          // Don't fail the whole webhook, just log
+        }
+
+        console.log(`[Razorpay Webhook] Event ${event.id}: Successfully activated subscription for user ${user_id}`)
+        return res.status(200).json({ received: true })
+
+      } else if (purchaseType === 'lamp_purchase' && lamp_key) {
         // Handle lamp purchase
         console.log(`[Razorpay Webhook] Event ${event.id}: Processing lamp purchase for ${lamp_key}, payment link ${paymentLink.id}`)
 
