@@ -707,7 +707,83 @@ Refer to each platform's documentation for Next.js deployment instructions.
 
 ## 6. Deploy Background Worker
 
-The background worker (`worker/worker.ts`) processes async jobs like report generation. Since Vercel is a serverless platform, it cannot run long-running background processes. You have several options:
+The background worker (`worker/worker.ts`) processes async jobs like report generation and RAG processing. Since Vercel is a serverless platform, it cannot run long-running background processes. You have several options:
+
+### Worker Overview
+
+The worker supports two job types:
+
+1. **`yearly_flow_report`**: Generates comprehensive yearly fortune reports
+   - Loads chart data and computes insights
+   - Calls Gemini AI with structured prompts  
+   - Parses and validates JSON response
+   - Persists report to database
+   - Processes text chunks for RAG (vectorization)
+   - Updates job status with metadata
+
+2. **`deep_report`**: Legacy deep personality reports
+   - Loads chart data
+   - Generates free-form report with Gemini
+   - Uploads to Supabase Storage
+   - Processes text chunks for RAG
+   - Updates job status
+
+### Environment Variables for Worker
+
+The worker requires these additional environment variables:
+
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `GOOGLE_API_KEY` | Yes | Google AI API key for Gemini | - |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key | - |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL | - |
+| `GEMINI_MODEL_REPORT` | No | Gemini model for reports | `gemini-2.5-pro` |
+| `WORKER_INTERVAL` | No | Polling interval in ms | `1000` |
+
+### Local Development
+
+To run the worker locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Run worker
+npm run worker
+
+# Run with debug logging
+npm run worker:debug
+
+# Run tests
+npm run worker:test
+```
+
+### Worker Logs
+
+The worker outputs structured logs for monitoring:
+
+```
+[Worker] Starting worker...
+[Worker] Using Gemini model: gemini-2.5-pro
+[Worker] Supported job types: deep_report, yearly_flow_report
+[Worker][2025-01-01T12:00:00Z][Job job-123] Routing job type: yearly_flow_report
+[Worker][2025-01-01T12:00:01Z][Job job-123] [Stage 1/5] Metadata extracted - Year: 2026, Tier: premium
+[Worker][2025-01-01T12:00:02Z][Job job-123] [Stage 2/5] Loading chart and computing insights...
+[Worker][2025-01-01T12:00:03Z][Job job-123] [Stage 3/5] Building Gemini prompt...
+[Worker][2025-01-01T12:00:04Z][Job job-123] [Stage 4/5] Parsing Gemini response...
+[Worker][2025-01-01T12:00:05Z][Job job-123] [Stage 5/5] Persisting report to database...
+[Worker][2025-01-01T12:00:06Z][Job job-123] [Stage 6/6] Processing text chunks and generating embeddings for RAG...
+[Worker][2025-01-01T12:00:07Z][Job job-123] ✓ Completed successfully in 7000ms - Report: report-456
+```
+
+### Monitoring Worker Health
+
+Monitor these metrics:
+
+1. **Job Processing Time**: Check generation_time_ms in job metadata
+2. **Error Rates**: Look for `[JOB_ERROR]` log entries
+3. **Queue Length**: Number of pending jobs in database
+4. **RAG Processing**: Verify chunks are created in `bazi_report_chunks` table
 
 ### Option A: Vercel Cron Jobs (Recommended for Vercel deployments)
 

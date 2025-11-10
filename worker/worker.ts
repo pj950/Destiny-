@@ -451,6 +451,12 @@ async function processJob(job: Job): Promise<void> {
   }
 }
 
+// Export interfaces for testing
+export type { Job, SupportedJobType }
+
+// Export functions for testing
+export { processJob, processYearlyFlowReport, processDeepReport }
+
 // ============================================================================
 // Main Processing Loop
 // ============================================================================
