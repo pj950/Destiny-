@@ -497,6 +497,7 @@ Key routes:
 - GET `/api/jobs/[id]` — Get single job by ID
 - POST `/api/ai/interpret` — Generate AI summary and store it
 - POST `/api/reports/generate` — Create Razorpay payment link for deep reports
+- POST `/api/qa/ask` — Ask questions about your BaZi report with RAG-powered Q&A
 - POST `/api/lamps/checkout` — Create Razorpay payment link for lamp purchases
 - POST `/api/lamps/confirm` — Confirm lamp payment after successful checkout
 - POST `/api/razorpay/webhook` — Razorpay webhook (server-to-server, signature verified)
@@ -616,6 +617,59 @@ Create a Razorpay payment link for purchasing a detailed report.
 ```
 
 **Note:** Validates chart existence before creating payment link. Creates a job with status 'pending' that will be confirmed by webhook after successful payment.
+
+### POST `/api/qa/ask`
+Ask intelligent questions about your BaZi report using RAG-powered Q&A with Gemini AI.
+
+**Request body:**
+```json
+{
+  "report_id": "uuid-here",
+  "question": "我的事业运如何？",
+  "subscription_tier": "premium"
+}
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "answer": "根据你的命盘分析，你在事业上具有出色的执行力...",
+  "citations": [
+    {
+      "chunk_id": 1,
+      "content": "月柱丙寅表明你具有创新精神...",
+      "section": "事业分析"
+    }
+  ],
+  "followUps": [
+    "我应该在哪个时间点做重要的职业决定？",
+    "我的团队合作能力如何评估？"
+  ],
+  "remaining_quota": 14
+}
+```
+
+**Quota System:**
+- **Free**: 0 questions/month (not allowed)
+- **Basic**: 20 questions/month
+- **Premium**: 20 questions/month
+- **VIP**: Unlimited questions
+
+**Features:**
+- Vector-powered semantic search for relevant content chunks
+- Multi-turn conversation history tracking (up to 20 messages)
+- Automatic retry with exponential backoff for Gemini timeouts
+- Graceful fallback when context is unavailable
+- Citations with source references and section names
+- Suggested follow-up questions for deeper insights
+
+**Error Responses:**
+- `400`: Missing required fields (report_id, question)
+- `404`: Report not found
+- `429`: Quota limit exceeded
+
+For complete documentation, see [QA_ASK_API.md](./docs/QA_ASK_API.md).
 
 ### GET `/api/my/jobs`
 List recent jobs. Returns the latest N jobs (default: 50, max: 100).
