@@ -1,9 +1,7 @@
-import { FlatCompat } from '@eslint/eslintrc'
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-})
+import js from '@eslint/js'
+import next from 'eslint-config-next'
 
 export default [
-  ...compat.extends('next/core-web-vitals'),
+  js.configs.recommended,
+  ...next,
 ]

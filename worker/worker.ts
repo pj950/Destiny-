@@ -329,7 +329,7 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
   
   // ===== Stage 2: Load chart and compute insights =====
   logJobProgress(job.id, `[Stage 2/5] Loading chart and computing insights...`)
-  const { chart, baziChart, insights, birthYear } = await loadChartWithInsights(job.chart_id)
+  const { baziChart, insights, birthYear } = await loadChartWithInsights(job.chart_id)
   logJobProgress(job.id, `[Stage 2] Chart loaded - Birth year: ${birthYear}`)
   
   // ===== Stage 3: Build prompt and call Gemini =====
@@ -434,20 +434,15 @@ async function processJob(job: Job): Promise<void> {
   // Mark as processing
   await markJobStatus(job.id, 'processing')
   
-  try {
-    switch (job.job_type as SupportedJobType) {
-      case 'deep_report':
-        return await processDeepReport(job)
-      
-      case 'yearly_flow_report':
-        return await processYearlyFlowReport(job)
-      
-      default:
-        throw new Error(`Unknown job type: ${job.job_type}`)
-    }
-  } catch (err: any) {
-    // Re-throw to let the main processJobs handler deal with it
-    throw err
+  switch (job.job_type as SupportedJobType) {
+    case 'deep_report':
+      return await processDeepReport(job)
+    
+    case 'yearly_flow_report':
+      return await processYearlyFlowReport(job)
+    
+    default:
+      throw new Error(`Unknown job type: ${job.job_type}`)
   }
 }
 

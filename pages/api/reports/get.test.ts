@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 describe('Report Get API', () => {
   let mockSupabaseService: any
   let mockRequest: any
-  let mockResponse: any
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -16,14 +15,6 @@ describe('Report Get API', () => {
     mockRequest = {
       method: 'GET',
       query: { id: 'report-123' },
-    }
-
-    mockResponse = {
-      _status: 200,
-      _jsonData: null,
-      status: vi.fn().mockReturnThis(),
-      json: vi.fn().mockReturnThis(),
-      end: vi.fn(),
     }
 
     mockSupabaseService = {

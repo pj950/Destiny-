@@ -194,9 +194,9 @@ ggg
 
 dange
 
-```json
+\`\`\`json
 {
-  "promptVersion": "${CHARACTER_PROFILE_PROMPT_VERSION}",
+  "promptVersion": "\${CHARACTER_PROFILE_PROMPT_VERSION}",
   "corePersona": {
     "archetype": "烈日掌舵者",
     "description": "以丙火为核心的领导者，擅长凝聚人心并以光芒感染团队。",
@@ -225,7 +225,7 @@ dange
     }
   ]
 }
-```
+\`\`\`
 `
 
     const payload = parseGeminiJsonResponse(response, CharacterProfilePayloadSchema)

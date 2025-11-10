@@ -19,7 +19,7 @@ export type { FortuneCategory }
 export { categories, categoryIcons, categoryGradients }
 export { levelColors } from '../lib/fortuneConstants'
 
-interface Fortune {
+interface FortuneData {
   id: string
   category: string
   stick_id: number
@@ -35,7 +35,7 @@ const STORAGE_KEY = 'daily_fortune_cache_v1'
 
 const getTodayDate = () => new Date().toISOString().split('T')[0]
 
-const storeFortuneCache = (fortune: Fortune) => {
+const storeFortuneCache = (fortune: FortuneData) => {
   if (typeof window === 'undefined') return
   try {
     const createdAt = new Date(fortune.created_at)
@@ -49,12 +49,12 @@ const storeFortuneCache = (fortune: Fortune) => {
   }
 }
 
-const readFortuneCache = (): Fortune | null => {
+const readFortuneCache = (): FortuneData | null => {
   if (typeof window === 'undefined') return null
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    const cached = JSON.parse(raw) as { date?: string; fortune?: Fortune }
+    const cached = JSON.parse(raw) as { date?: string; fortune?: FortuneData }
     if (!cached || !cached.date || !cached.fortune) {
       window.localStorage.removeItem(STORAGE_KEY)
       return null
@@ -74,7 +74,7 @@ const readFortuneCache = (): Fortune | null => {
 export default function Fortune() {
   const [state, setState] = useState<FortuneState>('idle')
   const [selectedCategory, setSelectedCategory] = useState<FortuneCategory | null>(null)
-  const [todayFortune, setTodayFortune] = useState<Fortune | null>(null)
+  const [todayFortune, setTodayFortune] = useState<FortuneData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')

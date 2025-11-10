@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabaseService } from '../../../lib/supabase'
 // import Stripe from 'stripe' // TODO: Migrate to Razorpay in follow-up ticket
-import { buffer } from 'stream/consumers'
+// import { buffer } from 'stream/consumers' // TODO: Needed for Razorpay implementation
 
 // TODO: Replace with Razorpay implementation in follow-up ticket
 // Guard: Check for required environment variables
