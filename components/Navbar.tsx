@@ -16,6 +16,7 @@ export default function Navbar({ children }: NavbarProps) {
     { name: '工具', path: '/tools' },
     { name: '每日一签', path: '/fortune' },
     { name: '祈福点灯', path: '/lamps' },
+    { name: '订阅管理', path: '/subscription' },
     { name: '价格', path: '/pricing' },
   ]
   
