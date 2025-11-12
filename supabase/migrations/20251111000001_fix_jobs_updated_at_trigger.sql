@@ -3,13 +3,22 @@
 -- Description: Adds missing trigger for jobs table updated_at column and removes duplicate trigger function definitions
 
 -- ============================================================================
--- PART 1: Drop and recreate the update_updated_at_column function cleanly
+-- PART 1: Remove existing triggers that depend on update_updated_at_column()
 -- ============================================================================
 
--- Drop the existing function to avoid duplicates
+DROP TRIGGER IF EXISTS update_jobs_updated_at ON jobs;
+DROP TRIGGER IF EXISTS update_lamps_updated_at ON lamps;
+DROP TRIGGER IF EXISTS update_bazi_reports_updated_at ON bazi_reports;
+DROP TRIGGER IF EXISTS update_qa_conversations_updated_at ON qa_conversations;
+DROP TRIGGER IF EXISTS update_qa_usage_tracking_updated_at ON qa_usage_tracking;
+DROP TRIGGER IF EXISTS update_user_subscriptions_updated_at ON user_subscriptions;
+
+-- ============================================================================
+-- PART 2: Drop and recreate the update_updated_at_column function cleanly
+-- ============================================================================
+
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
--- Recreate the function once
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -18,34 +27,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add comment for the function
 COMMENT ON FUNCTION update_updated_at_column() IS 'Automatically updates the updated_at timestamp to current time when a row is modified';
 
 -- ============================================================================
--- PART 2: Add missing trigger for jobs table
+-- PART 3: Add missing trigger for jobs table
 -- ============================================================================
 
--- Create trigger for jobs table to automatically update updated_at
 CREATE TRIGGER update_jobs_updated_at 
   BEFORE UPDATE ON jobs 
   FOR EACH ROW 
   EXECUTE FUNCTION update_updated_at_column();
 
--- Add comment for the trigger
 COMMENT ON TRIGGER update_jobs_updated_at ON jobs IS 'Automatically updates updated_at timestamp when job record is modified';
 
 -- ============================================================================
--- PART 3: Ensure triggers exist for all other tables with updated_at columns
+-- PART 4: Ensure triggers exist for all other tables with updated_at columns
 -- ============================================================================
 
--- Drop existing triggers to recreate them cleanly
-DROP TRIGGER IF EXISTS update_lamps_updated_at ON lamps;
-DROP TRIGGER IF EXISTS update_bazi_reports_updated_at ON bazi_reports;
-DROP TRIGGER IF EXISTS update_qa_conversations_updated_at ON qa_conversations;
-DROP TRIGGER IF EXISTS update_qa_usage_tracking_updated_at ON qa_usage_tracking;
-DROP TRIGGER IF EXISTS update_user_subscriptions_updated_at ON user_subscriptions;
-
--- Recreate triggers for all tables with updated_at columns
 CREATE TRIGGER update_lamps_updated_at 
   BEFORE UPDATE ON lamps 
   FOR EACH ROW 
