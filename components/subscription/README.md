@@ -66,7 +66,7 @@ import { QuotaCard } from '../components/subscription'
   enabled={true}
   period="monthly"
   resetAt="2024-12-31T23:59:59Z"
-  onUpgrade={() => navigate('/subscription')}
+  onUpgrade={() => navigate('/pricing')}
 />
 ```
 

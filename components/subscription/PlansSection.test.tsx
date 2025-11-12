@@ -165,6 +165,20 @@ describe('PlansSection', () => {
     })
   })
 
+  it('highlights current plan when currentTier is provided without fetching subscription', async () => {
+    render(<PlansSection currentTier="premium" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Premium')).toBeInTheDocument()
+    })
+
+    const currentPlanBadges = screen.getAllByText('当前计划')
+    expect(currentPlanBadges.length).toBeGreaterThan(0)
+
+    const fetchedCurrentEndpoint = fetchSpy.mock.calls.some(([url]) => typeof url === 'string' && url.includes('/api/subscriptions/current'))
+    expect(fetchedCurrentEndpoint).toBe(false)
+  })
+
   it('calls onSelectPlan when upgrade button is clicked with custom handler', async () => {
     const onSelectPlan = vi.fn()
     render(<PlansSection onSelectPlan={onSelectPlan} />)

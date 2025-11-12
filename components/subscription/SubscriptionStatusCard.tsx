@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { SubscriptionTier, SubscriptionStatus } from '../../types/database'
 
-interface SubscriptionData {
+export interface SubscriptionStatusData {
   tier: SubscriptionTier
   plan: string
   subscription: {
@@ -12,25 +12,47 @@ interface SubscriptionData {
     cancel_at: string | null
   } | null
   quota: {
-    yearly_flow: { used: number; limit: number | null }
-    qa: { used: number; limit: number | null }
+    yearly_flow: { used: number; limit: number | null; reset_at?: string }
+    qa: { used: number; limit: number | null; reset_at?: string }
   }
 }
 
 interface SubscriptionStatusCardProps {
   userId: string
   className?: string
+  initialData?: SubscriptionStatusData | null
+  loading?: boolean
 }
 
-export default function SubscriptionStatusCard({ userId, className = '' }: SubscriptionStatusCardProps) {
-  const [data, setData] = useState<SubscriptionData | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function SubscriptionStatusCard({ userId, className = '', initialData, loading: loadingProp }: SubscriptionStatusCardProps) {
+  const [data, setData] = useState<SubscriptionStatusData | null>(initialData ?? null)
+  const [internalLoading, setInternalLoading] = useState(initialData === undefined)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+
+    if (initialData !== undefined) {
+      setData(initialData)
+      setError(null)
+      setInternalLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    if (!userId) {
+      setData(null)
+      setInternalLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
     const fetchSubscriptionData = async () => {
       try {
-        setLoading(true)
+        setInternalLoading(true)
+        setError(null)
         const response = await fetch(`/api/subscriptions/current?user_id=${userId}`)
         
         if (!response.ok) {
@@ -43,19 +65,28 @@ export default function SubscriptionStatusCard({ userId, className = '' }: Subsc
           throw new Error(result.error || 'Failed to fetch subscription data')
         }
         
+        if (!isMounted) return
         setData(result.data)
       } catch (err) {
         console.error('[SubscriptionStatusCard] Error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load subscription data')
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load subscription data')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setInternalLoading(false)
+        }
       }
     }
 
-    if (userId) {
-      fetchSubscriptionData()
+    fetchSubscriptionData()
+
+    return () => {
+      isMounted = false
     }
-  }, [userId])
+  }, [userId, initialData])
+
+  const loading = loadingProp ?? internalLoading
 
   const getStatusText = (status: SubscriptionStatus) => {
     const statusMap = {

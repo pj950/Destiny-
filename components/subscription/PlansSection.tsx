@@ -8,16 +8,18 @@ interface PlansSectionProps {
   userId?: string
   onSelectPlan?: (planId: SubscriptionTier) => void
   className?: string
+  currentTier?: SubscriptionTier | null
 }
 
 export default function PlansSection({
   userId,
   onSelectPlan,
-  className = ''
+  className = '',
+  currentTier,
 }: PlansSectionProps) {
   const router = useRouter()
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
-  const [currentPlan, setCurrentPlan] = useState<SubscriptionTier | null>(null)
+  const [currentPlan, setCurrentPlan] = useState<SubscriptionTier | null>(currentTier ?? null)
   const [isBillingMonthly, setIsBillingMonthly] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,7 +56,15 @@ export default function PlansSection({
 
   // Fetch current subscription
   useEffect(() => {
-    if (!userId) return
+    if (currentTier !== undefined) {
+      setCurrentPlan(currentTier ?? null)
+      return
+    }
+
+    if (!userId) {
+      setCurrentPlan(null)
+      return
+    }
 
     const fetchCurrentSubscription = async () => {
       try {
@@ -69,6 +79,8 @@ export default function PlansSection({
         
         if (result.ok && result.data?.tier) {
           setCurrentPlan(result.data.tier)
+        } else {
+          setCurrentPlan(null)
         }
       } catch (err) {
         console.error('[PlansSection] Error fetching current subscription:', err)
@@ -76,7 +88,7 @@ export default function PlansSection({
     }
 
     fetchCurrentSubscription()
-  }, [userId])
+  }, [userId, currentTier])
 
   const handleUpgrade = async (planId: SubscriptionTier) => {
     if (planId === 'free') {
