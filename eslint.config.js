@@ -1,9 +1,17 @@
-import { FlatCompat } from '@eslint/eslintrc'
+const nextConfig = require('eslint-config-next');
 
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-})
-
-export default [
-  ...compat.extends('next/core-web-vitals'),
-]
+module.exports = [
+  {
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+  },
+  ...nextConfig,
+];
