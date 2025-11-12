@@ -173,12 +173,21 @@ export interface QuotaInfo {
  */
 export async function getUserSubscription(userId: string): Promise<UserSubscription | null> {
   try {
-    const { data: subscription, error } = await supabaseService
-      .from('user_subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle()
+    let subscription, error
+    
+    try {
+      const result = await supabaseService
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .maybeSingle()
+      subscription = result.data
+      error = result.error
+    } catch (dbError: any) {
+      console.error('[Subscription] Database connection error:', dbError.message)
+      return null // Return null for connection errors (defaults to free tier)
+    }
 
     if (error) {
       console.error('[Subscription] Error fetching subscription:', error)
@@ -325,12 +334,21 @@ async function getUsage(
 
     if (feature === 'qa') {
       // Query qa_usage_tracking
-      const { data: usage, error } = await supabaseService
-        .from('qa_usage_tracking')
-        .select('questions_used, extra_questions')
-        .eq('user_id', userId)
-        .gte('period_start', periodStart.toISOString())
-        .lte('period_end', periodEnd.toISOString())
+      let usage, error
+      
+      try {
+        const result = await supabaseService
+          .from('qa_usage_tracking')
+          .select('questions_used, extra_questions')
+          .eq('user_id', userId)
+          .gte('period_start', periodStart.toISOString())
+          .lte('period_end', periodEnd.toISOString())
+        usage = result.data
+        error = result.error
+      } catch (dbError: any) {
+        console.error('[Subscription] Database connection error in QA usage:', dbError.message)
+        return { used: 0, resets_at: periodEnd.toISOString() }
+      }
 
       if (error) {
         console.error('[Subscription] Error getting QA usage:', error)
@@ -347,14 +365,23 @@ async function getUsage(
 
     if (feature === 'yearly_flow') {
       // Query bazi_reports with yearly_flow type
-      const { data: reports, error } = await supabaseService
-        .from('bazi_reports')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('report_type', 'yearly_flow')
-        .gte('created_at', periodStart.toISOString())
-        .lte('created_at', periodEnd.toISOString())
-        .eq('status', 'completed')
+      let reports, error
+      
+      try {
+        const result = await supabaseService
+          .from('bazi_reports')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('report_type', 'yearly_flow')
+          .gte('created_at', periodStart.toISOString())
+          .lte('created_at', periodEnd.toISOString())
+          .eq('status', 'completed')
+        reports = result.data
+        error = result.error
+      } catch (dbError: any) {
+        console.error('[Subscription] Database connection error in yearly flow usage:', dbError.message)
+        return { used: 0, resets_at: periodEnd.toISOString() }
+      }
 
       if (error) {
         console.error('[Subscription] Error getting yearly flow usage:', error)
@@ -436,7 +463,7 @@ export async function getQuotaUsage(userId: string): Promise<QuotaInfo> {
 
     // Check QA quota
     const qaQuota = await checkQuota(userId, 'qa')
-    quotaInfo.qa_questions = {
+    quotaInfo.qa = {
       used: qaQuota.current,
       limit: qaQuota.limit,
       reset_at: qaQuota.resets_at,
@@ -447,7 +474,7 @@ export async function getQuotaUsage(userId: string): Promise<QuotaInfo> {
     console.error('[Subscription] Error in getQuotaUsage:', error)
     return {
       yearly_flow: { used: 0, limit: 0 },
-      qa_questions: { used: 0, limit: 0 },
+      qa: { used: 0, limit: 0 },
     }
   }
 }

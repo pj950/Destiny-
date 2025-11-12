@@ -48,14 +48,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
   
   try {
-    const { data: fortune, error } = await supabaseService
-      .from('fortunes')
-      .select('*')
-      .eq('draw_date', today)
-      .eq('session_id', sessionId)
-      .maybeSingle()
+    let fortune, error
+    
+    try {
+      const result = await supabaseService
+        .from('fortunes')
+        .select('*')
+        .eq('draw_date', today)
+        .eq('session_id', sessionId)
+        .maybeSingle()
+      fortune = result.data
+      error = result.error
+    } catch (dbError: any) {
+      console.error('[Fortune Today] Database connection error:', dbError.message)
+      return res.status(503).json({ 
+        ok: false, 
+        message: 'Database service unavailable',
+        error: 'Unable to connect to database'
+      })
+    }
     
     if (error) {
+      console.error('[Fortune Today] Database query error:', error)
       return res.status(500).json({ ok: false, message: error.message })
     }
     
