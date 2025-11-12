@@ -17,10 +17,22 @@ export default async function handler(
   try {
     console.log('[Lamp Status] Fetching lamp statuses')
 
-    const { data: lamps, error } = await supabaseService
-      .from('lamps')
-      .select('lamp_key, status, updated_at')
-      .order('lamp_key', { ascending: true })
+    let lamps, error
+    
+    try {
+      const result = await supabaseService
+        .from('lamps')
+        .select('lamp_key, status, updated_at')
+        .order('lamp_key', { ascending: true })
+      lamps = result.data
+      error = result.error
+    } catch (dbError: any) {
+      console.error('[Lamp Status] Database connection error:', dbError.message)
+      return res.status(503).json({ 
+        error: 'Database service unavailable',
+        details: 'Unable to connect to database'
+      })
+    }
 
     if (error) {
       console.error('[Lamp Status] Error fetching lamps:', error)
