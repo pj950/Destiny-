@@ -31,16 +31,12 @@ INSERT INTO lamps (lamp_key, status) VALUES
   ('p1', 'unlit'),
   ('p2', 'unlit'),
   ('p3', 'unlit'),
-  ('p4', 'unlit');
+  ('p4', 'unlit')
+ON CONFLICT (lamp_key) DO NOTHING;
 
 -- Create trigger to automatically update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- Note: The update_updated_at_column() function is created in migration 20241104000005
+DROP TRIGGER IF EXISTS update_lamps_updated_at ON lamps;
 
 CREATE TRIGGER update_lamps_updated_at 
     BEFORE UPDATE ON lamps 
