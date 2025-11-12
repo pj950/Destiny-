@@ -367,25 +367,23 @@ CREATE POLICY "Users can update own subscriptions" ON user_subscriptions
 -- PART 9: Update timestamps trigger
 -- ============================================================================
 
--- Create or replace function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+-- Note: The update_updated_at_column() function is already created in migration 20241104000005
+-- We only need to create triggers for the new tables
 
--- Add triggers for updated_at columns
+-- Add triggers for updated_at columns on new tables
+DROP TRIGGER IF EXISTS update_bazi_reports_updated_at ON bazi_reports;
 CREATE TRIGGER update_bazi_reports_updated_at BEFORE UPDATE ON bazi_reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_qa_conversations_updated_at ON qa_conversations;
 CREATE TRIGGER update_qa_conversations_updated_at BEFORE UPDATE ON qa_conversations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_qa_usage_tracking_updated_at ON qa_usage_tracking;
 CREATE TRIGGER update_qa_usage_tracking_updated_at BEFORE UPDATE ON qa_usage_tracking
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_subscriptions_updated_at ON user_subscriptions;
 CREATE TRIGGER update_user_subscriptions_updated_at BEFORE UPDATE ON user_subscriptions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
