@@ -29,8 +29,7 @@ export default async function handler(
     } catch (dbError: any) {
       console.error('[Lamp Status] Database connection error:', dbError.message)
       return res.status(503).json({ 
-        error: 'Database service unavailable',
-        details: 'Unable to connect to database'
+        error: 'Database service unavailable'
       })
     }
 

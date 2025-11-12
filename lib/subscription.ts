@@ -355,7 +355,7 @@ async function getUsage(
         return { used: 0, resets_at: periodEnd.toISOString() }
       }
 
-      const totalUsed = usage.reduce(
+      const totalUsed = (usage || []).reduce(
         (sum, u) => sum + (u.questions_used || 0) + (u.extra_questions || 0),
         0
       )
@@ -388,7 +388,7 @@ async function getUsage(
         return { used: 0, resets_at: periodEnd.toISOString() }
       }
 
-      return { used: reports.length, resets_at: periodEnd.toISOString() }
+      return { used: (reports || []).length, resets_at: periodEnd.toISOString() }
     }
 
     return { used: 0, resets_at: periodEnd.toISOString() }
