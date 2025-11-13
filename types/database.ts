@@ -205,6 +205,10 @@ export interface UserSubscription {
   cancel_at: Timestamp | null
   canceled_at: Timestamp | null
   metadata: SubscriptionMetadata | null
+  // Stripe-specific fields
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  external_payment_id: string | null
   created_at: Timestamp
   updated_at: Timestamp
 }

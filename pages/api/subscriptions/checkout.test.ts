@@ -11,20 +11,17 @@ vi.mock('../../../lib/supabase', () => ({
   supabaseService: {},
 }))
 
-// Mock Razorpay
-vi.mock('../../../lib/razorpay', () => ({
-  razorpayHelpers: {
-    createPaymentLink: vi.fn(),
+// Mock Stripe
+vi.mock('../../../lib/stripe', () => ({
+  stripeHelpers: {
+    createCheckoutSession: vi.fn(),
   },
 }))
 
 describe('/api/subscriptions/checkout', () => {
-  const mockPaymentLink = {
-    id: 'plink_123',
-    short_url: 'https://rzp.io/i/abc123',
-    amount: 29900,
-    currency: 'INR',
-    expire_by: Math.floor(Date.now() / 1000) + 3600,
+  const mockCheckoutSession = {
+    id: 'cs_test_123',
+    url: 'https://checkout.stripe.com/pay/cs_test_123',
   }
 
   beforeEach(() => {
@@ -124,9 +121,9 @@ describe('/api/subscriptions/checkout', () => {
     expect(data.error.toLowerCase()).toContain('free')
   })
 
-  it('should create payment link for basic tier monthly', async () => {
-    const { razorpayHelpers } = await import('../../../lib/razorpay')
-    vi.mocked(razorpayHelpers.createPaymentLink).mockResolvedValue(mockPaymentLink)
+  it('should create checkout session for basic tier monthly', async () => {
+    const { stripeHelpers } = await import('../../../lib/stripe')
+    vi.mocked(stripeHelpers.createCheckoutSession).mockResolvedValue(mockCheckoutSession)
 
     const { req, res } = createMocks({
       method: 'POST',
@@ -144,15 +141,13 @@ describe('/api/subscriptions/checkout', () => {
     expect(res._getStatusCode()).toBe(200)
     const data = JSON.parse(res._getData())
     expect(data.ok).toBe(true)
-    expect(data.data.payment_link_id).toBe('plink_123')
-    expect(data.data.payment_url).toBe('https://rzp.io/i/abc123')
-    expect(data.data.amount).toBe(299)
-    expect(data.data.plan).toBe('Basic')
+    expect(data.url).toBe('https://checkout.stripe.com/pay/cs_test_123')
+    expect(data.session_id).toBe('cs_test_123')
   })
 
-  it('should create payment link for premium tier yearly', async () => {
-    const { razorpayHelpers } = await import('../../../lib/razorpay')
-    vi.mocked(razorpayHelpers.createPaymentLink).mockResolvedValue(mockPaymentLink)
+  it('should create checkout session for premium tier yearly', async () => {
+    const { stripeHelpers } = await import('../../../lib/stripe')
+    vi.mocked(stripeHelpers.createCheckoutSession).mockResolvedValue(mockCheckoutSession)
 
     const { req, res } = createMocks({
       method: 'POST',
@@ -168,14 +163,14 @@ describe('/api/subscriptions/checkout', () => {
     expect(res._getStatusCode()).toBe(200)
     const data = JSON.parse(res._getData())
     expect(data.ok).toBe(true)
-    expect(data.data.amount).toBe(6999)
-    expect(data.data.billing_cycle).toBe('yearly')
+    expect(data.url).toBe('https://checkout.stripe.com/pay/cs_test_123')
+    expect(data.session_id).toBe('cs_test_123')
   })
 
-  it('should include metadata in payment link', async () => {
-    const { razorpayHelpers } = await import('../../../lib/razorpay')
-    const mockCall = vi.fn().mockResolvedValue(mockPaymentLink)
-    vi.mocked(razorpayHelpers.createPaymentLink).mockImplementation(mockCall)
+  it('should include metadata in checkout session', async () => {
+    const { stripeHelpers } = await import('../../../lib/stripe')
+    const mockCall = vi.fn().mockResolvedValue(mockCheckoutSession)
+    vi.mocked(stripeHelpers.createCheckoutSession).mockImplementation(mockCall)
 
     const { req, res } = createMocks({
       method: 'POST',
@@ -190,10 +185,8 @@ describe('/api/subscriptions/checkout', () => {
 
     expect(mockCall).toHaveBeenCalled()
     const callArgs = mockCall.mock.calls[0][0]
-    expect(callArgs.notes).toBeDefined()
-    expect(callArgs.notes.plan_id).toBe('vip')
-    expect(callArgs.notes.user_id).toBe('user-456')
-    expect(callArgs.notes.billing_cycle).toBe('monthly')
-    expect(callArgs.notes.purchase_type).toBe('subscription')
+    expect(callArgs.planId).toBe('vip')
+    expect(callArgs.userId).toBe('user-456')
+    expect(callArgs.billingCycle).toBe('monthly')
   })
 })

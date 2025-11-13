@@ -1,13 +1,30 @@
 /**
  * POST /api/subscriptions/checkout
  * 
- * Create a Razorpay payment link for subscription checkout
+ * Create a Stripe Checkout Session for subscription payment
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { razorpayHelpers } from '../../../lib/razorpay'
+import { stripeHelpers } from '../../../lib/stripe'
 import { SUBSCRIPTION_PLANS } from '../../../lib/subscription'
 import type { SubscriptionTier } from '../../../types/database'
+
+// Stripe Price IDs mapping (configured in Stripe Dashboard)
+// These should be set as environment variables in production
+const STRIPE_PRICE_IDS: Record<string, { monthly: string; yearly: string }> = {
+  basic: {
+    monthly: process.env.STRIPE_PRICE_BASIC_MONTHLY || 'price_basic_monthly',
+    yearly: process.env.STRIPE_PRICE_BASIC_YEARLY || 'price_basic_yearly',
+  },
+  premium: {
+    monthly: process.env.STRIPE_PRICE_PREMIUM_MONTHLY || 'price_premium_monthly',
+    yearly: process.env.STRIPE_PRICE_PREMIUM_YEARLY || 'price_premium_yearly',
+  },
+  vip: {
+    monthly: process.env.STRIPE_PRICE_VIP_MONTHLY || 'price_vip_monthly',
+    yearly: process.env.STRIPE_PRICE_VIP_YEARLY || 'price_vip_yearly',
+  },
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -40,35 +57,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Free tier does not require payment' })
     }
 
-    // Create payment link
-    const paymentLink = await razorpayHelpers.createPaymentLink({
-      amount: amount * 100, // Convert to paise (smallest currency unit)
-      currency: 'INR',
-      description: `${plan.name} Subscription (${billing_cycle})`,
-      customer: customer_email ? {
-        email: customer_email,
-        name: customer_name,
-      } : undefined,
-      notes: {
-        plan_id,
-        user_id,
-        billing_cycle,
-        purchase_type: 'subscription',
-      },
-      reference_id: `sub_${user_id}_${plan_id}_${Date.now()}`,
+    // Get Stripe Price ID
+    const priceId = STRIPE_PRICE_IDS[plan_id]?.[billing_cycle as 'monthly' | 'yearly']
+    if (!priceId) {
+      return res.status(500).json({ error: 'Stripe price not configured for this plan' })
+    }
+
+    // Get base URL for redirect
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+    // Create Stripe Checkout Session
+    const session = await stripeHelpers.createCheckoutSession({
+      priceId,
+      userId: user_id,
+      planId: plan_id,
+      billingCycle: billing_cycle as 'monthly' | 'yearly',
+      successUrl: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${baseUrl}/checkout/cancel`,
+      customerEmail: customer_email,
     })
 
     return res.status(200).json({
       ok: true,
-      data: {
-        payment_link_id: paymentLink.id,
-        payment_url: paymentLink.short_url,
-        amount: amount,
-        currency: 'INR',
-        plan: plan.name,
-        billing_cycle,
-        expires_at: paymentLink.expire_by,
-      },
+      url: session.url,
+      session_id: session.id,
     })
   } catch (error: any) {
     console.error('[API] Error creating checkout:', error)
