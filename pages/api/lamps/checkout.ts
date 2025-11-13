@@ -2,11 +2,6 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
 import { stripeHelpers } from '../../../lib/stripe'
 
-// Guard: Check for required environment variables
-if (!process.env.NEXT_PUBLIC_SITE_URL) {
-  throw new Error('NEXT_PUBLIC_SITE_URL environment variable is not configured. Please set it in your .env.local file.')
-}
-
 const LAMP_PRICE = 1990 // ₹19.90 in paise (smallest unit for INR)
 const VALID_LAMP_KEYS = ['p1', 'p2', 'p3', 'p4']
 
@@ -27,6 +22,13 @@ export default async function handler(
   }
 
   try {
+    // Check for required environment variables at request time
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    if (!siteUrl) {
+      console.error('[Lamp Checkout] NEXT_PUBLIC_SITE_URL environment variable is not configured')
+      return res.status(500).json({ error: 'Server configuration error: missing NEXT_PUBLIC_SITE_URL' })
+    }
+
     const { lamp_key }: CheckoutRequest = req.body
 
     // Validate lamp_key
@@ -58,7 +60,6 @@ export default async function handler(
     }
 
     // Create Stripe Checkout Session for one-time payment
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
     const session = await stripeHelpers.createCheckoutSession({
       priceId: process.env.STRIPE_PRICE_LAMP || 'price_lamp',
       userId: 'anonymous',
