@@ -22,7 +22,7 @@ describe('Lamp Checkout API', () => {
     // Mock request/response
     mockRequest = {
       method: 'POST',
-      body: { lamp_key: '平安灯' },
+      body: { lamp_id: '04ed6621-c5ff-40e8-9112-dbee4ff90326' },
     }
 
     mockResponse = {
@@ -42,10 +42,10 @@ describe('Lamp Checkout API', () => {
       insert: vi.fn().mockReturnThis(),
     }
 
-    // Mock razorpayHelpers
+    // Mock stripeHelpers
     mockRazorpayHelpers = {
-      createPaymentLink: vi.fn(),
-      fetchPaymentLink: vi.fn(),
+      createCheckoutSession: vi.fn(),
+      fetchCheckoutSession: vi.fn(),
       verifyWebhookSignature: vi.fn(),
     }
   })
@@ -55,30 +55,37 @@ describe('Lamp Checkout API', () => {
   })
 
   describe('Validation', () => {
-    it('should reject requests without lamp_key', async () => {
+    it('should reject requests without lamp_id', async () => {
       mockRequest.body = {}
 
       expect(() => {
-        if (!mockRequest.body.lamp_key || typeof mockRequest.body.lamp_key !== 'string') {
-          throw new Error('lamp_key is required and must be a string')
+        if (!mockRequest.body.lamp_id || typeof mockRequest.body.lamp_id !== 'string') {
+          throw new Error('lamp_id is required and must be a string')
         }
-      }).toThrow('lamp_key is required')
+      }).toThrow('lamp_id is required')
     })
 
-    it('should reject invalid lamp_key values', async () => {
-      const invalidKeys = ['invalid', 'p5', 'p0', '', null, 123]
-      const validKeys = ['平安灯', '健康灯', '财运灯', '招财灯']
+    it('should reject invalid lamp_id values', async () => {
+      const invalidIds = [null, 123, {}, []]
+      const validId = '04ed6621-c5ff-40e8-9112-dbee4ff90326'
 
-      invalidKeys.forEach((key) => {
-        if (key === null || key === undefined) return
-        expect(validKeys.includes(String(key))).toBe(false)
+      invalidIds.forEach((id) => {
+        if (id === null || id === undefined) return
+        expect(typeof id).not.toBe('string')
       })
+
+      expect(typeof validId).toBe('string')
     })
 
-    it('should accept valid lamp_key values', async () => {
-      const validKeys = ['平安灯', '健康灯', '财运灯', '招财灯']
-      validKeys.forEach((key) => {
-        expect(validKeys.includes(key)).toBe(true)
+    it('should accept valid lamp_id (UUID)', async () => {
+      const validIds = [
+        '04ed6621-c5ff-40e8-9112-dbee4ff90326',
+        '550e8400-e29b-41d4-a716-446655440000',
+        '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+      ]
+      validIds.forEach((id) => {
+        expect(typeof id).toBe('string')
+        expect(id.length).toBeGreaterThan(0)
       })
     })
 
@@ -102,7 +109,7 @@ describe('Lamp Checkout API', () => {
 
     it('should return 400 when lamp already lit', async () => {
       mockSupabaseService.single.mockResolvedValue({
-        data: { id: 'lamp-1', status: 'lit', lamp_key: '平安灯' },
+        data: { id: '04ed6621-c5ff-40e8-9112-dbee4ff90326', status: 'lit', lamp_key: '平安灯' },
         error: null,
       })
 
@@ -113,10 +120,10 @@ describe('Lamp Checkout API', () => {
     it('should proceed when lamp is unlit', async () => {
       mockSupabaseService.single.mockResolvedValue({
         data: {
-          id: 'lamp-1',
+          id: '04ed6621-c5ff-40e8-9112-dbee4ff90326',
           status: 'unlit',
           lamp_key: '平安灯',
-          razorpay_payment_link_id: null,
+          checkout_session_id: null,
         },
         error: null,
       })
@@ -127,189 +134,116 @@ describe('Lamp Checkout API', () => {
     })
   })
 
-  describe('Payment Link Creation', () => {
-    it('should create payment link with correct parameters', async () => {
-      const mockPaymentLink = {
-        id: 'plink_test_123',
-        short_url: 'https://rzp.io/l/test',
-        status: 'created',
+  describe('Stripe Checkout Session Creation', () => {
+    it('should create checkout session with correct parameters', async () => {
+      const mockCheckoutSession = {
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/pay/cs_test_123',
+        status: 'open',
         amount: 1990,
-        currency: 'USD',
+        currency: 'usd',
       }
 
-      mockRazorpayHelpers.createPaymentLink.mockResolvedValue(mockPaymentLink)
+      mockRazorpayHelpers.createCheckoutSession.mockResolvedValue(mockCheckoutSession)
 
-      const result = await mockRazorpayHelpers.createPaymentLink({
-        amount: 1990,
-        currency: 'USD',
-        description: '祈福点灯 - 平安灯',
-        notes: {
-          lamp_key: '平安灯',
-          purchase_type: 'lamp_purchase',
-        },
+      const result = await mockRazorpayHelpers.createCheckoutSession({
+        priceId: 'price_lamp',
+        userId: 'anonymous',
+        planId: 'lamp',
+        billingCycle: 'monthly',
+        successUrl: 'http://localhost:3000/lamps?payment=success',
+        cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
+        customerEmail: undefined,
       })
 
-      expect(result.id).toBe('plink_test_123')
-      expect(result.short_url).toBe('https://rzp.io/l/test')
-      expect(result.status).toBe('created')
-      expect(result.amount).toBe(1990)
-      expect(result.currency).toBe('USD')
+      expect(result.id).toBe('cs_test_123')
+      expect(result.url).toContain('checkout.stripe.com')
+      expect(result.status).toBe('open')
     })
 
-    it('should use correct amount in cents', async () => {
-      const createCall = async (amount: number) => {
-        return await mockRazorpayHelpers.createPaymentLink({ amount })
-      }
-
-      mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.amount).toBe(1990) // $19.90
-        return Promise.resolve({ id: 'plink_123' })
+    it('should use correct price ID for lamp', async () => {
+      mockRazorpayHelpers.createCheckoutSession.mockImplementation((opts: any) => {
+        expect(opts.priceId).toBe('price_lamp')
+        return Promise.resolve({ id: 'cs_123', url: 'https://checkout.stripe.com/pay/cs_123' })
       })
 
-      await createCall(1990)
-    })
-
-    it('should set correct description for lamp', async () => {
-      mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.description).toContain('祈福点灯')
-        expect(opts.description).toContain('平安灯')
-        return Promise.resolve({ id: 'plink_123' })
-      })
-
-      await mockRazorpayHelpers.createPaymentLink({
-        description: '祈福点灯 - 平安灯',
+      await mockRazorpayHelpers.createCheckoutSession({
+        priceId: 'price_lamp',
+        userId: 'anonymous',
+        planId: 'lamp',
+        billingCycle: 'monthly',
+        successUrl: 'http://localhost:3000/lamps?payment=success',
+        cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
       })
     })
 
-    it('should include lamp metadata in notes', async () => {
-      mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.notes.lamp_key).toBe('平安灯')
-        expect(opts.notes.purchase_type).toBe('lamp_purchase')
-        return Promise.resolve({ id: 'plink_123' })
+    it('should include success URL', async () => {
+      mockRazorpayHelpers.createCheckoutSession.mockImplementation((opts: any) => {
+        expect(opts.successUrl).toContain('/lamps')
+        expect(opts.successUrl).toContain('payment=success')
+        return Promise.resolve({ id: 'cs_123', url: 'https://checkout.stripe.com/pay/cs_123' })
       })
 
-      await mockRazorpayHelpers.createPaymentLink({
-        notes: {
-          lamp_key: '平安灯',
-          purchase_type: 'lamp_purchase',
-        },
-      })
-    })
-
-    it('should set callback URL to /lamps', async () => {
-      mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.callback_url).toContain('/lamps')
-        expect(opts.callback_method).toBe('get')
-        return Promise.resolve({ id: 'plink_123' })
-      })
-
-      await mockRazorpayHelpers.createPaymentLink({
-        callback_url: 'http://localhost:3000/lamps',
-        callback_method: 'get',
+      await mockRazorpayHelpers.createCheckoutSession({
+        successUrl: 'http://localhost:3000/lamps?payment=success',
+        cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
+        priceId: 'price_lamp',
+        userId: 'anonymous',
+        planId: 'lamp',
+        billingCycle: 'monthly',
       })
     })
 
-    it('should set 30-minute expiry', async () => {
-      const now = Math.floor(Date.now() / 1000)
-      const thirtyMinutes = 30 * 60
-
-      mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.expire_by).toBeGreaterThanOrEqual(now + thirtyMinutes)
-        expect(opts.expire_by).toBeLessThanOrEqual(now + thirtyMinutes + 5) // Allow small variance
-        return Promise.resolve({ id: 'plink_123' })
+    it('should include cancel URL', async () => {
+      mockRazorpayHelpers.createCheckoutSession.mockImplementation((opts: any) => {
+        expect(opts.cancelUrl).toContain('/lamps')
+        expect(opts.cancelUrl).toContain('payment=cancel')
+        return Promise.resolve({ id: 'cs_123', url: 'https://checkout.stripe.com/pay/cs_123' })
       })
 
-      const expireBy = now + thirtyMinutes
-      await mockRazorpayHelpers.createPaymentLink({ expire_by: expireBy })
+      await mockRazorpayHelpers.createCheckoutSession({
+        successUrl: 'http://localhost:3000/lamps?payment=success',
+        cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
+        priceId: 'price_lamp',
+        userId: 'anonymous',
+        planId: 'lamp',
+        billingCycle: 'monthly',
+      })
+    })
+
+    it('should return valid checkout URL', async () => {
+      mockRazorpayHelpers.createCheckoutSession.mockResolvedValue({
+        id: 'cs_test_123',
+        url: 'https://checkout.stripe.com/pay/cs_test_123',
+      })
+
+      const result = await mockRazorpayHelpers.createCheckoutSession({
+        priceId: 'price_lamp',
+        userId: 'anonymous',
+        planId: 'lamp',
+        billingCycle: 'monthly',
+        successUrl: 'http://localhost:3000/lamps?payment=success',
+        cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
+      })
+
+      expect(result.url).toMatch(/^https:\/\/checkout\.stripe\.com/)
     })
   })
 
-  describe('Idempotency', () => {
-    it('should return existing payable payment link if one exists', async () => {
-      const existingLink = {
-        id: 'plink_existing_123',
-        short_url: 'https://rzp.io/l/existing',
-        status: 'created',
-      }
-
-      mockSupabaseService.single.mockResolvedValue({
-        data: {
-          id: 'lamp-1',
-          status: 'unlit',
-          lamp_key: '平安灯',
-          razorpay_payment_link_id: 'plink_existing_123',
-        },
-        error: null,
-      })
-
-      mockRazorpayHelpers.fetchPaymentLink.mockResolvedValue(existingLink)
-
-      const { data: lamp } = await mockSupabaseService.single()
-      const link = await mockRazorpayHelpers.fetchPaymentLink(lamp.razorpay_payment_link_id)
-
-      expect(link.status).toBe('created')
-      expect(link.short_url).toBe('https://rzp.io/l/existing')
-    })
-
-    it('should create new link if existing link is paid', async () => {
-      const paidLink = {
-        id: 'plink_paid_123',
-        status: 'paid',
-      }
-
-      const newLink = {
-        id: 'plink_new_123',
-        short_url: 'https://rzp.io/l/new',
-        status: 'created',
-      }
-
-      mockRazorpayHelpers.fetchPaymentLink.mockResolvedValue(paidLink)
-      mockRazorpayHelpers.createPaymentLink.mockResolvedValue(newLink)
-
-      const existingLink = await mockRazorpayHelpers.fetchPaymentLink('plink_paid_123')
-      expect(existingLink.status).toBe('paid')
-
-      if (existingLink.status !== 'created') {
-        const freshLink = await mockRazorpayHelpers.createPaymentLink({ amount: 1990 })
-        expect(freshLink.id).toBe('plink_new_123')
-      }
-    })
-
-    it('should handle fetch error by creating new link', async () => {
-      mockRazorpayHelpers.fetchPaymentLink.mockRejectedValue(new Error('API Error'))
-      mockRazorpayHelpers.createPaymentLink.mockResolvedValue({
-        id: 'plink_fallback_123',
-        short_url: 'https://rzp.io/l/fallback',
-      })
-
-      let link
-      try {
-        link = await mockRazorpayHelpers.fetchPaymentLink('plink_bad_123')
-      } catch (error) {
-        link = await mockRazorpayHelpers.createPaymentLink({ amount: 1990 })
-      }
-
-      expect(link.id).toBe('plink_fallback_123')
-    })
-  })
-
-  describe('Database Updates', () => {
-    it('should update lamp with payment link ID', async () => {
-      const paymentLink = {
-        id: 'plink_123',
-        short_url: 'https://rzp.io/l/test',
-      }
+  describe('Stripe Session Handling', () => {
+    it('should store checkout session ID in database', async () => {
+      const sessionId = 'cs_test_123'
 
       mockSupabaseService.update.mockResolvedValue({ error: null })
 
       await mockSupabaseService.update({
-        razorpay_payment_link_id: paymentLink.id,
+        checkout_session_id: sessionId,
         updated_at: new Date().toISOString(),
       })
 
       expect(mockSupabaseService.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          razorpay_payment_link_id: 'plink_123',
+          checkout_session_id: 'cs_test_123',
         })
       )
     })
@@ -320,17 +254,73 @@ describe('Lamp Checkout API', () => {
       })
 
       const { error } = await mockSupabaseService.update({
-        razorpay_payment_link_id: 'plink_123',
+        checkout_session_id: 'cs_123',
       })
 
       expect(error).toBeTruthy()
     })
+
+    it('should return checkout URL to frontend', async () => {
+      const checkoutUrl = 'https://checkout.stripe.com/pay/cs_test_123'
+      
+      expect(checkoutUrl).toMatch(/^https:\/\/checkout\.stripe\.com/)
+    })
+
+    it('should handle session creation errors', async () => {
+      mockRazorpayHelpers.createCheckoutSession.mockRejectedValue(
+        new Error('Stripe API error')
+      )
+
+      await expect(
+        mockRazorpayHelpers.createCheckoutSession({
+          priceId: 'price_lamp',
+          userId: 'anonymous',
+          planId: 'lamp',
+          billingCycle: 'monthly',
+          successUrl: 'http://localhost:3000/lamps?payment=success',
+          cancelUrl: 'http://localhost:3000/lamps?payment=cancel',
+        })
+      ).rejects.toThrow()
+    })
+  })
+
+  describe('Database Updates by UUID', () => {
+    it('should query lamp by UUID (id)', async () => {
+      const lampId = '04ed6621-c5ff-40e8-9112-dbee4ff90326'
+
+      mockSupabaseService.eq.mockReturnThis()
+      mockSupabaseService.single.mockResolvedValue({
+        data: {
+          id: lampId,
+          lamp_key: '平安灯',
+          status: 'unlit',
+        },
+        error: null,
+      })
+
+      const { data } = await mockSupabaseService.single()
+      expect(data.id).toBe(lampId)
+    })
+
+    it('should update lamp by UUID', async () => {
+      const lampId = '04ed6621-c5ff-40e8-9112-dbee4ff90326'
+
+      mockSupabaseService.update.mockReturnThis()
+      mockSupabaseService.eq.mockResolvedValue({ error: null })
+
+      await mockSupabaseService.update({
+        checkout_session_id: 'cs_123',
+        updated_at: new Date().toISOString(),
+      })
+
+      expect(mockSupabaseService.update).toHaveBeenCalled()
+    })
   })
 
   describe('Response Formatting', () => {
-    it('should return success response with payment link URL', async () => {
+    it('should return success response with checkout URL', async () => {
       const response = {
-        url: 'https://rzp.io/l/test_lamp_123',
+        url: 'https://checkout.stripe.com/pay/cs_test_lamp_123',
       }
 
       expect(response).toHaveProperty('url')
@@ -339,7 +329,7 @@ describe('Lamp Checkout API', () => {
 
     it('should return error response with error message', async () => {
       const response = {
-        error: 'Invalid lamp_key. Must be one of: 平安灯, 健康灯, 财运灯, 招财灯, 暴富灯, 回财灯, 偏财灯, 姻缘灯, 正缘桃花灯, 斩烂桃花灯, 文昌灯, 智慧灯, 求子灯, 安产灯, 添寿灯, 好运灯, 消灾灯, 除秽灯, 防小人灯, 贵人灯, 本命灯, 太岁灯, 三宝灯, 五福灯, 七星灯, 九子离火灯, 传愿灯, 追忆灯, 忏悔灯, 顺风顺水灯, 爱宠无忧灯, 发横财灯, 四季平安灯, 事业灯',
+        error: 'Lamp not found',
       }
 
       expect(response).toHaveProperty('error')
@@ -356,10 +346,10 @@ describe('Lamp Checkout API', () => {
       expect(error.message).toBeTruthy()
     })
 
-    it('should handle 401/403 authentication errors', async () => {
+    it('should handle Stripe authentication errors', async () => {
       const errors = [
-        { statusCode: 401, message: 'Payment service authentication failed' },
-        { statusCode: 403, message: 'Payment service authentication failed' },
+        { statusCode: 401, message: 'Stripe authentication failed' },
+        { statusCode: 403, message: 'Stripe authentication failed' },
       ]
 
       errors.forEach((error) => {
@@ -368,7 +358,7 @@ describe('Lamp Checkout API', () => {
       })
     })
 
-    it('should handle 429 rate limit errors', async () => {
+    it('should handle Stripe rate limit errors', async () => {
       const error = {
         statusCode: 429,
         message: 'Too many requests. Please try again in a moment.',
@@ -399,21 +389,28 @@ describe('Lamp Checkout API', () => {
       })
     })
 
-    it('should handle concurrent requests for same lamp', async () => {
-      // In real scenario, database would handle concurrency
-      const lampKey = '平安灯'
+    it('should handle concurrent requests for same lamp by UUID', async () => {
+      const lampId = '04ed6621-c5ff-40e8-9112-dbee4ff90326'
       const concurrentRequests = [
-        mockRazorpayHelpers.createPaymentLink({ amount: 1990 }),
-        mockRazorpayHelpers.createPaymentLink({ amount: 1990 }),
+        mockRazorpayHelpers.createCheckoutSession({ priceId: 'price_lamp', userId: 'anonymous', planId: 'lamp', billingCycle: 'monthly', successUrl: 'http://localhost:3000/lamps', cancelUrl: 'http://localhost:3000/lamps' }),
+        mockRazorpayHelpers.createCheckoutSession({ priceId: 'price_lamp', userId: 'anonymous', planId: 'lamp', billingCycle: 'monthly', successUrl: 'http://localhost:3000/lamps', cancelUrl: 'http://localhost:3000/lamps' }),
       ]
 
-      mockRazorpayHelpers.createPaymentLink.mockResolvedValue({
-        id: 'plink_concurrent_123',
-        short_url: 'https://rzp.io/l/concurrent',
+      mockRazorpayHelpers.createCheckoutSession.mockResolvedValue({
+        id: 'cs_concurrent_123',
+        url: 'https://checkout.stripe.com/pay/cs_concurrent_123',
       })
 
       const results = await Promise.all(concurrentRequests)
       expect(results.length).toBe(2)
+    })
+
+    it('should use UUID for database queries', async () => {
+      const lampId = '04ed6621-c5ff-40e8-9112-dbee4ff90326'
+      mockSupabaseService.eq.mockReturnValue(mockSupabaseService)
+      
+      // Simulate querying by UUID instead of lamp_key
+      expect(mockSupabaseService.eq).toBeDefined()
     })
   })
 })

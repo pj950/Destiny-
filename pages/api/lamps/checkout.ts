@@ -5,7 +5,7 @@ import { stripeHelpers } from '../../../lib/stripe'
 const LAMP_PRICE = 1990 // ₹19.90 in paise (smallest unit for INR)
 
 interface CheckoutRequest {
-  lamp_key: string
+  lamp_id: string
 }
 
 interface CheckoutResponse {
@@ -28,29 +28,29 @@ export default async function handler(
       return res.status(500).json({ error: 'Server configuration error: missing NEXT_PUBLIC_SITE_URL' })
     }
 
-    const { lamp_key }: CheckoutRequest = req.body
+    const { lamp_id }: CheckoutRequest = req.body
 
-    // Validate lamp_key
-    if (!lamp_key || typeof lamp_key !== 'string') {
-      return res.status(400).json({ error: 'lamp_key is required and must be a string' })
+    // Validate lamp_id
+    if (!lamp_id || typeof lamp_id !== 'string') {
+      return res.status(400).json({ error: 'lamp_id is required and must be a string' })
     }
 
-    console.log(`[Lamp Checkout] Creating Stripe checkout for lamp: ${lamp_key}`)
+    console.log(`[Lamp Checkout] Creating Stripe checkout for lamp ID: ${lamp_id}`)
 
     // Check lamp availability
     const { data: lamp, error: lampError } = await supabaseService
       .from('lamps')
-      .select('id, status, checkout_session_id')
-      .eq('lamp_key', lamp_key)
+      .select('id, status, checkout_session_id, lamp_key')
+      .eq('id', lamp_id)
       .single()
 
     if (lampError || !lamp) {
-      console.error(`[Lamp Checkout] Lamp ${lamp_key} not found:`, lampError)
+      console.error(`[Lamp Checkout] Lamp ${lamp_id} not found:`, lampError)
       return res.status(404).json({ error: 'Lamp not found' })
     }
 
     if (lamp.status === 'lit') {
-      console.log(`[Lamp Checkout] Lamp ${lamp_key} is already lit`)
+      console.log(`[Lamp Checkout] Lamp ${lamp.lamp_key} is already lit`)
       return res.status(400).json({ error: 'This lamp has already been lit' })
     }
 
@@ -65,7 +65,7 @@ export default async function handler(
       customerEmail: undefined,
     })
 
-    console.log(`[Lamp Checkout] Created Stripe session ${session.id} for lamp ${lamp_key}`)
+    console.log(`[Lamp Checkout] Created Stripe session ${session.id} for lamp ${lamp.lamp_key}`)
 
     // Update lamp with checkout session ID
     const { error: updateError } = await supabaseService
@@ -74,10 +74,10 @@ export default async function handler(
         checkout_session_id: session.id,
         updated_at: new Date().toISOString()
       })
-      .eq('lamp_key', lamp_key)
+      .eq('id', lamp_id)
 
     if (updateError) {
-      console.error(`[Lamp Checkout] Error updating lamp ${lamp_key} with session ID:`, updateError)
+      console.error(`[Lamp Checkout] Error updating lamp ${lamp_id} with session ID:`, updateError)
       // Don't fail the request, but log the error
     }
 
