@@ -119,7 +119,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
   {
     key: 'lamp_11',
     name: '事业灯',
-    image: '/images/事业灯.png',
+    image: '/images/p4.jpg',
     price: 19.9,
     description: LAMP_DESCRIPTIONS['事业灯'],
   },
@@ -224,7 +224,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
   {
     key: 'lamp_26',
     name: '七星灯',
-    image: '/images/七星灯png.png',
+    image: '/images/七星灯.png',
     price: 19.9,
     description: LAMP_DESCRIPTIONS['七星灯'],
   },
@@ -273,7 +273,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
   {
     key: 'lamp_33',
     name: '发横财灯',
-    image: '/images/发横财灯png.png',
+    image: '/images/发横财灯.png',
     price: 19.9,
     description: LAMP_DESCRIPTIONS['发横财灯'],
   },
