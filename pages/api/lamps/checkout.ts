@@ -3,6 +3,8 @@ import { supabaseService } from '../../../lib/supabase'
 import { stripeHelpers } from '../../../lib/stripe'
 
 const LAMP_PRICE = 1990 // ₹19.90 in paise (smallest unit for INR)
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const PLACEHOLDER_UUID_REGEX = /^00000000-0000-0000-0000-/
 
 interface CheckoutRequest {
   lamp_id: string
@@ -36,12 +38,16 @@ export default async function handler(
       return res.status(400).json({ error: 'lamp_id is required and must be a string' })
     }
 
-    // Check if lamp_id is a placeholder UUID (indicates frontend didn't get real UUID)
-    const isPlaceholder = /^00000000-0000-0000-0000-/.test(lamp_id)
-    if (isPlaceholder) {
+    if (PLACEHOLDER_UUID_REGEX.test(lamp_id)) {
       console.error(`[Lamp Checkout] ERROR: Placeholder UUID received instead of real UUID: ${lamp_id}`)
       console.error('[Lamp Checkout] This indicates the frontend received placeholder UUIDs from the API')
       console.error('[Lamp Checkout] The database lamps table may not have been properly initialized with UUIDs')
+      return res.status(400).json({ error: 'Invalid lamp identifier. Please refresh the page and try again.' })
+    }
+
+    if (!UUID_V4_REGEX.test(lamp_id)) {
+      console.error(`[Lamp Checkout] Invalid lamp_id format. Expected UUID v4, received: ${lamp_id}`)
+      return res.status(400).json({ error: 'lamp_id must be a valid UUID' })
     }
 
     console.log(`[Lamp Checkout] Creating Stripe checkout for lamp ID: ${lamp_id}`)
