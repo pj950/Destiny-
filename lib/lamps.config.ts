@@ -47,6 +47,15 @@ const DEFAULT_LAMPS: Lamp[] = [
   },
 ]
 
+const IMAGES_DIRECTORY = path.join(process.cwd(), 'public', 'images')
+const HAS_IMAGES_DIRECTORY = fs.existsSync(IMAGES_DIRECTORY)
+const DEFAULT_LAMP_IMAGE = DEFAULT_LAMPS[0]?.image ?? '/images/p1.jpg'
+
+interface DatabaseLampRecord {
+  id: string
+  lamp_key: string | null
+}
+
 // Lantern descriptions based on common blessing themes
 const LAMP_DESCRIPTIONS: Record<string, string> = {
   '平安灯': '祈求平安健康，守护身心安宁，远离灾祸困扰。',
@@ -87,11 +96,6 @@ const LAMP_DESCRIPTIONS: Record<string, string> = {
   '发横财灯png': '发横财，意外之喜，财运爆棚。'
 }
 
-// Function to extract lamp name from filename (remove .png or .svg extension)
-function getLampNameFromFilename(filename: string): string {
-  return filename.replace(/\.(png|svg)$/, '')
-}
-
 // Function to generate lamp key from name
 function generateLampKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '_')
@@ -102,123 +106,93 @@ function getLampDescription(name: string): string {
   return LAMP_DESCRIPTIONS[name] || `点燃${name}，为您带来美好的祝福与守护。`
 }
 
-// Server-side function to scan for Chinese lantern images
+function resolveLampImage(name: string): string {
+  const trimmedName = name.trim()
+
+  if (!HAS_IMAGES_DIRECTORY) {
+    console.warn('[getLampsConfig] Images directory not found, using default lamp image')
+    return DEFAULT_LAMP_IMAGE
+  }
+
+  if (!trimmedName) {
+    return DEFAULT_LAMP_IMAGE
+  }
+
+  const pngPath = path.join(IMAGES_DIRECTORY, `${trimmedName}.png`)
+  if (fs.existsSync(pngPath)) {
+    return `/images/${trimmedName}.png`
+  }
+
+  const svgPath = path.join(IMAGES_DIRECTORY, `${trimmedName}.svg`)
+  if (fs.existsSync(svgPath)) {
+    return `/images/${trimmedName}.svg`
+  }
+
+  console.warn(`[getLampsConfig] Missing image for lamp "${trimmedName}", using fallback image`)
+  return DEFAULT_LAMP_IMAGE
+}
+
+// Server-side function to load lamp configurations
 export async function getLampsConfig(): Promise<Lamp[]> {
   try {
-    // First, try to fetch lamps from database with UUIDs
-    let lampIdMap: Record<string, string> = {}
-    let dbLamps: any[] = []
-    try {
-      const { data: lamps, error: dbError } = await supabaseService
-        .from('lamps')
-        .select('id, lamp_key')
-      
-      if (!dbError && lamps && lamps.length > 0) {
-        // Create a map of lamp_key -> id
-        lamps.forEach(lamp => {
-          lampIdMap[lamp.lamp_key] = lamp.id
-          console.log(`[getLampsConfig] Lamp: ${lamp.lamp_key} -> ${lamp.id}`)
+    console.log('[getLampsConfig] Fetching lamps from database')
+
+    const { data: lamps, error } = await supabaseService
+      .from('lamps')
+      .select('id, lamp_key')
+      .order('lamp_key', { ascending: true })
+
+    if (error) {
+      console.warn('[getLampsConfig] Database error fetching lamps:', error)
+    }
+
+    if (lamps && lamps.length > 0) {
+      const databaseLamps = lamps as DatabaseLampRecord[]
+
+      const lampConfigs = databaseLamps
+        .map((record) => {
+          if (!record?.id) {
+            console.warn('[getLampsConfig] Skipping lamp with missing id:', record)
+            return null
+          }
+
+          const lampKey = record.lamp_key?.trim()
+          if (!lampKey) {
+            console.warn(`[getLampsConfig] Skipping lamp ${record.id} because lamp_key is missing`)
+            return null
+          }
+
+          const config: Lamp = {
+            id: record.id,
+            key: generateLampKey(lampKey),
+            name: lampKey,
+            image: resolveLampImage(lampKey),
+            price: 19.9,
+            description: getLampDescription(lampKey)
+          }
+
+          console.log(`[getLampsConfig] Lamp ready: ${config.name} -> ${config.id}`)
+          return config
         })
-        dbLamps = lamps
-        console.log(`[getLampsConfig] Loaded ${Object.keys(lampIdMap).length} lamps from database`)
-      } else if (dbError) {
-        console.warn('[getLampsConfig] Database error fetching lamps:', dbError)
-      } else {
-        console.warn('[getLampsConfig] No lamps found in database')
+        .filter((lamp): lamp is Lamp => lamp !== null)
+
+      if (lampConfigs.length > 0) {
+        console.log(`[getLampsConfig] Returning ${lampConfigs.length} lamps from database`)
+        return lampConfigs
       }
-    } catch (dbErr) {
-      console.warn('[getLampsConfig] Failed to fetch lamps from database:', dbErr)
+
+      console.warn('[getLampsConfig] Database lamps missing required data, falling back to defaults')
+    } else {
+      console.warn('[getLampsConfig] No lamps found in database')
     }
-
-    // If we have lamps in database, use them as the primary source
-    if (Object.keys(lampIdMap).length > 0) {
-      const lampConfigs: Lamp[] = dbLamps.map(lamp => {
-        const name = lamp.lamp_key
-        const key = generateLampKey(name)
-        
-        return {
-          id: lamp.id,
-          key,
-          name,
-          image: `/images/${name}.png`, // Assume images are named after lamp_key
-          price: 19.9,
-          description: getLampDescription(name)
-        }
-      })
-      
-      console.log(`[getLampsConfig] Returning ${lampConfigs.length} lamps from database`)
-      return lampConfigs
-    }
-
-    // Fallback: scan images directory if database lamps not available
-    const imagesDir = path.join(process.cwd(), 'public', 'images')
-    
-    // Check if images directory exists
-    if (!fs.existsSync(imagesDir)) {
-      console.warn('[getLampsConfig] Images directory not found, using default lamps')
-      return DEFAULT_LAMPS
-    }
-
-    // Read all files in images directory
-    const files = fs.readdirSync(imagesDir)
-    
-    // Filter for Chinese lantern images (containing Chinese characters and ending with .png or .svg)
-    const chineseLampFiles = files.filter(file => 
-      (file.endsWith('.png') || file.endsWith('.svg')) && 
-      /[\u4e00-\u9fa5]/.test(file) && // Contains Chinese characters
-      file !== '祈福点灯.png' && file !== '祈福点灯.svg' // Exclude header image
-    )
-
-    // If no Chinese lantern images found, return default lamps
-    if (chineseLampFiles.length === 0) {
-      console.log('[getLampsConfig] No Chinese lantern images found, using default lamps')
-      return DEFAULT_LAMPS
-    }
-
-    console.warn('[getLampsConfig] Database lamps not available, using image files as fallback')
-
-    // Generate lamp configurations from Chinese image files
-    const chineseLamps: Lamp[] = chineseLampFiles.map(file => {
-      const name = getLampNameFromFilename(file)
-      const key = generateLampKey(name)
-      const id = lampIdMap[name] || generatePlaceholderId(name) // Use DB UUID or generate placeholder
-      
-      if (!lampIdMap[name]) {
-        console.warn(`[getLampsConfig] WARNING: Using placeholder UUID for ${name} - this lamp should exist in database!`)
-      }
-      
-      return {
-        id,
-        key,
-        name,
-        image: `/images/${file}`,
-        price: 19.9,
-        description: getLampDescription(name)
-      }
-    })
-
-    console.log(`[getLampsConfig] Found ${chineseLamps.length} Chinese lantern images as fallback:`, chineseLampFiles)
-    return chineseLamps
-
   } catch (error) {
-    console.error('[getLampsConfig] Error scanning for lantern images:', error)
-    return DEFAULT_LAMPS
+    console.error('[getLampsConfig] Error fetching lamps:', error)
   }
+
+  console.warn('[getLampsConfig] Using default fallback lamps')
+  return DEFAULT_LAMPS
 }
 
-// Generate a consistent placeholder UUID based on lamp name
-function generatePlaceholderId(name: string): string {
-  // This is a fallback - in production, the database should have all lamps
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    const char = name.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // Convert to 32bit integer
-  }
-  
-  const hex = Math.abs(hash).toString(16).padStart(8, '0')
-  return `00000000-0000-0000-0000-${hex.padEnd(12, '0').slice(0, 12)}`
-}
 
 // Client-side fallback lamps (static)
 export const FALLBACK_LAMPS: Lamp[] = DEFAULT_LAMPS

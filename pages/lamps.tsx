@@ -28,6 +28,9 @@ interface LampStatus {
 
 type LampState = 'unlit' | 'purchasing' | 'lit'
 
+const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const PLACEHOLDER_UUID_REGEX = /^00000000-0000-0000-0000-/
+
 export default function LampsPage() {
   const router = useRouter()
   const [lampStates, setLampStates] = useState<Record<string, LampState>>({})
@@ -118,14 +121,26 @@ export default function LampsPage() {
           setLamps(data.lamps)
           console.log('[Lamps] Loaded lamps from API:', data.lamps.length)
           
-          // Log lamp IDs to verify they're not placeholders
+          // Log lamp IDs to verify they're valid UUIDs
           data.lamps.forEach((lamp: Lamp) => {
-            const isPlaceholder = /^00000000-0000-0000-0000-/.test(lamp.id)
-            if (isPlaceholder) {
-              console.warn(`[Lamps] WARNING: Placeholder UUID for lamp "${lamp.name}": ${lamp.id}`)
-            } else {
-              console.log(`[Lamps] Lamp "${lamp.name}" has real UUID: ${lamp.id}`)
+            const lampId = lamp.id
+
+            if (!lampId || typeof lampId !== 'string') {
+              console.warn('[Lamps] WARNING: Missing UUID for lamp:', lamp)
+              return
             }
+
+            if (PLACEHOLDER_UUID_REGEX.test(lampId)) {
+              console.warn(`[Lamps] WARNING: Placeholder UUID for lamp "${lamp.name}": ${lampId}`)
+              return
+            }
+
+            if (!UUID_V4_REGEX.test(lampId)) {
+              console.warn(`[Lamps] WARNING: Invalid UUID format for lamp "${lamp.name}": ${lampId}`)
+              return
+            }
+
+            console.log(`[Lamps] Lamp "${lamp.name}" has real UUID: ${lampId}`)
           })
         }
       } else {
@@ -146,11 +161,16 @@ export default function LampsPage() {
       return
     }
 
-    // Check if lamp_id is a placeholder UUID
-    const isPlaceholder = /^00000000-0000-0000-0000-/.test(lamp.id)
+    const isPlaceholder = PLACEHOLDER_UUID_REGEX.test(lamp.id)
     if (isPlaceholder) {
       console.error('[Lamps] ERROR: Placeholder UUID detected for lamp:', lamp.name, 'ID:', lamp.id)
       toast.error('配置错误', '灯的信息不完整，请刷新页面重试')
+      return
+    }
+
+    if (!UUID_V4_REGEX.test(lamp.id)) {
+      console.error('[Lamps] ERROR: Invalid UUID format for lamp:', lamp.name, 'ID:', lamp.id)
+      toast.error('配置错误', '灯的配置无效，请刷新页面重试')
       return
     }
 
