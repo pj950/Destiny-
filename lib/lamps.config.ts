@@ -107,27 +107,55 @@ export async function getLampsConfig(): Promise<Lamp[]> {
   try {
     // First, try to fetch lamps from database with UUIDs
     let lampIdMap: Record<string, string> = {}
+    let dbLamps: any[] = []
     try {
-      const { data: dbLamps, error: dbError } = await supabaseService
+      const { data: lamps, error: dbError } = await supabaseService
         .from('lamps')
         .select('id, lamp_key')
       
-      if (!dbError && dbLamps) {
+      if (!dbError && lamps && lamps.length > 0) {
         // Create a map of lamp_key -> id
-        dbLamps.forEach(lamp => {
+        lamps.forEach(lamp => {
           lampIdMap[lamp.lamp_key] = lamp.id
+          console.log(`[getLampsConfig] Lamp: ${lamp.lamp_key} -> ${lamp.id}`)
         })
-        console.log(`Loaded ${Object.keys(lampIdMap).length} lamps from database`)
+        dbLamps = lamps
+        console.log(`[getLampsConfig] Loaded ${Object.keys(lampIdMap).length} lamps from database`)
+      } else if (dbError) {
+        console.warn('[getLampsConfig] Database error fetching lamps:', dbError)
+      } else {
+        console.warn('[getLampsConfig] No lamps found in database')
       }
     } catch (dbErr) {
-      console.warn('Failed to fetch lamps from database:', dbErr)
+      console.warn('[getLampsConfig] Failed to fetch lamps from database:', dbErr)
     }
 
+    // If we have lamps in database, use them as the primary source
+    if (Object.keys(lampIdMap).length > 0) {
+      const lampConfigs: Lamp[] = dbLamps.map(lamp => {
+        const name = lamp.lamp_key
+        const key = generateLampKey(name)
+        
+        return {
+          id: lamp.id,
+          key,
+          name,
+          image: `/images/${name}.png`, // Assume images are named after lamp_key
+          price: 19.9,
+          description: getLampDescription(name)
+        }
+      })
+      
+      console.log(`[getLampsConfig] Returning ${lampConfigs.length} lamps from database`)
+      return lampConfigs
+    }
+
+    // Fallback: scan images directory if database lamps not available
     const imagesDir = path.join(process.cwd(), 'public', 'images')
     
     // Check if images directory exists
     if (!fs.existsSync(imagesDir)) {
-      console.warn('Images directory not found, using default lamps')
+      console.warn('[getLampsConfig] Images directory not found, using default lamps')
       return DEFAULT_LAMPS
     }
 
@@ -143,15 +171,21 @@ export async function getLampsConfig(): Promise<Lamp[]> {
 
     // If no Chinese lantern images found, return default lamps
     if (chineseLampFiles.length === 0) {
-      console.log('No Chinese lantern images found, using default lamps')
+      console.log('[getLampsConfig] No Chinese lantern images found, using default lamps')
       return DEFAULT_LAMPS
     }
+
+    console.warn('[getLampsConfig] Database lamps not available, using image files as fallback')
 
     // Generate lamp configurations from Chinese image files
     const chineseLamps: Lamp[] = chineseLampFiles.map(file => {
       const name = getLampNameFromFilename(file)
       const key = generateLampKey(name)
       const id = lampIdMap[name] || generatePlaceholderId(name) // Use DB UUID or generate placeholder
+      
+      if (!lampIdMap[name]) {
+        console.warn(`[getLampsConfig] WARNING: Using placeholder UUID for ${name} - this lamp should exist in database!`)
+      }
       
       return {
         id,
@@ -163,11 +197,11 @@ export async function getLampsConfig(): Promise<Lamp[]> {
       }
     })
 
-    console.log(`Found ${chineseLamps.length} Chinese lantern images:`, chineseLampFiles)
+    console.log(`[getLampsConfig] Found ${chineseLamps.length} Chinese lantern images as fallback:`, chineseLampFiles)
     return chineseLamps
 
   } catch (error) {
-    console.error('Error scanning for lantern images:', error)
+    console.error('[getLampsConfig] Error scanning for lantern images:', error)
     return DEFAULT_LAMPS
   }
 }
