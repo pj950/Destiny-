@@ -38,8 +38,8 @@ export default async function handler(
       return res.status(500).json({ error: 'Failed to fetch lamp statuses' })
     }
 
-    if (!lamps) {
-      console.log('[Lamp Status] No lamps found')
+    if (!lamps || lamps.length === 0) {
+      console.log('[Lamp Status] No lamps found in database, returning empty array')
       return res.status(200).json([])
     }
 
@@ -52,7 +52,7 @@ export default async function handler(
       last_updated: lamp.updated_at
     }))
     
-    return res.status(200).json(formattedLamps as LampStatus[])
+    return res.status(200).json(formattedLamps)
 
   } catch (error: any) {
     console.error('[Lamp Status] Unexpected error:', error)

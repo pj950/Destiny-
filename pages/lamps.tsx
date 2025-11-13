@@ -320,7 +320,7 @@ export default function LampsPage() {
               </div>
             ) : (
               <div
-                className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+                className="mt-14 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4"
                 role="region"
                 aria-label="祈福灯列表"
               >
@@ -335,25 +335,14 @@ export default function LampsPage() {
                       ref={(el) => {
                         if (el) lampRefs.current[lamp.key] = el
                       }}
-                      className={`lamp-container lamp-state-transition relative overflow-hidden rounded-3xl border border-mystical-gold-700/30 bg-gradient-to-br from-mystical-purple-950/75 via-mystical-cyan-950/60 to-mystical-purple-900/70 shadow-mystical-medium transition-all duration-300 ${isLit ? 'ring-2 ring-mystical-gold-600/60 shadow-gold-glow-lg animate-gold-glow-pulse' : 'hover:-translate-y-1 hover:shadow-gold-glow'} ${isPurchasing ? 'opacity-80 saturate-75' : ''}`}
+                      className={`lamp-container lamp-state-transition relative overflow-hidden rounded-xl border border-mystical-gold-700/30 bg-gradient-to-br from-mystical-purple-950/75 via-mystical-cyan-950/60 to-mystical-purple-900/70 shadow-mystical-medium transition-all duration-300 ${isLit ? 'ring-2 ring-mystical-gold-600/60 shadow-gold-glow-lg animate-gold-glow-pulse' : 'hover:-translate-y-1 hover:shadow-gold-glow'} ${isPurchasing ? 'opacity-80 saturate-75' : ''}`}
                       data-lamp-key={lamp.key}
                       data-lamp-state={state}
                     >
                       <div className="lamp-card-layer" aria-hidden="true" />
                       <div className="lamp-card-shimmer" aria-hidden="true" />
 
-                      {/* Name Label Above Image */}
-                      <div className="relative z-10 border-b border-mystical-gold-700/30 bg-gradient-to-r from-mystical-purple-900/90 via-mystical-purple-800/80 to-mystical-purple-900/90 backdrop-blur-sm">
-                        <div className="px-4 py-3 text-center">
-                          <Text size="md" weight="semibold" className="text-mystical-gold-400 font-serif tracking-wide">
-                            {lamp.name}
-                          </Text>
-                        </div>
-                        {/* Gold accent line */}
-                        <div className="h-[1px] bg-gradient-to-r from-transparent via-mystical-gold-600/60 to-transparent" />
-                      </div>
-
-                      <div className="relative aspect-[4/5] overflow-hidden">
+                      <div className="relative aspect-square overflow-hidden">
                         <img
                           src={lamp.image}
                           alt={`${lamp.name}祈福灯`}
@@ -365,37 +354,40 @@ export default function LampsPage() {
                           <>
                             <div className="absolute inset-0 bg-gradient-to-br from-mystical-gold-700/35 via-transparent to-transparent mix-blend-screen" />
                             <div className="absolute inset-0 pointer-events-none">
-                              <div className="absolute inset-0 rounded-full blur-3xl bg-mystical-gold-700/35" />
+                              <div className="absolute inset-0 rounded-full blur-2xl bg-mystical-gold-700/35" />
                             </div>
-                            <div className="absolute top-4 right-4 rounded-full border border-mystical-gold-700/40 bg-mystical-purple-950/60 px-4 py-1 text-xs font-semibold text-mystical-gold-500 shadow-gold-glow" role="status" aria-label={`${lamp.name}已点亮`}>
-                              已点亮 ✨
+                            <div className="absolute top-1 right-1 rounded-full border border-mystical-gold-700/40 bg-mystical-purple-950/60 px-1 py-0.5 text-xs font-semibold text-mystical-gold-500 shadow-gold-glow" role="status" aria-label={`${lamp.name}已点亮`}>
+                              已点
                             </div>
                           </>
                         )}
 
                         {isPurchasing && (
                           <div className="absolute inset-0 bg-mystical-purple-950/60 backdrop-blur-sm flex items-center justify-center">
-                            <div className="rounded-2xl border border-mystical-gold-700/30 bg-mystical-purple-900/70 px-6 py-4 text-sm text-mystical-gold-500 shadow-gold-glow">
-                              正在处理支付...
+                            <div className="rounded-xl border border-mystical-gold-700/30 bg-mystical-purple-900/70 px-3 py-2 text-xs text-mystical-gold-500 shadow-gold-glow">
+                              处理中...
                             </div>
                           </div>
                         )}
                       </div>
 
-                      <div className="relative p-6 space-y-4">
+                      <div className="relative p-2 sm:p-3 space-y-2">
+                        {/* Lamp name */}
+                        <div className="text-center">
+                          <Text size="xs" weight="semibold" className="text-mystical-gold-400 font-serif leading-tight">
+                            {lamp.name}
+                          </Text>
+                        </div>
+
                         <div className="flex items-center justify-between">
-                          <span className="text-lg font-semibold text-mystical-gold-500">
+                          <span className="text-sm font-semibold text-mystical-gold-500">
                             ${lamp.price}
                           </span>
                         </div>
 
-                        <Text size="sm" className="text-mystical-gold-500/75 leading-relaxed">
-                          {lamp.description}
-                        </Text>
-
                         <Button
                           fullWidth
-                          size="lg"
+                          size="sm"
                           variant={isLit ? 'mystical' : 'gold'}
                           loading={isPurchasing}
                           disabled={isLit || isPurchasing}
@@ -413,7 +405,7 @@ export default function LampsPage() {
                                 : `为${lamp.name}点灯，价格${lamp.price}美元`
                           }
                         >
-                          {isLit ? '已点亮 ✨' : isPurchasing ? '处理中...' : '点亮这盏灯'}
+                          {isLit ? '已点 ✨' : isPurchasing ? '...' : '点亮'}
                         </Button>
                       </div>
                     </div>

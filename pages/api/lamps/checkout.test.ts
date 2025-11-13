@@ -22,7 +22,7 @@ describe('Lamp Checkout API', () => {
     // Mock request/response
     mockRequest = {
       method: 'POST',
-      body: { lamp_key: 'p1' },
+      body: { lamp_key: '平安灯' },
     }
 
     mockResponse = {
@@ -67,7 +67,7 @@ describe('Lamp Checkout API', () => {
 
     it('should reject invalid lamp_key values', async () => {
       const invalidKeys = ['invalid', 'p5', 'p0', '', null, 123]
-      const validKeys = ['p1', 'p2', 'p3', 'p4']
+      const validKeys = ['平安灯', '健康灯', '财运灯', '招财灯']
 
       invalidKeys.forEach((key) => {
         if (key === null || key === undefined) return
@@ -76,7 +76,7 @@ describe('Lamp Checkout API', () => {
     })
 
     it('should accept valid lamp_key values', async () => {
-      const validKeys = ['p1', 'p2', 'p3', 'p4']
+      const validKeys = ['平安灯', '健康灯', '财运灯', '招财灯']
       validKeys.forEach((key) => {
         expect(validKeys.includes(key)).toBe(true)
       })
@@ -102,7 +102,7 @@ describe('Lamp Checkout API', () => {
 
     it('should return 400 when lamp already lit', async () => {
       mockSupabaseService.single.mockResolvedValue({
-        data: { id: 'lamp-1', status: 'lit', lamp_key: 'p1' },
+        data: { id: 'lamp-1', status: 'lit', lamp_key: '平安灯' },
         error: null,
       })
 
@@ -115,7 +115,7 @@ describe('Lamp Checkout API', () => {
         data: {
           id: 'lamp-1',
           status: 'unlit',
-          lamp_key: 'p1',
+          lamp_key: '平安灯',
           razorpay_payment_link_id: null,
         },
         error: null,
@@ -142,9 +142,9 @@ describe('Lamp Checkout API', () => {
       const result = await mockRazorpayHelpers.createPaymentLink({
         amount: 1990,
         currency: 'USD',
-        description: '祈福点灯 - P1',
+        description: '祈福点灯 - 平安灯',
         notes: {
-          lamp_key: 'p1',
+          lamp_key: '平安灯',
           purchase_type: 'lamp_purchase',
         },
       })
@@ -172,25 +172,25 @@ describe('Lamp Checkout API', () => {
     it('should set correct description for lamp', async () => {
       mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
         expect(opts.description).toContain('祈福点灯')
-        expect(opts.description).toContain('P1')
+        expect(opts.description).toContain('平安灯')
         return Promise.resolve({ id: 'plink_123' })
       })
 
       await mockRazorpayHelpers.createPaymentLink({
-        description: '祈福点灯 - P1',
+        description: '祈福点灯 - 平安灯',
       })
     })
 
     it('should include lamp metadata in notes', async () => {
       mockRazorpayHelpers.createPaymentLink.mockImplementation((opts: any) => {
-        expect(opts.notes.lamp_key).toBe('p1')
+        expect(opts.notes.lamp_key).toBe('平安灯')
         expect(opts.notes.purchase_type).toBe('lamp_purchase')
         return Promise.resolve({ id: 'plink_123' })
       })
 
       await mockRazorpayHelpers.createPaymentLink({
         notes: {
-          lamp_key: 'p1',
+          lamp_key: '平安灯',
           purchase_type: 'lamp_purchase',
         },
       })
@@ -236,7 +236,7 @@ describe('Lamp Checkout API', () => {
         data: {
           id: 'lamp-1',
           status: 'unlit',
-          lamp_key: 'p1',
+          lamp_key: '平安灯',
           razorpay_payment_link_id: 'plink_existing_123',
         },
         error: null,
@@ -339,7 +339,7 @@ describe('Lamp Checkout API', () => {
 
     it('should return error response with error message', async () => {
       const response = {
-        error: 'Invalid lamp_key. Must be one of: p1, p2, p3, p4',
+        error: 'Invalid lamp_key. Must be one of: 平安灯, 健康灯, 财运灯, 招财灯, 暴富灯, 回财灯, 偏财灯, 姻缘灯, 正缘桃花灯, 斩烂桃花灯, 文昌灯, 智慧灯, 求子灯, 安产灯, 添寿灯, 好运灯, 消灾灯, 除秽灯, 防小人灯, 贵人灯, 本命灯, 太岁灯, 三宝灯, 五福灯, 七星灯, 九子离火灯, 传愿灯, 追忆灯, 忏悔灯, 顺风顺水灯, 爱宠无忧灯, 发横财灯, 四季平安灯, 事业灯',
       }
 
       expect(response).toHaveProperty('error')
@@ -401,7 +401,7 @@ describe('Lamp Checkout API', () => {
 
     it('should handle concurrent requests for same lamp', async () => {
       // In real scenario, database would handle concurrency
-      const lampKey = 'p1'
+      const lampKey = '平安灯'
       const concurrentRequests = [
         mockRazorpayHelpers.createPaymentLink({ amount: 1990 }),
         mockRazorpayHelpers.createPaymentLink({ amount: 1990 }),
