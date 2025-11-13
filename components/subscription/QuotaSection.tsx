@@ -4,7 +4,7 @@ import Button from '../ui/Button'
 import { SUBSCRIPTION_PLANS } from '../../lib/subscription'
 import { SubscriptionTier } from '../../types/database'
 
-interface QuotaData {
+export interface QuotaSectionData {
   tier: SubscriptionTier
   quota: {
     yearly_flow: { used: number; limit: number | null; reset_at?: string }
@@ -17,19 +17,40 @@ interface QuotaData {
 }
 
 interface QuotaSectionProps {
-  userId: string
+  userId?: string
   className?: string
+  initialData?: QuotaSectionData | null
+  loading?: boolean
 }
 
-export default function QuotaSection({ userId, className = '' }: QuotaSectionProps) {
-  const [data, setData] = useState<QuotaData | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function QuotaSection({ userId, className = '', initialData, loading: loadingProp }: QuotaSectionProps) {
+  const [data, setData] = useState<QuotaSectionData | null>(initialData ?? null)
+  const [internalLoading, setInternalLoading] = useState(initialData === undefined)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let isMounted = true
+
+    if (initialData !== undefined) {
+      setData(initialData)
+      setError(null)
+      setInternalLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    if (!userId) {
+      setInternalLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
     const fetchQuotaData = async () => {
       try {
-        setLoading(true)
+        setInternalLoading(true)
+        setError(null)
         const response = await fetch(`/api/subscriptions/quota?user_id=${userId}`)
         
         if (!response.ok) {
@@ -42,23 +63,31 @@ export default function QuotaSection({ userId, className = '' }: QuotaSectionPro
           throw new Error(result.error || 'Failed to fetch quota data')
         }
         
+        if (!isMounted) return
         setData(result.data)
       } catch (err) {
         console.error('[QuotaSection] Error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load quota data')
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load quota data')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setInternalLoading(false)
+        }
       }
     }
 
-    if (userId) {
-      fetchQuotaData()
+    fetchQuotaData()
+
+    return () => {
+      isMounted = false
     }
-  }, [userId])
+  }, [userId, initialData])
+
+  const isLoading = loadingProp ?? internalLoading
 
   const handleUpgrade = () => {
-    // Navigate to subscription page or open upgrade modal
-    window.location.href = '/subscription'
+    window.location.href = '/pricing'
   }
 
   const plan = data ? SUBSCRIPTION_PLANS[data.tier] : null
@@ -107,19 +136,19 @@ export default function QuotaSection({ userId, className = '' }: QuotaSectionPro
   ] : []
 
   return (
-    <div className={className}>
+    <div className={`${className} text-mystical-gold-500`}>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">功能配额</h2>
-        <p className="text-gray-600">
+        <h2 className="text-2xl font-serif text-mystical-gold-400 mb-2">功能配额</h2>
+        <p className="text-mystical-gold-600/80">
           {data && plan ? `当前套餐: ${plan.name}` : '展示用户在各个功能上的配额使用情况'}
         </p>
       </div>
       
-      {loading && (
+      {isLoading && (
         <div className="animate-pulse">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="bg-gray-200 rounded-xl h-32" />
+              <div key={i} className="h-32 rounded-xl bg-mystical-purple-950/40 border border-mystical-gold-700/20" />
             ))}
           </div>
         </div>
@@ -127,12 +156,12 @@ export default function QuotaSection({ userId, className = '' }: QuotaSectionPro
       
       {error && (
         <div className="text-center py-8">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>重试</Button>
+          <p className="text-red-400 mb-4">{error}</p>
+          <Button variant="gold" onClick={() => window.location.reload()}>重试</Button>
         </div>
       )}
       
-      {data && !loading && !error && (
+      {data && !isLoading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {quotaFeatures.map((feature, index) => (
             <QuotaCard

@@ -52,12 +52,12 @@ export default function QuotaCard({
   }
 
   return (
-    <Card className={`p-4 ${className}`}>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
+    <Card className={`p-5 ${className}`} variant="mystical">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-mystical-gold-400">{title}</h3>
         <div className="flex items-center gap-2">
           {!enabled && (
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-mystical-gold-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           )}
@@ -69,10 +69,10 @@ export default function QuotaCard({
       
       {/* Progress Bar */}
       {enabled && limit !== null && limit > 0 && (
-        <div className="mb-3">
-          <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="mb-4">
+          <div className="w-full h-2 rounded-full bg-mystical-purple-950/40 border border-mystical-gold-700/20">
             <div
-              className={`${getProgressColor()} h-2 rounded-full transition-all duration-300`}
+              className={`${getProgressColor()} h-[6px] rounded-full transition-all duration-300`}
               style={{ width: `${Math.min(percentage, 100)}%` }}
             />
           </div>
@@ -81,7 +81,7 @@ export default function QuotaCard({
       
       {/* Additional Info */}
       {period && resetAt && (
-        <div className="text-xs text-gray-500 mb-3">
+        <div className="text-xs text-mystical-gold-600/70 mb-4">
           重置时间: {new Date(resetAt).toLocaleDateString('zh-CN')}
         </div>
       )}
@@ -89,10 +89,10 @@ export default function QuotaCard({
       {/* Upgrade Button for locked features */}
       {!enabled || limit === 0 ? (
         <Button
-          variant="outline"
+          variant="gold"
           size="sm"
           onClick={onUpgrade}
-          className="w-full"
+          className="w-full mt-2"
         >
           升级解锁
         </Button>

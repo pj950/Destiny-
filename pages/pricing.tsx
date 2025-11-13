@@ -1,266 +1,497 @@
-import { useState } from 'react'
-import { useRouter } from 'next/router'
-import { Button, Card, Section, Container, Heading, Text } from '../components/ui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { Section, Container, Heading, Text, Button, Card } from '../components/ui'
+import {
+  PlansSection,
+  SubscriptionStatusCard,
+  QuotaSection,
+  SubscriptionActions,
+} from '../components/subscription'
+import { SUBSCRIPTION_PLANS } from '../lib/subscription'
+import type { SubscriptionStatusData } from '../components/subscription/SubscriptionStatusCard'
+import type { QuotaSectionData } from '../components/subscription/QuotaSection'
+import type { SubscriptionTier, UserSubscription } from '../types/database'
 
-interface PricingTier {
-  name: string
-  nameEn: string
-  price: string
-  priceDetail: string
-  features: string[]
+const DEMO_USER_ID = 'demo-user-123'
+
+interface QuickAction {
+  title: string
+  description: string
   icon: string
-  recommended?: boolean
-  comingSoon?: boolean
+  href: string
+  locked: boolean
 }
 
+const FEATURE_HIGHLIGHTS = [
+  {
+    title: '📊 流年分析',
+    description: '从基础月度趋势到 VIP 深度预测，随时掌握未来走向。',
+  },
+  {
+    title: '🤖 AI 问答',
+    description: '智能命理顾问实时解答疑问，额度随套餐升级而增加。',
+  },
+  {
+    title: '📄 专业导出',
+    description: '支持 PDF / Excel 等多种格式导出，方便收藏与分享。',
+  },
+  {
+    title: '👨‍👩‍👧‍👦 家人对比',
+    description: 'Premium 及以上套餐可对比家人命盘，助力家庭决策。',
+  },
+]
+
+const FAQ_ITEMS = [
+  {
+    question: '如何升级或取消订阅？',
+    answer:
+      '登录后，在页面上方的「订阅操作」区域即可一键升级、降级或取消。所有操作都会立即生效，并通过邮件同步确认。',
+  },
+  {
+    question: '免费用户能看到哪些内容？',
+    answer:
+      '即使处于免费套餐，也可以查看当前配额使用情况、体验年度流年报告与基础问答。当额度不足时，系统会提示并指引升级。',
+  },
+  {
+    question: '升级后多久生效？',
+    answer:
+      '升级成功后新的配额与高级功能会即时解锁，无需等待下个周期。历史数据也会自动保留，方便接续使用。',
+  },
+  {
+    question: '支付遇到问题怎么办？',
+    answer:
+      '若支付失败或遇到扣款问题，请联系 support@easterndestiny.com，我们会在 1 个工作日内协助处理，确保服务不中断。',
+  },
+]
+
 export default function Pricing() {
-  const router = useRouter()
-  const [loading, setLoading] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionStatusData | null>(null)
+  const [loadingSubscription, setLoadingSubscription] = useState(false)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState(0)
 
-  const pricingTiers: PricingTier[] = [
-    {
-      name: '基础版',
-      nameEn: 'Basic',
-      price: '免费',
-      priceDetail: '永久免费',
-      icon: '🌱',
-      features: [
-        '基础八字排盘',
-        '五行分析',
-        'AI智能简要解读',
-        '保存3个命盘',
-        '基础运势分析',
-      ]
-    },
-    {
-      name: '专业版',
-      nameEn: 'Professional',
-      price: '¥199',
-      priceDetail: '一次性付费',
-      icon: '⭐',
-      recommended: true,
-      features: [
-        '✨ 所有基础版功能',
-        '深度命盘分析报告',
-        '详细运势解读',
-        '事业与财运分析',
-        '感情与健康指导',
-        '终身报告访问',
-        '保存无限命盘',
-        '优先客服支持',
-      ]
-    },
-    {
-      name: '大师版',
-      nameEn: 'Master',
-      price: '¥599',
-      priceDetail: '年度订阅',
-      icon: '👑',
-      comingSoon: true,
-      features: [
-        '✨ 所有专业版功能',
-        '每月详细运势预测',
-        '流年流月分析',
-        '合婚配对分析',
-        '择日择吉建议',
-        '一对一大师咨询',
-        '定制化解方案',
-        '线下活动优先权',
-      ]
+  const isAuthenticated = Boolean(userId)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const storedId = window.localStorage.getItem('demo_user_id')
+    if (storedId) {
+      setUserId(storedId)
     }
-  ]
+  }, [])
 
-  const handleSelectPlan = async (tier: PricingTier) => {
-    if (tier.comingSoon) {
-      alert('此套餐即将推出，敬请期待！')
-      return
-    }
-
-    if (tier.price === '免费') {
-      router.push('/')
-      return
-    }
-
-    setLoading(tier.nameEn)
-
+  const fetchSubscription = useCallback(async () => {
+    if (!userId) return
     try {
-      const chartId = router.query.chart_id || 'demo-chart-id'
-      
-      const res = await fetch('/api/reports/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chart_id: chartId })
-      })
-      
-      const data = await res.json()
-      
-      if (data.ok && data.url) {
-        window.location.href = data.url
-      } else {
-        alert(data.error || data.message || '创建支付失败，请重试')
+      setLoadingSubscription(true)
+      setSubscriptionError(null)
+
+      const response = await fetch(`/api/subscriptions/current?user_id=${userId}`)
+      if (response.status === 404) {
+        setSubscriptionData(null)
+        return
       }
-    } catch (err) {
-      alert('网络错误，请稍后重试')
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to fetch subscription data')
+      }
+
+      setSubscriptionData(result.data ?? null)
+    } catch (error) {
+      console.error('[Pricing] Failed to load subscription:', error)
+      setSubscriptionError(error instanceof Error ? error.message : '加载订阅信息失败')
+      setSubscriptionData(null)
     } finally {
-      setLoading(null)
+      setLoadingSubscription(false)
     }
-  }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) {
+      setSubscriptionData(null)
+      setSubscriptionError(null)
+      setLoadingSubscription(false)
+      return
+    }
+
+    fetchSubscription()
+  }, [userId, fetchSubscription, refreshToken])
+
+  const refreshSubscription = useCallback(() => {
+    setRefreshToken(prev => prev + 1)
+  }, [])
+
+  const handleSubscriptionChange = useCallback(() => {
+    refreshSubscription()
+  }, [refreshSubscription])
+
+  const scrollToPlans = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const plansSection = document.getElementById('plans')
+    if (plansSection) {
+      plansSection.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      window.location.hash = 'plans'
+    }
+  }, [])
+
+  const handleToggleAuth = useCallback(() => {
+    if (typeof window === 'undefined') return
+    if (userId) {
+      window.localStorage.removeItem('demo_user_id')
+      setUserId(null)
+      setSubscriptionData(null)
+      setSubscriptionError(null)
+      setLoadingSubscription(false)
+      return
+    }
+
+    window.localStorage.setItem('demo_user_id', DEMO_USER_ID)
+    setUserId(DEMO_USER_ID)
+    setSubscriptionData(null)
+    setSubscriptionError(null)
+  }, [userId])
+
+  const currentTier: SubscriptionTier | null = subscriptionData
+    ? subscriptionData.tier
+    : userId
+    ? 'free'
+    : null
+
+  const quotaData = useMemo<QuotaSectionData | null>(() => {
+    if (!subscriptionData) return null
+    const plan = SUBSCRIPTION_PLANS[subscriptionData.tier]
+
+    return {
+      tier: subscriptionData.tier,
+      quota: {
+        yearly_flow: {
+          used: subscriptionData.quota.yearly_flow.used,
+          limit: subscriptionData.quota.yearly_flow.limit,
+          reset_at: subscriptionData.quota.yearly_flow.reset_at,
+        },
+        qa: {
+          used: subscriptionData.quota.qa.used,
+          limit: subscriptionData.quota.qa.limit,
+          reset_at: subscriptionData.quota.qa.reset_at,
+        },
+      },
+      limits: {
+        yearly_flow: plan.features.yearly_flow.limit ?? null,
+        qa: plan.features.qa.limit ?? null,
+      },
+    }
+  }, [subscriptionData])
+
+  const subscriptionRecord = useMemo<UserSubscription | null>(() => {
+    if (!userId || !subscriptionData?.subscription) {
+      return null
+    }
+
+    const detail = subscriptionData.subscription
+
+    return {
+      id: `${userId}-active-subscription`,
+      user_id: userId,
+      tier: subscriptionData.tier,
+      status: detail.status,
+      current_period_start: detail.current_period_start,
+      current_period_end: detail.current_period_end,
+      auto_renew: detail.auto_renew,
+      external_subscription_id: null,
+      payment_method: 'razorpay',
+      cancel_at: detail.cancel_at,
+      canceled_at: null,
+      metadata: null,
+      created_at: detail.current_period_start,
+      updated_at: detail.current_period_end,
+    }
+  }, [subscriptionData, userId])
+
+  const quickActions = useMemo<QuickAction[]>(() => {
+    const plan = SUBSCRIPTION_PLANS[subscriptionData?.tier ?? 'free']
+    const yearly = subscriptionData?.quota.yearly_flow
+    const qa = subscriptionData?.quota.qa
+
+    const yearlyDescription = plan.features.yearly_flow.enabled
+      ? yearly
+        ? yearly.limit === null
+          ? '无限额度，随时生成'
+          : `本月已用 ${yearly.used}/${yearly.limit}`
+        : '生成年度运势解读'
+      : '升级即可解锁年度运势报告'
+
+    const qaDescription = plan.features.qa.enabled
+      ? qa
+        ? qa.limit === null
+          ? '无限问答额度'
+          : `剩余 ${Math.max(qa.limit - qa.used, 0)} 次`
+        : '升级即可开始与 AI 对话'
+      : '升级即可开启 AI 智能问答'
+
+    const exportDescription = plan.features.export.enabled
+      ? `支持 ${plan.features.export.formats.map(format => format.toUpperCase()).join(' / ')} 导出`
+      : '升级以开启报告导出功能'
+
+    const familyDescription = plan.features.family_comparison
+      ? '对比家人命盘，洞察家庭关系'
+      : 'Premium 及以上计划可用'
+
+    return [
+      {
+        title: '生成流年报告',
+        description: yearlyDescription,
+        icon: '🧭',
+        href: plan.features.yearly_flow.enabled ? '/reports/yearly-flow' : '#plans',
+        locked: !plan.features.yearly_flow.enabled,
+      },
+      {
+        title: 'AI 智能问答',
+        description: qaDescription,
+        icon: '🤖',
+        href: plan.features.qa.enabled ? '/fortune' : '#plans',
+        locked: !plan.features.qa.enabled,
+      },
+      {
+        title: '导出报告',
+        description: exportDescription,
+        icon: '📄',
+        href: plan.features.export.enabled ? '/reports/yearly-flow' : '#plans',
+        locked: !plan.features.export.enabled,
+      },
+      {
+        title: '家人对比',
+        description: familyDescription,
+        icon: '👨‍👩‍👧‍👦',
+        href: plan.features.family_comparison ? '/tools' : '#plans',
+        locked: !plan.features.family_comparison,
+      },
+    ]
+  }, [subscriptionData])
+
+  const handleQuickAction = useCallback(
+    (action: QuickAction) => {
+      if (typeof window === 'undefined') return
+
+      if (action.locked) {
+        scrollToPlans()
+        return
+      }
+
+      if (action.href.startsWith('#')) {
+        const target = document.querySelector(action.href)
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' })
+        } else {
+          window.location.href = action.href
+        }
+        return
+      }
+
+      window.location.href = action.href
+    },
+    [scrollToPlans],
+  )
+
+  const statusLoading = loadingSubscription && !subscriptionData && !subscriptionError
+  const quotaLoading = loadingSubscription && !quotaData && !subscriptionError
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-mystical-purple-950">
       <Navbar />
-      
-      <Section background="mystical" className="pt-20">
-        <Container>
-          <div className="text-center">
-            <Heading level={1} gradient className="mb-6">
-              选择适合您的方案
-            </Heading>
-            <Text size="xl" className="mb-4 max-w-3xl mx-auto text-mystical-gold-400">
-              从免费试算到专业深度报告，满足不同需求
-            </Text>
-            <Text size="lg" className="max-w-2xl mx-auto text-mystical-gold-600/80">
-              所有方案均基于正宗八字命理算法，结合AI智能分析
-            </Text>
-          </div>
-        </Container>
-      </Section>
-
-      <Section background="mystical-dark" spacing="spacious">
-        <Container size="xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingTiers.map((tier, index) => (
-              <div key={tier.nameEn} className="relative">
-                {tier.recommended && (
-                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                     <span className="bg-gradient-to-r from-mystical-gold-700 to-mystical-gold-500 text-mystical-purple-950 px-4 py-1 rounded-full text-sm font-semibold shadow-gold-glow">
-                       最受欢迎
-                     </span>
-                   </div>
-                 )}
-
-                 <Card
-                   className={`p-8 h-full flex flex-col ${tier.recommended ? 'border-2 border-mystical-gold-700 shadow-gold-glow-lg transform md:scale-105' : ''}`}
-                   hover={!tier.comingSoon}
-                   variant={tier.recommended ? 'mystical-gold' : 'mystical'}
-                 >
-                   <div className="text-center mb-6">
-                     <div className="text-6xl mb-4">{tier.icon}</div>
-                     <Heading level={3} size="2xl" className="mb-2 text-mystical-gold-400">{tier.name}</Heading>
-                     <Text size="sm" className="mb-4 text-mystical-gold-600/80">{tier.nameEn}</Text>
-                     <div className="mb-2">
-                       <span className="text-4xl font-bold text-mystical-gold-500">{tier.price}</span>
-                     </div>
-                     <Text size="sm" className="text-mystical-gold-600/80">{tier.priceDetail}</Text>
-                   </div>
-
-                   {tier.comingSoon && (
-                     <div className="mb-4 bg-mystical-rose-800/20 border border-mystical-rose-700/50 text-mystical-gold-400 px-4 py-2 rounded-xl text-sm text-center">
-                       即将推出
-                     </div>
-                   )}
-
-                   <ul className="space-y-3 mb-8 flex-grow">
-                     {tier.features.map((feature, idx) => (
-                       <li key={idx} className="flex items-start">
-                         <svg className="w-5 h-5 text-mystical-gold-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                         </svg>
-                         <Text size="sm" className="text-mystical-gold-500">{feature}</Text>
-                       </li>
-                     ))}
-                   </ul>
-
-                   <Button
-                     variant={tier.recommended ? 'gold' : 'mystical'}
-                     size="lg"
-                     fullWidth
-                     onClick={() => handleSelectPlan(tier)}
-                     loading={loading === tier.nameEn}
-                     disabled={tier.comingSoon}
-                   >
-                     {tier.comingSoon ? (
-                       '敬请期待'
-                     ) : tier.price === '免费' ? (
-                       '立即开始'
-                     ) : (
-                       '立即购买'
-                     )}
-                   </Button>
-                 </Card>
+      <main className="flex-1">
+        <Section background="mystical" className="pt-24 pb-16">
+          <Container size="lg">
+            <div className="text-center space-y-6">
+              <Heading level={1} gradient className="mb-2">
+                订阅计划
+              </Heading>
+              <Text size="xl" className="max-w-3xl mx-auto text-mystical-gold-400">
+                将价格展示与订阅管理融为一体，随时了解当前状态并升级体验。
+              </Text>
+              <Text size="lg" className="max-w-2xl mx-auto text-mystical-gold-600/80">
+                从免费体验到 VIP 专属，全套八字命理能力一站掌握。
+              </Text>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-2">
+                <Button variant="gold" size="lg" onClick={scrollToPlans}>
+                  浏览所有方案
+                </Button>
+                <Button variant="mystical" size="lg" onClick={handleToggleAuth}>
+                  {isAuthenticated ? '退出演示登录' : '模拟登录体验管理功能'}
+                </Button>
               </div>
-            ))}
-          </div>
-        </Container>
-      </Section>
-
-      <Section background="mystical-gradient" id="faq">
-        <Container size="md">
-          <div className="text-center mb-12">
-            <Heading level={2} className="mb-4 text-mystical-gold-400">常见问题</Heading>
-            <Text size="xl" className="text-mystical-gold-600/80">关于我们服务的常见疑问解答</Text>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="p-6" variant="mystical">
-              <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">🤔 八字命理准确吗？</Heading>
-              <Text className="text-mystical-gold-600/80">
-                八字命理是中国传统文化的重要组成部分，历经千年验证。我们使用正宗的算法，结合现代AI技术，提供准确的分析和解读。
+              <Text size="sm" className="text-mystical-gold-600/70">
+                {isAuthenticated ? `当前体验账号：${userId}` : '未登录状态下仅展示公开的订阅与价格信息'}
               </Text>
-            </Card>
-
-            <Card className="p-6" variant="mystical">
-              <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">💳 支付安全吗？</Heading>
-              <Text className="text-mystical-gold-600/80">
-                我们使用国际领先的支付平台，采用银行级加密技术，保障您的支付安全。支持多种支付方式，安全便捷。
-              </Text>
-            </Card>
-
-            <Card className="p-6" variant="mystical">
-              <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">📊 深度报告包含什么内容？</Heading>
-              <Text className="text-mystical-gold-600/80">
-                深度报告包括详细的八字分析、五行平衡、性格特质、事业运势、财运分析、感情运势、健康建议等多个维度，长达数千字的专业解读。
-              </Text>
-            </Card>
-
-            <Card className="p-6" variant="mystical">
-              <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">🔄 可以退款吗？</Heading>
-              <Text className="text-mystical-gold-600/80">
-                由于报告为数字化产品，一经生成即视为完成交付。如有质量问题，请联系客服，我们将根据具体情况提供解决方案。
-              </Text>
-            </Card>
-
-            <Card className="p-6" variant="mystical">
-              <Heading level={3} size="lg" className="mb-3 text-mystical-gold-400">⏰ 报告多久能生成？</Heading>
-              <Text className="text-mystical-gold-600/80">
-                付款成功后，系统会自动开始生成深度报告。通常在5-10分钟内完成，您可以在"我的命盘"页面查看进度并下载报告。
-              </Text>
-            </Card>
-          </div>
-        </Container>
-      </Section>
-
-      <Section background="mystical">
-        <Container>
-          <div className="text-center">
-            <Heading level={2} className="mb-6 text-mystical-gold-400">还有疑问？</Heading>
-            <Text size="xl" className="mb-8 max-w-2xl mx-auto text-mystical-gold-600/80">
-              我们的客服团队随时为您解答
-            </Text>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button variant="gold" size="lg" onClick={() => router.push('/')}>
-                免费试算
-              </Button>
-              <Button variant="mystical" size="lg" onClick={() => alert('客服功能即将推出')}>
-                联系客服
-              </Button>
             </div>
-          </div>
-        </Container>
-      </Section>
+          </Container>
+        </Section>
 
+        {isAuthenticated && (
+          <Section background="mystical-dark" spacing="spacious">
+            <Container size="xl">
+              <div className="space-y-12">
+                <div className="grid gap-8 lg:grid-cols-[1.7fr_1.3fr]">
+                  <SubscriptionStatusCard
+                    userId={userId!}
+                    initialData={subscriptionData ?? null}
+                    loading={statusLoading}
+                    className="h-full"
+                  />
+
+                  <Card variant="mystical" className="p-6 h-full border border-mystical-gold-700/30">
+                    <Heading level={3} className="text-mystical-gold-400 mb-4">
+                      快速操作
+                    </Heading>
+                    <div className="space-y-4">
+                      {quickActions.map(action => (
+                        <div
+                          key={action.title}
+                          className="rounded-xl border border-mystical-gold-700/20 bg-mystical-purple-950/40 p-4"
+                        >
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex gap-3">
+                              <span className="text-2xl leading-none">{action.icon}</span>
+                              <div>
+                                <p className="text-mystical-gold-400 font-semibold mb-1">{action.title}</p>
+                                <p className="text-sm text-mystical-gold-600/80">{action.description}</p>
+                              </div>
+                            </div>
+                            <Button
+                              variant={action.locked ? 'gold' : 'mystical'}
+                              size="sm"
+                              className="sm:shrink-0"
+                              onClick={() => handleQuickAction(action)}
+                            >
+                              {action.locked ? '升级解锁' : '立即前往'}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+
+                {subscriptionError && (
+                  <Card variant="mystical" className="p-6 border border-red-500/30">
+                    <Text className="text-red-400 text-sm mb-4">加载订阅信息失败：{subscriptionError}</Text>
+                    <Button variant="gold" size="sm" onClick={refreshSubscription}>
+                      重试加载
+                    </Button>
+                  </Card>
+                )}
+
+                <QuotaSection
+                  userId={userId ?? undefined}
+                  initialData={quotaData ?? null}
+                  loading={quotaLoading}
+                  className="mt-2"
+                />
+
+                {subscriptionRecord && (
+                  <div className="space-y-4">
+                    <Heading level={3} className="text-mystical-gold-400">
+                      订阅操作
+                    </Heading>
+                    <div className="max-w-3xl">
+                      <SubscriptionActions
+                        subscription={subscriptionRecord}
+                        userId={userId!}
+                        onSubscriptionChange={handleSubscriptionChange}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Container>
+          </Section>
+        )}
+
+        <Section background="mystical-dark" spacing="spacious" id="plans">
+          <Container size="xl">
+            <div className="text-center mb-12">
+              <Heading level={2} className="text-mystical-gold-400 mb-4">
+                选择适合您的计划
+              </Heading>
+              <Text size="lg" className="text-mystical-gold-600/80 max-w-3xl mx-auto">
+                根据所需功能和配额自由选择，随时升级或降级，所有变化都会即时同步。
+              </Text>
+            </div>
+            <PlansSection
+              userId={userId ?? undefined}
+              currentTier={currentTier ?? undefined}
+              className="mt-8"
+            />
+          </Container>
+        </Section>
+
+        <Section background="mystical">
+          <Container>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {FEATURE_HIGHLIGHTS.map(item => (
+                <Card key={item.title} variant="mystical" className="p-6 border border-mystical-gold-700/30">
+                  <p className="text-lg font-semibold text-mystical-gold-400 mb-2">{item.title}</p>
+                  <Text size="sm" className="text-mystical-gold-600/80 leading-relaxed">
+                    {item.description}
+                  </Text>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
+        <Section background="mystical-gradient" id="faq">
+          <Container size="md">
+            <div className="text-center mb-12">
+              <Heading level={2} className="text-mystical-gold-400 mb-4">
+                常见问题
+              </Heading>
+              <Text size="lg" className="text-mystical-gold-600/80">
+                关于订阅管理的常见解答
+              </Text>
+            </div>
+            <div className="space-y-6">
+              {FAQ_ITEMS.map(item => (
+                <Card key={item.question} variant="mystical" className="p-6 border border-mystical-gold-700/20">
+                  <Heading level={3} className="text-mystical-gold-400 mb-3">
+                    {item.question}
+                  </Heading>
+                  <Text className="text-mystical-gold-600/80 leading-relaxed">{item.answer}</Text>
+                </Card>
+              ))}
+            </div>
+          </Container>
+        </Section>
+
+        <Section background="mystical">
+          <Container>
+            <Card variant="mystical-gold" className="p-10 text-center border border-mystical-gold-600/60">
+              <Heading level={2} className="text-mystical-purple-950 mb-4">
+                准备好升级体验了吗？
+              </Heading>
+              <Text className="text-mystical-purple-900/80 mb-6">
+                立即选择适合的订阅方案，解锁更全面的八字洞察与智能服务。
+              </Text>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button variant="gold" size="lg" onClick={scrollToPlans}>
+                  查看订阅计划
+                </Button>
+                <Button variant="mystical" size="lg" onClick={handleToggleAuth}>
+                  {isAuthenticated ? '退出演示登录' : '模拟登录体验'}
+                </Button>
+              </div>
+            </Card>
+          </Container>
+        </Section>
+      </main>
       <Footer />
     </div>
   )
