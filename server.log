@@ -1,0 +1,26 @@
+
+> eastern-destiny@0.1.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use, trying 3001 instead.
+ ⚠ Port 3001 is in use, trying 3002 instead.
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+  ▲ Next.js 13.5.6
+  - Local:        http://localhost:3002
+  - Environments: .env.local
+
+ ✓ Ready in 1427ms
+ ✓ Compiled /api/fortune/today in 430ms (62 modules)
+[Fortune Today] Database query error: {
+  message: 'TypeError: fetch failed',
+  details: 'TypeError: fetch failed\n' +
+    '    at node:internal/deps/undici/undici:13510:13\n' +
+    '    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)\n' +
+    '    at async handler (webpack-internal:///(api)/./pages/api/fortune/today.ts:59:28)',
+  hint: '',
+  code: ''
+}
