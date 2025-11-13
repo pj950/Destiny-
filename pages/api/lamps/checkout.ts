@@ -3,7 +3,6 @@ import { supabaseService } from '../../../lib/supabase'
 import { stripeHelpers } from '../../../lib/stripe'
 
 const LAMP_PRICE = 1990 // ₹19.90 in paise (smallest unit for INR)
-const VALID_LAMP_KEYS = ['p1', 'p2', 'p3', 'p4']
 
 interface CheckoutRequest {
   lamp_key: string
@@ -34,10 +33,6 @@ export default async function handler(
     // Validate lamp_key
     if (!lamp_key || typeof lamp_key !== 'string') {
       return res.status(400).json({ error: 'lamp_key is required and must be a string' })
-    }
-
-    if (!VALID_LAMP_KEYS.includes(lamp_key)) {
-      return res.status(400).json({ error: 'Invalid lamp_key. Must be one of: p1, p2, p3, p4' })
     }
 
     console.log(`[Lamp Checkout] Creating Stripe checkout for lamp: ${lamp_key}`)
