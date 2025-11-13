@@ -40,44 +40,6 @@ export default function LampsPage() {
 
   const litCount = Object.values(lampStates).filter(state => state === 'lit').length
 
-  useEffect(() => {
-    performanceMonitor.current.startMonitoring()
-    return () => performanceMonitor.current.stopMonitoring()
-  }, [])
-
-  useEffect(() => {
-    fetchLampStatuses()
-    fetchLampsConfig()
-  }, [])
-
-  useEffect(() => {
-    if (router.isReady) {
-      const { payment } = router.query
-      if (payment === 'success' || payment === 'cancel') {
-        // For Stripe checkout, the webhook handles the database update
-        // We just need to refresh the status after a brief delay to see the update
-        if (payment === 'success') {
-          setTimeout(() => {
-            fetchLampStatuses()
-            toast.success('支付成功', '祈福灯已点亮')
-          }, 1000)
-        } else {
-          toast.info('已取消', '支付已被取消')
-        }
-      }
-    }
-  }, [router.isReady, router.query, fetchLampStatuses])
-
-  useEffect(() => {
-    Object.entries(lampStates).forEach(([lampKey, state]) => {
-      const element = lampRefs.current[lampKey]
-      if (element) {
-        const classes = getLampAnimationClasses(state)
-        toggleAnimationClasses(element, classes)
-      }
-    })
-  }, [lampStates])
-
   const fetchLampStatuses = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -203,6 +165,44 @@ export default function LampsPage() {
       const errorMessage = error.message || '购买失败，请重试'
       toast.error('购买失败', errorMessage)
     }
+  }, [lampStates])
+
+  useEffect(() => {
+    performanceMonitor.current.startMonitoring()
+    return () => performanceMonitor.current.stopMonitoring()
+  }, [])
+
+  useEffect(() => {
+    fetchLampStatuses()
+    fetchLampsConfig()
+  }, [fetchLampStatuses, fetchLampsConfig])
+
+  useEffect(() => {
+    if (router.isReady) {
+      const { payment } = router.query
+      if (payment === 'success' || payment === 'cancel') {
+        // For Stripe checkout, the webhook handles the database update
+        // We just need to refresh the status after a brief delay to see the update
+        if (payment === 'success') {
+          setTimeout(() => {
+            fetchLampStatuses()
+            toast.success('支付成功', '祈福灯已点亮')
+          }, 1000)
+        } else {
+          toast.info('已取消', '支付已被取消')
+        }
+      }
+    }
+  }, [router.isReady, router.query, fetchLampStatuses])
+
+  useEffect(() => {
+    Object.entries(lampStates).forEach(([lampKey, state]) => {
+      const element = lampRefs.current[lampKey]
+      if (element) {
+        const classes = getLampAnimationClasses(state)
+        toggleAnimationClasses(element, classes)
+      }
+    })
   }, [lampStates])
 
   return (
