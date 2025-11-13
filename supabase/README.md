@@ -24,6 +24,7 @@ This directory contains SQL migration files for setting up the Eastern Destiny d
 | `20241106000003_add_razorpay_columns.sql` | Adds Razorpay payment columns to lamps table while preserving Stripe legacy data |
 | `20241109000001_enable_fortunes_rls.sql` | Enables RLS policies for fortunes table for anonymous access |
 | `20241110000001_extend_schema_reports_subscriptions.sql` | **NEW**: Extends charts table, adds vector extension, creates tables for AI reports, embeddings (RAG), Q&A conversations, usage tracking, and subscriptions |
+| `20251112000001_fix_fortunes_rls_policies.sql` | **FIX**: Updates fortunes RLS policies to properly allow public and anonymous read access, following the same pattern as lamps table |
 | `99_test_setup.sql` | Test script to verify database setup (optional) |
 | `99_test_razorpay_migration.sql` | Test script to verify Razorpay migration (optional) |
 
