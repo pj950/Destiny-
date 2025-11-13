@@ -116,41 +116,71 @@ export default function LampsPage() {
         const data = await response.json()
         if (data.lamps && data.lamps.length > 0) {
           setLamps(data.lamps)
-          console.log('Loaded lanterns from API:', data.lamps.length)
+          console.log('[Lamps] Loaded lamps from API:', data.lamps.length)
+          
+          // Log lamp IDs to verify they're not placeholders
+          data.lamps.forEach((lamp: Lamp) => {
+            const isPlaceholder = /^00000000-0000-0000-0000-/.test(lamp.id)
+            if (isPlaceholder) {
+              console.warn(`[Lamps] WARNING: Placeholder UUID for lamp "${lamp.name}": ${lamp.id}`)
+            } else {
+              console.log(`[Lamps] Lamp "${lamp.name}" has real UUID: ${lamp.id}`)
+            }
+          })
         }
       } else {
-        console.log('API not available, using fallback lanterns')
+        console.log('[Lamps] API not available, using fallback lanterns')
       }
     } catch (error) {
-      console.log('Failed to fetch lanterns config, using fallback:', error)
+      console.log('[Lamps] Failed to fetch lanterns config, using fallback:', error)
     }
   }, [])
 
   const handleBuyLamp = useCallback(async (lamp: Lamp) => {
-   if (lampStates[lamp.key] === 'purchasing') return
+    if (lampStates[lamp.key] === 'purchasing') return
 
-   setLampStates(prev => ({ ...prev, [lamp.key]: 'purchasing' }))
+    // Validate lamp_id before sending
+    if (!lamp.id || typeof lamp.id !== 'string') {
+      console.error('[Lamps] Invalid lamp_id:', lamp.id, 'for lamp:', lamp.name)
+      toast.error('错误', '灯的ID无效，请刷新页面重试')
+      return
+    }
 
-   if (isLocalStorageAvailable()) {
-     updateLampStateInStorage(lamp.key, 'unlit')
-   }
+    // Check if lamp_id is a placeholder UUID
+    const isPlaceholder = /^00000000-0000-0000-0000-/.test(lamp.id)
+    if (isPlaceholder) {
+      console.error('[Lamps] ERROR: Placeholder UUID detected for lamp:', lamp.name, 'ID:', lamp.id)
+      toast.error('配置错误', '灯的信息不完整，请刷新页面重试')
+      return
+    }
 
-   try {
-     const response = await fetch('/api/lamps/checkout', {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-       },
-       body: JSON.stringify({ lamp_id: lamp.id }),
-     })
+    console.log('[Lamps] Purchasing lamp:', lamp.name, 'with ID:', lamp.id)
+
+    setLampStates(prev => ({ ...prev, [lamp.key]: 'purchasing' }))
+
+    if (isLocalStorageAvailable()) {
+      updateLampStateInStorage(lamp.key, 'unlit')
+    }
+
+    try {
+      console.log('[Lamps] Sending checkout request with lamp_id:', lamp.id)
+      const response = await fetch('/api/lamps/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lamp_id: lamp.id }),
+      })
 
       if (!response.ok) {
         const error = await response.json()
+        console.error('[Lamps] Checkout API error:', error)
         throw new Error(error.error || 'Failed to create checkout session')
       }
 
       const { url } = await response.json()
 
+      console.log('[Lamps] Checkout successful, redirecting to:', url)
       toast.info('正在跳转', '即将跳转到支付页面...')
 
       setTimeout(() => {
@@ -158,7 +188,7 @@ export default function LampsPage() {
       }, 1000)
 
     } catch (error: any) {
-      console.error('Error purchasing lamp:', error)
+      console.error('[Lamps] Error purchasing lamp:', error)
 
       setLampStates(prev => ({ ...prev, [lamp.key]: 'unlit' }))
 
