@@ -1,7 +1,9 @@
 import fs from 'fs'
 import path from 'path'
+import { supabaseService } from './supabase'
 
 interface Lamp {
+  id: string  // UUID from database
   key: string
   name: string
   image: string
@@ -12,6 +14,7 @@ interface Lamp {
 // Default fallback lanterns when no Chinese images are found
 const DEFAULT_LAMPS: Lamp[] = [
   {
+    id: '00000000-0000-0000-0000-000000000001',
     key: 'p1',
     name: '福运灯',
     image: '/images/p1.jpg',
@@ -19,6 +22,7 @@ const DEFAULT_LAMPS: Lamp[] = [
     description: '祈愿福泽绵延，守护家庭顺遂与喜乐。'
   },
   {
+    id: '00000000-0000-0000-0000-000000000002',
     key: 'p2',
     name: '安康灯',
     image: '/images/p2.jpg',
@@ -26,6 +30,7 @@ const DEFAULT_LAMPS: Lamp[] = [
     description: '点亮身心安泰之光，为爱的人带来平安守护。'
   },
   {
+    id: '00000000-0000-0000-0000-000000000003',
     key: 'p3',
     name: '财源灯',
     image: '/images/p3.jpg',
@@ -33,6 +38,7 @@ const DEFAULT_LAMPS: Lamp[] = [
     description: '招聚金气财富，助事业与财运蒸蒸日上。'
   },
   {
+    id: '00000000-0000-0000-0000-000000000004',
     key: 'p4',
     name: '事业灯',
     image: '/images/p4.jpg',
@@ -99,6 +105,24 @@ function getLampDescription(name: string): string {
 // Server-side function to scan for Chinese lantern images
 export async function getLampsConfig(): Promise<Lamp[]> {
   try {
+    // First, try to fetch lamps from database with UUIDs
+    let lampIdMap: Record<string, string> = {}
+    try {
+      const { data: dbLamps, error: dbError } = await supabaseService
+        .from('lamps')
+        .select('id, lamp_key')
+      
+      if (!dbError && dbLamps) {
+        // Create a map of lamp_key -> id
+        dbLamps.forEach(lamp => {
+          lampIdMap[lamp.lamp_key] = lamp.id
+        })
+        console.log(`Loaded ${Object.keys(lampIdMap).length} lamps from database`)
+      }
+    } catch (dbErr) {
+      console.warn('Failed to fetch lamps from database:', dbErr)
+    }
+
     const imagesDir = path.join(process.cwd(), 'public', 'images')
     
     // Check if images directory exists
@@ -127,8 +151,10 @@ export async function getLampsConfig(): Promise<Lamp[]> {
     const chineseLamps: Lamp[] = chineseLampFiles.map(file => {
       const name = getLampNameFromFilename(file)
       const key = generateLampKey(name)
+      const id = lampIdMap[name] || generatePlaceholderId(name) // Use DB UUID or generate placeholder
       
       return {
+        id,
         key,
         name,
         image: `/images/${file}`,
@@ -144,6 +170,20 @@ export async function getLampsConfig(): Promise<Lamp[]> {
     console.error('Error scanning for lantern images:', error)
     return DEFAULT_LAMPS
   }
+}
+
+// Generate a consistent placeholder UUID based on lamp name
+function generatePlaceholderId(name: string): string {
+  // This is a fallback - in production, the database should have all lamps
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    const char = name.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  
+  const hex = Math.abs(hash).toString(16).padStart(8, '0')
+  return `00000000-0000-0000-0000-${hex.padEnd(12, '0').slice(0, 12)}`
 }
 
 // Client-side fallback lamps (static)

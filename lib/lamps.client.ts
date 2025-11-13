@@ -1,5 +1,6 @@
 // Client-side fallback lamps (static data only)
 export interface Lamp {
+  id: string  // UUID from database
   key: string
   name: string
   image: string
@@ -47,6 +48,7 @@ const LAMP_DESCRIPTIONS: Record<string, string> = {
 
 export const FALLBACK_LAMPS: Lamp[] = [
   {
+    id: '00000000-0000-0000-0000-000000000001',
     key: 'lamp_1',
     name: '平安灯',
     image: '/images/平安灯.png',
@@ -54,6 +56,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['平安灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000002',
     key: 'lamp_2',
     name: '健康灯',
     image: '/images/健康灯.png',
@@ -61,6 +64,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['健康灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000003',
     key: 'lamp_3',
     name: '财运灯',
     image: '/images/财运灯.png',
@@ -68,6 +72,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['财运灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000004',
     key: 'lamp_4',
     name: '招财灯',
     image: '/images/招财灯.png',
@@ -75,6 +80,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['招财灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000005',
     key: 'lamp_5',
     name: '暴富灯',
     image: '/images/暴富灯.png',
@@ -82,6 +88,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['暴富灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000006',
     key: 'lamp_6',
     name: '回财灯',
     image: '/images/回财灯.png',
@@ -89,6 +96,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['回财灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000007',
     key: 'lamp_7',
     name: '偏财灯',
     image: '/images/偏财灯.png',
@@ -96,6 +104,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['偏财灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000008',
     key: 'lamp_8',
     name: '姻缘灯',
     image: '/images/姻缘灯.png',
@@ -103,6 +112,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['姻缘灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000009',
     key: 'lamp_9',
     name: '正缘桃花灯',
     image: '/images/正缘桃花灯.png',
@@ -110,6 +120,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['正缘桃花灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000010',
     key: 'lamp_10',
     name: '斩烂桃花灯',
     image: '/images/斩烂桃花灯.png',
@@ -117,6 +128,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['斩烂桃花灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000011',
     key: 'lamp_11',
     name: '事业灯',
     image: '/images/p4.jpg',
@@ -124,6 +136,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['事业灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000012',
     key: 'lamp_12',
     name: '文昌灯',
     image: '/images/文昌灯.png',
@@ -131,6 +144,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['文昌灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000013',
     key: 'lamp_13',
     name: '智慧灯',
     image: '/images/智慧灯.png',
@@ -138,6 +152,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['智慧灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000014',
     key: 'lamp_14',
     name: '求子灯',
     image: '/images/求子灯.png',
@@ -145,6 +160,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['求子灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000015',
     key: 'lamp_15',
     name: '安产灯',
     image: '/images/安产灯.png',
@@ -152,6 +168,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['安产灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000016',
     key: 'lamp_16',
     name: '添寿灯',
     image: '/images/添寿灯.png',
@@ -159,6 +176,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['添寿灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000017',
     key: 'lamp_17',
     name: '好运灯',
     image: '/images/好运灯.png',
@@ -166,6 +184,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['好运灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000018',
     key: 'lamp_18',
     name: '消灾灯',
     image: '/images/消灾灯.png',
@@ -173,6 +192,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['消灾灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000019',
     key: 'lamp_19',
     name: '除秽灯',
     image: '/images/除秽灯.png',
@@ -180,6 +200,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['除秽灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000020',
     key: 'lamp_20',
     name: '防小人灯',
     image: '/images/防小人灯.png',
@@ -187,6 +208,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['防小人灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000021',
     key: 'lamp_21',
     name: '贵人灯',
     image: '/images/贵人灯.png',
@@ -194,6 +216,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['贵人灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000022',
     key: 'lamp_22',
     name: '本命灯',
     image: '/images/本命灯.png',
@@ -201,6 +224,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['本命灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000023',
     key: 'lamp_23',
     name: '太岁灯',
     image: '/images/太岁灯.png',
@@ -208,6 +232,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['太岁灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000024',
     key: 'lamp_24',
     name: '三宝灯',
     image: '/images/三宝灯.png',
@@ -215,6 +240,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['三宝灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000025',
     key: 'lamp_25',
     name: '五福灯',
     image: '/images/五福灯.png',
@@ -222,6 +248,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['五福灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000026',
     key: 'lamp_26',
     name: '七星灯',
     image: '/images/七星灯.png',
@@ -229,6 +256,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['七星灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000027',
     key: 'lamp_27',
     name: '九子离火灯',
     image: '/images/九子离火灯.png',
@@ -236,6 +264,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['九子离火灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000028',
     key: 'lamp_28',
     name: '传愿灯',
     image: '/images/传愿灯.png',
@@ -243,6 +272,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['传愿灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000029',
     key: 'lamp_29',
     name: '追忆灯',
     image: '/images/追忆灯.png',
@@ -250,6 +280,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['追忆灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000030',
     key: 'lamp_30',
     name: '忏悔灯',
     image: '/images/忏悔灯.png',
@@ -257,6 +288,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['忏悔灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000031',
     key: 'lamp_31',
     name: '顺风顺水灯',
     image: '/images/顺风顺水灯.png',
@@ -264,6 +296,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['顺风顺水灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000032',
     key: 'lamp_32',
     name: '爱宠无忧灯',
     image: '/images/爱宠无忧灯.png',
@@ -271,6 +304,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['爱宠无忧灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000033',
     key: 'lamp_33',
     name: '发横财灯',
     image: '/images/发横财灯.png',
@@ -278,6 +312,7 @@ export const FALLBACK_LAMPS: Lamp[] = [
     description: LAMP_DESCRIPTIONS['发横财灯'],
   },
   {
+    id: '00000000-0000-0000-0000-000000000034',
     key: 'lamp_34',
     name: '四季平安灯',
     image: '/images/四季平安灯.png',

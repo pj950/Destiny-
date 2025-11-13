@@ -52,15 +52,21 @@ export default function LampsPage() {
 
   useEffect(() => {
     if (router.isReady) {
-      const { razorpay_payment_id, razorpay_payment_link_id, session_id } = router.query
-      if (razorpay_payment_id || razorpay_payment_link_id || session_id) {
-        confirmPaymentAndRefresh(
-          razorpay_payment_id as string | undefined,
-          razorpay_payment_link_id as string | undefined
-        )
+      const { payment } = router.query
+      if (payment === 'success' || payment === 'cancel') {
+        // For Stripe checkout, the webhook handles the database update
+        // We just need to refresh the status after a brief delay to see the update
+        if (payment === 'success') {
+          setTimeout(() => {
+            fetchLampStatuses()
+            toast.success('支付成功', '祈福灯已点亮')
+          }, 1000)
+        } else {
+          toast.info('已取消', '支付已被取消')
+        }
       }
     }
-  }, [router.isReady, router.query])
+  }, [router.isReady, router.query, fetchLampStatuses])
 
   useEffect(() => {
     Object.entries(lampStates).forEach(([lampKey, state]) => {
@@ -141,37 +147,6 @@ export default function LampsPage() {
     }
   }, [])
 
-  const confirmPaymentAndRefresh = useCallback(async (razorpayPaymentId?: string, razorpayPaymentLinkId?: string) => {
-    try {
-      if (razorpayPaymentLinkId || razorpayPaymentId) {
-        const response = await fetch('/api/lamps/confirm', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            razorpay_payment_link_id: razorpayPaymentLinkId,
-            razorpay_payment_id: razorpayPaymentId,
-          }),
-        })
-
-        if (!response.ok) {
-          console.warn('[Lamps] Payment confirmation failed, will try to refresh from cache')
-        }
-      }
-
-      setTimeout(() => {
-        fetchLampStatuses()
-        toast.success('支付成功', '祈福灯已点亮')
-      }, 500)
-    } catch (error: any) {
-      console.error('[Lamps] Error confirming payment:', error)
-      setTimeout(() => {
-        fetchLampStatuses()
-      }, 500)
-    }
-  }, [fetchLampStatuses])
-
   const fetchLampsConfig = useCallback(async () => {
     try {
       const response = await fetch('/api/lamps/config')
@@ -189,23 +164,23 @@ export default function LampsPage() {
     }
   }, [])
 
-  const handleBuyLamp = useCallback(async (lampKey: string) => {
-    if (lampStates[lampKey] === 'purchasing') return
+  const handleBuyLamp = useCallback(async (lamp: Lamp) => {
+   if (lampStates[lamp.key] === 'purchasing') return
 
-    setLampStates(prev => ({ ...prev, [lampKey]: 'purchasing' }))
+   setLampStates(prev => ({ ...prev, [lamp.key]: 'purchasing' }))
 
-    if (isLocalStorageAvailable()) {
-      updateLampStateInStorage(lampKey, 'unlit')
-    }
+   if (isLocalStorageAvailable()) {
+     updateLampStateInStorage(lamp.key, 'unlit')
+   }
 
-    try {
-      const response = await fetch('/api/lamps/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ lamp_key: lampKey }),
-      })
+   try {
+     const response = await fetch('/api/lamps/checkout', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+       },
+       body: JSON.stringify({ lamp_id: lamp.id }),
+     })
 
       if (!response.ok) {
         const error = await response.json()
@@ -223,7 +198,7 @@ export default function LampsPage() {
     } catch (error: any) {
       console.error('Error purchasing lamp:', error)
 
-      setLampStates(prev => ({ ...prev, [lampKey]: 'unlit' }))
+      setLampStates(prev => ({ ...prev, [lamp.key]: 'unlit' }))
 
       const errorMessage = error.message || '购买失败，请重试'
       toast.error('购买失败', errorMessage)
@@ -386,27 +361,27 @@ export default function LampsPage() {
                         </div>
 
                         <Button
-                          fullWidth
-                          size="sm"
-                          variant={isLit ? 'mystical' : 'gold'}
-                          loading={isPurchasing}
-                          disabled={isLit || isPurchasing}
-                          onClick={() => handleBuyLamp(lamp.key)}
-                          className={
-                            isLit
-                              ? 'bg-mystical-purple-900/60 text-mystical-gold-500 border border-mystical-gold-700/40 shadow-gold-glow cursor-default'
-                              : 'bg-gradient-to-r from-mystical-gold-700 via-mystical-gold-500 to-mystical-rose-700 text-mystical-purple-950 shadow-gold-glow hover:shadow-gold-glow-lg'
-                          }
-                          aria-label={
-                            isLit
-                              ? `${lamp.name}已点亮，感谢您的祈福`
-                              : isPurchasing
-                                ? `正在为${lamp.name}创建支付链接`
-                                : `为${lamp.name}点灯，价格${lamp.price}美元`
-                          }
-                        >
-                          {isLit ? '已点 ✨' : isPurchasing ? '...' : '点亮'}
-                        </Button>
+                           fullWidth
+                           size="sm"
+                           variant={isLit ? 'mystical' : 'gold'}
+                           loading={isPurchasing}
+                           disabled={isLit || isPurchasing}
+                           onClick={() => handleBuyLamp(lamp)}
+                           className={
+                             isLit
+                               ? 'bg-mystical-purple-900/60 text-mystical-gold-500 border border-mystical-gold-700/40 shadow-gold-glow cursor-default'
+                               : 'bg-gradient-to-r from-mystical-gold-700 via-mystical-gold-500 to-mystical-rose-700 text-mystical-purple-950 shadow-gold-glow hover:shadow-gold-glow-lg'
+                           }
+                           aria-label={
+                             isLit
+                               ? `${lamp.name}已点亮，感谢您的祈福`
+                               : isPurchasing
+                                 ? `正在为${lamp.name}创建支付链接`
+                                 : `为${lamp.name}点灯，价格${lamp.price}美元`
+                           }
+                         >
+                           {isLit ? '已点 ✨' : isPurchasing ? '...' : '点亮'}
+                         </Button>
                       </div>
                     </div>
                   )
