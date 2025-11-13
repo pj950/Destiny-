@@ -89,7 +89,7 @@ export default function PlansSection({
       return
     }
 
-    // Default behavior: redirect to checkout
+    // Default behavior: call checkout API and redirect to Stripe
     try {
       setUpgradeLoading(planId)
       
@@ -100,13 +100,32 @@ export default function PlansSection({
         return
       }
 
-      // Redirect to checkout with billing cycle
+      // Call checkout API
       const billingCycle = isBillingMonthly ? 'monthly' : 'yearly'
-      router.push(`/checkout?plan=${planId}&billing_cycle=${billingCycle}`)
+      const response = await fetch('/api/subscriptions/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          user_id: userId || 'demo-user',
+          customer_email: 'demo@example.com', // In production, use real user email
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.ok || !result.url) {
+        throw new Error(result.error || 'Failed to create checkout')
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = result.url
     } catch (err) {
       console.error('[PlansSection] Error handling upgrade:', err)
       alert('升级失败，请稍后重试')
-    } finally {
       setUpgradeLoading(null)
     }
   }

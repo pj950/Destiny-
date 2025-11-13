@@ -1,11 +1,12 @@
 /**
  * POST /api/subscriptions/cancel
  * 
- * Cancel user's subscription
+ * Cancel user's subscription (handles both Stripe and database-only subscriptions)
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { cancelSubscription, getUserSubscription } from '../../../lib/subscription'
+import { stripeHelpers } from '../../../lib/stripe'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -27,11 +28,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'No active subscription found' })
     }
 
-    // Cancel subscription
+    // If subscription has a Stripe subscription ID, cancel it in Stripe first
+    if (subscription.stripe_subscription_id) {
+      try {
+        await stripeHelpers.cancelSubscription(subscription.stripe_subscription_id, cancel_at_end)
+        console.log(`[API] Canceled Stripe subscription ${subscription.stripe_subscription_id}`)
+      } catch (error: any) {
+        console.error('[API] Error canceling Stripe subscription:', error)
+        return res.status(500).json({ 
+          error: 'Failed to cancel subscription in Stripe',
+          details: error.message,
+        })
+      }
+    }
+
+    // Cancel subscription in database
     const success = await cancelSubscription(userId, cancel_at_end)
 
     if (!success) {
-      return res.status(500).json({ error: 'Failed to cancel subscription' })
+      return res.status(500).json({ error: 'Failed to cancel subscription in database' })
     }
 
     return res.status(200).json({
