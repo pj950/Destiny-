@@ -25,6 +25,8 @@ This directory contains SQL migration files for setting up the Eastern Destiny d
 | `20241109000001_enable_fortunes_rls.sql` | Enables RLS policies for fortunes table for anonymous access |
 | `20241110000001_extend_schema_reports_subscriptions.sql` | **NEW**: Extends charts table, adds vector extension, creates tables for AI reports, embeddings (RAG), Q&A conversations, usage tracking, and subscriptions |
 | `20251112000001_fix_fortunes_rls_policies.sql` | **FIX**: Updates fortunes RLS policies to properly allow public and anonymous read access, following the same pattern as lamps table |
+| `20241223000001_fix_fortunes_rls_public_read.sql` | **FIX**: Removes restrictive RLS conditions and enables true public read access to fortunes table |
+| `20241224000001_fortunes_rls_service_role_fix.sql` | **FIX**: Ensures service_role (API endpoints) has explicit access to fortunes table, prevents "permission denied" errors |
 | `99_test_setup.sql` | Test script to verify database setup (optional) |
 | `99_test_razorpay_migration.sql` | Test script to verify Razorpay migration (optional) |
 
@@ -284,6 +286,19 @@ Manages user subscriptions for premium features and usage limits.
 
 ### Service Role Key
 The service role key bypasses all RLS policies. All API routes use `supabaseService` (service role client) for unrestricted database access. This is acceptable for MVP but should be refined for production.
+
+**Important**: The `SUPABASE_SERVICE_ROLE_KEY` environment variable must be configured:
+- **Local development**: Create `.env.local` and add the service role key
+- **Vercel production**: Configure in Environment Variables settings
+- **Key format**: Must start with `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9`
+- **Security**: Never expose this key in client-side code or commit to Git
+
+If you encounter "permission denied for table fortunes" errors, verify:
+1. Environment variable is properly set (not a placeholder)
+2. RLS policies are applied (run latest migration)
+3. API code uses `supabaseService` client (not `supabase`)
+
+See `FORTUNE_API_FIX_GUIDE.md` for detailed troubleshooting.
 
 ## Storage
 
