@@ -1,12 +1,3 @@
-import { supabaseService } from '../lib/supabase'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getGeminiClient, parseGeminiJsonResponse, buildYearlyFlowPrompt } from '../lib/gemini'
-import { analyzeBaziInsights } from '../lib/bazi-insights'
-import { YearlyFlowPayloadSchema, YEARLY_FLOW_PROMPT_VERSION } from '../lib/gemini/schemas'
-import { processReportChunks } from '../lib/rag'
-import type { Chart, BaziReport, BaziReportInsert } from '../types/database'
-import type { BaziChart } from '../lib/bazi'
-
 // Enforce server-only execution
 if (typeof window !== 'undefined') {
   throw new Error('Worker must run in Node.js environment, not in the browser')
@@ -24,6 +15,15 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is required')
 }
+
+import { supabaseService } from '../../../lib/supabase'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getGeminiClient, parseGeminiJsonResponse, buildYearlyFlowPrompt } from '../../../lib/gemini'
+import { analyzeBaziInsights } from '../../../lib/bazi-insights'
+import { YearlyFlowPayloadSchema, YEARLY_FLOW_PROMPT_VERSION } from '../../../lib/gemini/schemas'
+import { processReportChunks } from '../../../lib/rag'
+import type { Chart, BaziReport, BaziReportInsert } from '../../../types/database'
+import type { BaziChart } from '../../../lib/bazi'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
 const GEMINI_REPORT_MODEL = process.env.GEMINI_MODEL_REPORT ?? 'gemini-2.5-pro'
@@ -212,6 +212,38 @@ async function withRetry<T>(
   throw lastError
 }
 
+async function uploadReportToStorage(jobId: string, reportText: string): Promise<string> {
+  const reportPath = `${jobId}.txt`
+  logJobProgress(jobId, `Uploading report to storage bucket 'reports' as ${reportPath}...`)
+
+  const { error: uploadError } = await supabaseService.storage
+    .from('reports')
+    .upload(reportPath, Buffer.from(reportText), { upsert: true })
+
+  if (uploadError) {
+    console.error(`[Worker] Error uploading report:`, uploadError)
+    throw uploadError
+  }
+
+  logJobProgress(jobId, `Report uploaded successfully`)
+
+  // Generate public URL
+  const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reports/${reportPath}`
+  logJobProgress(jobId, `Public URL: ${publicUrl}`)
+  
+  return publicUrl
+}
+
+async function processRagChunks(reportId: string, reportText: string): Promise<void> {
+  try {
+    await processReportChunks(reportId, reportText)
+    console.log(`[Worker] RAG chunks processed successfully for report ${reportId}`)
+  } catch (ragError: any) {
+    console.error(`[Worker] Non-fatal error processing RAG chunks for report ${reportId}:`, ragError)
+    throw ragError
+  }
+}
+
 // ============================================================================
 // Job Processors
 // ============================================================================
@@ -285,7 +317,7 @@ async function processDeepReport(job: Job): Promise<void> {
    // Process chunks and embeddings for RAG
    logJobProgress(job.id, `Processing text chunks and generating embeddings for RAG...`)
    try {
-     await processReportChunks(report.id, reportText)
+     await processRagChunks(report.id, reportText)
      logJobProgress(job.id, `RAG chunks processed successfully`)
    } catch (ragError: any) {
      console.error(`[Worker] Non-fatal error processing RAG chunks for report ${report.id}:`, ragError)
@@ -293,23 +325,7 @@ async function processDeepReport(job: Job): Promise<void> {
    }
 
    // Upload report to Supabase Storage (for backward compatibility)
-   const reportPath = `${job.id}.txt`
-   logJobProgress(job.id, `Uploading report to storage bucket 'reports' as ${reportPath}...`)
-
-   const { error: uploadError } = await supabaseService.storage
-     .from('reports')
-     .upload(reportPath, Buffer.from(reportText), { upsert: true })
-
-   if (uploadError) {
-     console.error(`[Worker] Error uploading report:`, uploadError)
-     throw uploadError
-   }
-
-   logJobProgress(job.id, `Report uploaded successfully`)
-
-   // Generate public URL
-   const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reports/${reportPath}`
-   logJobProgress(job.id, `Public URL: ${publicUrl}`)
+   const publicUrl = await uploadReportToStorage(job.id, reportText)
 
    // Mark job as done
    await markJobStatus(job.id, 'done', { result_url: publicUrl })
@@ -401,7 +417,7 @@ async function processYearlyFlowReport(job: Job): Promise<void> {
   try {
     // Extract report body for chunking - use structured payload for complete content
     const reportBodyForChunking = `${payload.natalAnalysis}\n\n${payload.decadeLuckAnalysis}\n\n${payload.annualFlowAnalysis}`
-    await processReportChunks(report.id, reportBodyForChunking)
+    await processRagChunks(report.id, reportBodyForChunking)
     logJobProgress(job.id, `[Stage 6] RAG chunks processed successfully`)
   } catch (ragError: any) {
     console.error(`[Worker] Non-fatal error processing RAG chunks for report ${report.id}:`, ragError)
