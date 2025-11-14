@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { Container, Section, Heading, Text } from '../components/ui'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { 
-  SubscriptionStatusCard, 
-  QuotaSection, 
-  PlansSection, 
-  SubscriptionActions 
+import {
+  SubscriptionStatusCard,
+  QuotaSection,
+  PlansSection,
+  SubscriptionActions
 } from '../components/subscription'
-import { UserSubscription, SubscriptionTier } from '../types/database'
+import type { UserSubscription, SubscriptionTier } from '../types/database'
 
 export default function SubscriptionManagement() {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)

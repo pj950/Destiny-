@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { SubscriptionTier, SubscriptionStatus } from '../../types/database'
+import type { SubscriptionTier, SubscriptionStatus } from '../../types/database'
 
 interface SubscriptionData {
   tier: SubscriptionTier

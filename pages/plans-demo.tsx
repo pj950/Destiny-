@@ -7,7 +7,7 @@ import Container from '../components/ui/Container'
 import Section from '../components/ui/Section'
 import Heading from '../components/ui/Heading'
 import Text from '../components/ui/Text'
-import { SubscriptionTier } from '../types/database'
+import type { SubscriptionTier } from '../types/database'
 
 export default function PlansDemo() {
   const router = useRouter()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Container, Section, Heading } from '../components/ui'
 import { SubscriptionActions } from '../components/subscription'
-import { UserSubscription, SubscriptionTier } from '../types/database'
+import type { UserSubscription, SubscriptionTier } from '../types/database'
 
 export default function SubscriptionActionsDemo() {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null)
