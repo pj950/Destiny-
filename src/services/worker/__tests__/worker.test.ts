@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { supabaseService } from '../../lib/supabase'
-import { getGeminiClient } from '../../lib/gemini/client'
-import { analyzeBaziInsights } from '../../lib/bazi-insights'
-import { buildYearlyFlowPrompt, parseGeminiJsonResponse } from '../../lib/gemini'
-import { processReportChunks } from '../../lib/rag'
-import type { Chart, BaziReport } from '../../types/database'
-import type { BaziChart } from '../../lib/bazi'
+import { supabaseService } from '../../../../../lib/supabase'
+import { getGeminiClient } from '../../../../../lib/gemini/client'
+import { analyzeBaziInsights } from '../../../../../lib/bazi-insights'
+import { buildYearlyFlowPrompt, parseGeminiJsonResponse } from '../../../../../lib/gemini'
+import { processReportChunks } from '../../../../../lib/rag'
+import type { Chart, BaziReport } from '../../../../../types/database'
+import type { BaziChart } from '../../../../../lib/bazi'
 
 // Mock dependencies before importing worker
-vi.mock('../../lib/supabase', () => ({
+vi.mock('../../../../../lib/supabase', () => ({
   supabaseService: {
     from: vi.fn(),
     storage: {
@@ -17,11 +17,11 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
-vi.mock('../../lib/gemini/client', () => ({
+vi.mock('../../../../../lib/gemini/client', () => ({
   getGeminiClient: vi.fn(),
 }))
 
-vi.mock('../../lib/gemini', async (importOriginal) => {
+vi.mock('../../../../../lib/gemini', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
@@ -30,11 +30,11 @@ vi.mock('../../lib/gemini', async (importOriginal) => {
   }
 })
 
-vi.mock('../../lib/bazi-insights', () => ({
+vi.mock('../../../../../lib/bazi-insights', () => ({
   analyzeBaziInsights: vi.fn(),
 }))
 
-vi.mock('../../lib/rag', () => ({
+vi.mock('../../../../../lib/rag', () => ({
   processReportChunks: vi.fn(),
 }))
 
@@ -63,7 +63,7 @@ vi.mock('process', () => ({
 }))
 
 // Now import worker functions after mocking
-const { processJob, processYearlyFlowReport, processDeepReport } = await import('../worker')
+const { processJob, processYearlyFlowReport, processDeepReport } = await import('../index')
 
 describe('Worker - Job Processing', () => {
   beforeEach(() => {
@@ -90,11 +90,12 @@ describe('Worker - Job Processing', () => {
       }
 
       // Mock successful processing - we'll expect it to fail due to missing chart
-      vi.mocked(supabaseService.from).mockReturnValue({
+      const mockFrom = vi.fn().mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      } as any)
+      })
+      vi.mocked(supabaseService).from = mockFrom
 
       // The job should be marked as processing first, then fail when chart not found
       await expect(processJob(mockJob)).rejects.toThrow()
@@ -115,11 +116,12 @@ describe('Worker - Job Processing', () => {
         created_at: '2024-01-01T00:00:00Z',
       }
 
-      vi.mocked(supabaseService.from).mockReturnValue({
+      const mockFrom = vi.fn().mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      } as any)
+      })
+      vi.mocked(supabaseService).from = mockFrom
 
       await expect(processJob(mockJob)).rejects.toThrow()
       
@@ -139,11 +141,12 @@ describe('Worker - Job Processing', () => {
         created_at: '2024-01-01T00:00:00Z',
       }
 
-      vi.mocked(supabaseService.from).mockReturnValue({
+      const mockFrom = vi.fn().mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
-      } as any)
+      })
+      vi.mocked(supabaseService).from = mockFrom
 
       await expect(processJob(mockJob)).rejects.toThrow('Unknown job type: unknown_job_type')
     })
@@ -203,38 +206,32 @@ describe('Worker - Job Processing', () => {
     })
 
     it('should process yearly flow report successfully', async () => {
-      // Mock chart loading
-      vi.mocked(supabaseService.from).mockImplementation((table: string) => {
-        if (table === 'charts') {
-          return {
+      // Mock chart loading and report creation
+      const mockFrom = vi.fn()
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'report-123' } as BaziReport,
+                error: null,
               }),
             }),
-          } as any
-        }
-        if (table === 'bazi_reports') {
-          return {
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'report-123' } as BaziReport,
-                  error: null,
-                }),
-              }),
-            }),
-          } as any
-        }
-        if (table === 'jobs') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          } as any
-        }
-        return {} as any
-      })
+          }),
+        })
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        })
+      
+      vi.mocked(supabaseService).from = mockFrom
 
       // This should complete without throwing
       await expect(processYearlyFlowReport(mockJob)).resolves.toBeUndefined()
@@ -248,15 +245,17 @@ describe('Worker - Job Processing', () => {
 
     it('should handle missing chart correctly', async () => {
       // Mock chart not found
-      vi.mocked(supabaseService.from).mockReturnValue({
+      const mockFrom = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({ data: null, error: { message: 'No rows found' } }),
           }),
         }),
-      } as any)
+      })
+      
+      vi.mocked(supabaseService).from = mockFrom
 
-      await expect(processYearlyFlowReport(mockJob)).rejects.toThrow('Failed to load chart: chart-123')
+      await expect(processYearlyFlowReport(mockJob)).rejects.toThrow('Failed to load chart: chart-123 - No rows found')
     })
 
     it('should use default year when not provided', async () => {
@@ -265,38 +264,31 @@ describe('Worker - Job Processing', () => {
         metadata: { subscription_tier: 'free' }, // No target_year
       }
 
-      // Mock chart loading and report creation
-      vi.mocked(supabaseService.from).mockImplementation((table: string) => {
-        if (table === 'charts') {
-          return {
+      const mockFrom = vi.fn()
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'report-123' } as BaziReport,
+                error: null,
               }),
             }),
-          } as any
-        }
-        if (table === 'bazi_reports') {
-          return {
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'report-123' } as BaziReport,
-                  error: null,
-                }),
-              }),
-            }),
-          } as any
-        }
-        if (table === 'jobs') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          } as any
-        }
-        return {} as any
-      })
+          }),
+        })
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        })
+      
+      vi.mocked(supabaseService).from = mockFrom
 
       await expect(processYearlyFlowReport(jobWithoutYear)).resolves.toBeUndefined()
       
@@ -309,38 +301,31 @@ describe('Worker - Job Processing', () => {
       // Mock RAG processing to fail
       vi.mocked(processReportChunks).mockRejectedValue(new Error('RAG failed'))
 
-      // Mock chart loading and report creation
-      vi.mocked(supabaseService.from).mockImplementation((table: string) => {
-        if (table === 'charts') {
-          return {
+      const mockFrom = vi.fn()
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'report-123' } as BaziReport,
+                error: null,
               }),
             }),
-          } as any
-        }
-        if (table === 'bazi_reports') {
-          return {
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'report-123' } as BaziReport,
-                  error: null,
-                }),
-              }),
-            }),
-          } as any
-        }
-        if (table === 'jobs') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          } as any
-        }
-        return {} as any
-      })
+          }),
+        })
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        })
+      
+      vi.mocked(supabaseService).from = mockFrom
 
       // Should still complete successfully even if RAG fails
       await expect(processYearlyFlowReport(mockJob)).resolves.toBeUndefined()
@@ -371,52 +356,42 @@ describe('Worker - Job Processing', () => {
     beforeEach(() => {
       // Mock processReportChunks
       vi.mocked(processReportChunks).mockResolvedValue(undefined)
+
+      // Mock chart loading and report creation
+      const mockFrom = vi.fn()
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'report-123' } as BaziReport,
+                error: null,
+              }),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        })
+      
+      vi.mocked(supabaseService).from = mockFrom
+
+      // Mock storage upload
+      const mockStorageFrom = vi.fn().mockReturnValue({
+        upload: vi.fn().mockResolvedValue({ error: null }),
+      })
+      vi.mocked(supabaseService.storage).from = mockStorageFrom
     })
 
     it('should process deep report successfully', async () => {
-      // Mock chart loading
-      vi.mocked(supabaseService.from).mockImplementation((table: string) => {
-        if (table === 'charts') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockChart, error: null }),
-              }),
-            }),
-          } as any
-        }
-        if (table === 'bazi_reports') {
-          return {
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: { id: 'report-123' } as BaziReport,
-                  error: null,
-                }),
-              }),
-            }),
-          } as any
-        }
-        if (table === 'jobs') {
-          return {
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          } as any
-        }
-        return {} as any
-      })
-
-      // Mock storage upload
-      vi.mocked(supabaseService.storage.from).mockReturnValue({
-        upload: vi.fn().mockResolvedValue({ error: null }),
-      } as any)
-
-      // Mock Gemini client
-      vi.mocked(getGeminiClient).mockReturnValue({
-        generateText: vi.fn().mockResolvedValue('Generated deep report text'),
-      } as any)
-
       await expect(processDeepReport(mockJob)).resolves.toBeUndefined()
       
       // Verify key function calls
@@ -426,13 +401,15 @@ describe('Worker - Job Processing', () => {
 
     it('should handle missing chart correctly', async () => {
       // Mock chart not found
-      vi.mocked(supabaseService.from).mockReturnValue({
+      const mockFrom = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({ data: null, error: { message: 'No rows found' } }),
           }),
         }),
-      } as any)
+      })
+      
+      vi.mocked(supabaseService).from = mockFrom
 
       await expect(processDeepReport(mockJob)).rejects.toThrow('Chart not found: chart-123')
     })

@@ -9,9 +9,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "worker": "tsx --env-file=.env.local worker/worker.ts",
+    "worker": "tsx --env-file=.env.local src/services/worker/index.ts",
     "worker:test": "vitest run --config vitest.worker.config.ts",
-    "worker:debug": "DEBUG=* tsx --env-file=.env.local worker/worker.ts"
+    "worker:debug": "DEBUG=* tsx --env-file=.env.local src/services/worker/index.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
