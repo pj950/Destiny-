@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/router'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
-import { UserSubscription } from '../../types/database'
-import { SubscriptionPlan, SUBSCRIPTION_PLANS } from '../../lib/subscription'
+import type { UserSubscription } from '../../types/database'
+import { SUBSCRIPTION_PLANS, type SubscriptionPlan } from '../../lib/subscription'
 
 interface SubscriptionActionsProps {
   subscription: UserSubscription

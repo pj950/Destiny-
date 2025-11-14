@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SubscriptionActions from './SubscriptionActions'
-import { UserSubscription } from '../../types/database'
+import type { UserSubscription } from '../../types/database'
 
 // Mock next/router
 vi.mock('next/router', () => ({

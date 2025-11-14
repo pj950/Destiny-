@@ -4,7 +4,7 @@
  * Manages subscription tiers, quotas, features, and user access control
  */
 
-import { SubscriptionTier, UserSubscription } from '../types/database'
+import type { SubscriptionTier, UserSubscription } from '../types/database'
 import { supabaseService } from './supabase'
 
 // ============================================================================

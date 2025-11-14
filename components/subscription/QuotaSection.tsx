@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import QuotaCard from './QuotaCard'
 import Button from '../ui/Button'
 import { SUBSCRIPTION_PLANS } from '../../lib/subscription'
-import { SubscriptionTier } from '../../types/database'
+import type { SubscriptionTier } from '../../types/database'
 
 interface QuotaData {
   tier: SubscriptionTier

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import PlanCard from './PlanCard'
-import { SubscriptionPlan } from '../../lib/subscription'
-import { SubscriptionTier } from '../../types/database'
+import type { SubscriptionPlan } from '../../lib/subscription'
+import type { SubscriptionTier } from '../../types/database'
 
 interface PlansSectionProps {
   userId?: string
