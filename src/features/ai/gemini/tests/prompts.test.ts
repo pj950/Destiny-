@@ -1,23 +1,22 @@
 import { describe, expect, it } from 'vitest'
-
-import type { BaziChart } from '../bazi'
-import type { BaziInsights } from '../../types/bazi-insights'
-import type { ConversationMessage } from '../../types/database'
+import type { BaziChart } from '@/src/features/charts/services'
+import type { BaziInsights } from '@/src/features/charts/types'
+import type { ConversationMessage } from '@/src/types/database'
 import {
   buildCharacterProfilePrompt,
   buildQaPrompt,
   buildYearlyFlowPrompt,
   type QaContextChunk,
   type QaConversationSnapshot,
-} from './prompts'
+} from '../services/prompts'
 import {
   CHARACTER_PROFILE_PROMPT_VERSION,
   QA_PROMPT_VERSION,
   YEARLY_FLOW_PROMPT_VERSION,
   CharacterProfilePayloadSchema,
   QaAnswerPayloadSchema,
-} from './schemas'
-import { parseGeminiJsonResponse } from './parser'
+} from '../services/schemas'
+import { parseGeminiJsonResponse } from '../services/parser'
 
 const baseInsights: BaziInsights = {
   day_master: {

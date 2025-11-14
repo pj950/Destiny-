@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { 
-  calculateDayMaster, 
-  calculateTenGods, 
+import {
+  calculateDayMaster,
+  calculateTenGods,
   calculateLuckCycles,
   generatePersonalityTags,
   analyzeBaziInsights,
-  toDBFormat
-} from './bazi-insights'
-import { computeBazi } from './bazi'
+  toDBFormat,
+} from '../services/bazi-insights'
+import { computeBazi } from '../services/bazi'
 
 describe('BaZi Insights', () => {
   let testChart: any

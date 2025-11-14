@@ -5,9 +5,9 @@
  * semantic search and Q&A functionality.
  */
 
-import { getGeminiClient } from './gemini/client'
-import { supabaseService } from './supabase'
-import type { BaziReportChunkInsert, ChunkMetadata } from '../types/database'
+import { getGeminiClient } from '@/src/features/ai/gemini'
+import { supabaseService } from '@/lib/supabase'
+import type { BaziReportChunkInsert, ChunkMetadata } from '@/src/types/database'
 
 // Configuration constants
 const CHUNK_SIZE = 600 // Chinese characters per chunk
