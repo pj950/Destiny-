@@ -11,45 +11,11 @@ interface Lamp {
   description?: string
 }
 
-// Default fallback lanterns when no Chinese images are found
-const DEFAULT_LAMPS: Lamp[] = [
-  {
-    id: '00000000-0000-0000-0000-000000000001',
-    key: 'p1',
-    name: '福运灯',
-    image: '/images/p1.jpg',
-    price: 19.9,
-    description: '祈愿福泽绵延，守护家庭顺遂与喜乐。'
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000002',
-    key: 'p2',
-    name: '安康灯',
-    image: '/images/p2.jpg',
-    price: 19.9,
-    description: '点亮身心安泰之光，为爱的人带来平安守护。'
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000003',
-    key: 'p3',
-    name: '财源灯',
-    image: '/images/p3.jpg',
-    price: 19.9,
-    description: '招聚金气财富，助事业与财运蒸蒸日上。'
-  },
-  {
-    id: '00000000-0000-0000-0000-000000000004',
-    key: 'p4',
-    name: '事业灯',
-    image: '/images/p4.jpg',
-    price: 19.9,
-    description: '赐予勇气与灵感，护佑事业突破新境界。'
-  },
-]
+// Removed default fallback lamps - all lamp data should come from database
 
 const IMAGES_DIRECTORY = path.join(process.cwd(), 'public', 'images')
 const HAS_IMAGES_DIRECTORY = fs.existsSync(IMAGES_DIRECTORY)
-const DEFAULT_LAMP_IMAGE = DEFAULT_LAMPS[0]?.image ?? '/images/p1.jpg'
+const DEFAULT_LAMP_IMAGE = '/images/七星灯.png'
 
 interface DatabaseLampRecord {
   id: string
@@ -181,21 +147,17 @@ export async function getLampsConfig(): Promise<Lamp[]> {
         return lampConfigs
       }
 
-      console.warn('[getLampsConfig] Database lamps missing required data, falling back to defaults')
+      console.error('[getLampsConfig] Database lamps missing required data')
+      throw new Error('Database lamps missing required data')
     } else {
-      console.warn('[getLampsConfig] No lamps found in database')
+      console.error('[getLampsConfig] No lamps found in database')
+      throw new Error('No lamps found in database')
     }
   } catch (error) {
     console.error('[getLampsConfig] Error fetching lamps:', error)
+    throw error
   }
-
-  console.warn('[getLampsConfig] Using default fallback lamps')
-  return DEFAULT_LAMPS
 }
-
-
-// Client-side fallback lamps (static)
-export const FALLBACK_LAMPS: Lamp[] = DEFAULT_LAMPS
 
 // Export for potential client-side usage
 export type { Lamp }

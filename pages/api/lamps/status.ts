@@ -1,10 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseService } from '../../../lib/supabase'
+import { FALLBACK_LAMPS } from '../../../lib/lamps.client'
 
 interface LampStatus {
   lamp_key: string
   status: 'unlit' | 'lit'
   last_updated?: string
+}
+
+function buildFallbackStatuses(): LampStatus[] {
+  const now = new Date().toISOString()
+  return FALLBACK_LAMPS.map(lamp => ({
+    lamp_key: lamp.key,
+    status: 'unlit',
+    last_updated: now
+  }))
 }
 
 export default async function handler(
@@ -29,33 +39,21 @@ export default async function handler(
       error = result.error
     } catch (dbError: any) {
       console.error('[Lamp Status] Database connection error:', dbError.message)
-      // Return mock data for development when database is unavailable
-      const mockLamps = [
-        { lamp_key: 'p1', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p2', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p3', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p4', status: 'unlit' as const, last_updated: new Date().toISOString() }
-      ]
-      console.log('[Lamp Status] Returning mock data due to database unavailability')
-      return res.status(200).json(mockLamps)
+      const fallback = buildFallbackStatuses()
+      console.log('[Lamp Status] Returning fallback statuses due to database unavailability')
+      return res.status(200).json(fallback)
     }
 
     if (error) {
       console.error('[Lamp Status] Error fetching lamps:', error)
-      // Return mock data for development when query fails
-      const mockLamps = [
-        { lamp_key: 'p1', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p2', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p3', status: 'unlit' as const, last_updated: new Date().toISOString() },
-        { lamp_key: 'p4', status: 'unlit' as const, last_updated: new Date().toISOString() }
-      ]
-      console.log('[Lamp Status] Returning mock data due to query error')
-      return res.status(200).json(mockLamps)
+      const fallback = buildFallbackStatuses()
+      console.log('[Lamp Status] Returning fallback statuses due to query error')
+      return res.status(200).json(fallback)
     }
 
     if (!lamps || lamps.length === 0) {
-      console.log('[Lamp Status] No lamps found in database, returning empty array')
-      return res.status(200).json([])
+      console.log('[Lamp Status] No lamps found in database, returning fallback list')
+      return res.status(200).json(buildFallbackStatuses())
     }
 
     console.log(`[Lamp Status] Retrieved ${lamps.length} lamp statuses`)
