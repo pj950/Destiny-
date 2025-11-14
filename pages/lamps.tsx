@@ -142,12 +142,17 @@ export default function LampsPage() {
 
             console.log(`[Lamps] Lamp "${lamp.name}" has real UUID: ${lampId}`)
           })
+        } else {
+          console.warn('[Lamps] API returned no lamps, reverting to fallback list')
+          setLamps(FALLBACK_LAMPS)
         }
       } else {
-        console.log('[Lamps] API not available, using fallback lanterns')
+        console.warn('[Lamps] Lamp config API unavailable, using fallback lanterns')
+        setLamps(FALLBACK_LAMPS)
       }
     } catch (error) {
       console.log('[Lamps] Failed to fetch lanterns config, using fallback:', error)
+      setLamps(FALLBACK_LAMPS)
     }
   }, [])
 

@@ -9,8 +9,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const lamps = await getLampsConfig()
     res.status(200).json({ lamps })
-  } catch (error) {
-    console.error('Error fetching lamps config:', error)
-    res.status(500).json({ error: 'Failed to fetch lamps configuration' })
+  } catch (error: any) {
+    console.error('[Lamps Config API] Error fetching lamps config:', error)
+    res.status(500).json({ 
+      error: 'Failed to fetch lamps configuration',
+      message: error?.message || 'Unknown error'
+    })
   }
 }
