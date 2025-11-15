@@ -5,8 +5,8 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { cancelSubscription, getUserSubscription } from '../../../lib/subscription'
-import { stripeHelpers } from '../../../lib/stripe'
+import { cancelSubscription, getUserSubscription } from '@/features/subscriptions/services'
+import { stripeHelpers } from '@/features/payments/stripe'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

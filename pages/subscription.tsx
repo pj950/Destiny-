@@ -7,7 +7,7 @@ import {
   QuotaSection, 
   PlansSection, 
   SubscriptionActions 
-} from '../components/subscription'
+} from '@/features/subscriptions/components'
 import { UserSubscription, SubscriptionTier } from '../types/database'
 
 export default function SubscriptionManagement() {

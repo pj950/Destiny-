@@ -6,7 +6,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { trackUsage } from '../../../lib/subscription'
+import { trackUsage } from '@/features/subscriptions/services'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

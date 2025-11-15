@@ -5,7 +5,7 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { SUBSCRIPTION_PLANS } from '../../../lib/subscription'
+import { SUBSCRIPTION_PLANS } from '@/features/subscriptions/services'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

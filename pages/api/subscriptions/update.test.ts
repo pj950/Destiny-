@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import handler from './update'
-import * as subscription from '../../../lib/subscription'
-import * as supabase from '../../../lib/supabase'
+import * as subscription from '@/features/subscriptions/services'
+import * as supabase from '@/lib/supabase'
 
 // Mock dependencies
-vi.mock('../../../lib/subscription')
-vi.mock('../../../lib/supabase')
+vi.mock('@/features/subscriptions/services')
+vi.mock('@/lib/supabase')
 
 describe('/api/subscriptions/update', () => {
   let req: Partial<NextApiRequest>

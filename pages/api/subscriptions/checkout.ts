@@ -5,9 +5,9 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { stripeHelpers } from '../../../lib/stripe'
-import { SUBSCRIPTION_PLANS } from '../../../lib/subscription'
-import type { SubscriptionTier } from '../../../types/database'
+import { stripeHelpers } from '@/features/payments/stripe'
+import { SUBSCRIPTION_PLANS } from '@/features/subscriptions/services'
+import type { SubscriptionTier } from '@/types/database'
 
 // Stripe Price IDs mapping (configured in Stripe Dashboard)
 // These should be set as environment variables in production

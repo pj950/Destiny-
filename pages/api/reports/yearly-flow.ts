@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabaseService } from '../../../lib/supabase'
-import { YEARLY_FLOW_PROMPT_VERSION } from '../../../lib/gemini/schemas'
-import { checkQuota, upgradePrompt } from '../../../lib/subscription'
+import { supabaseService } from '@/lib/supabase'
+import { YEARLY_FLOW_PROMPT_VERSION } from '@/lib/gemini/schemas'
+import { checkQuota, upgradePrompt } from '@/features/subscriptions/services'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()

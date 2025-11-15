@@ -5,8 +5,8 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getUserSubscription } from '../../../lib/subscription'
-import { supabaseService } from '../../../lib/supabase'
+import { getUserSubscription } from '@/features/subscriptions/services'
+import { supabaseService } from '@/lib/supabase'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
