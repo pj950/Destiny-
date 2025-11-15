@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import * as subscriptionModule from '../../../lib/subscription'
+import * as subscriptionModule from '@/features/subscriptions/services'
 
 /**
  * Tests for /api/reports/yearly-flow endpoint
  * Covers yearly flow report job creation and quota checks
  */
 
-vi.mock('../../../lib/subscription', () => ({
+vi.mock('@/features/subscriptions/services', () => ({
   checkQuota: vi.fn(),
   upgradePrompt: vi.fn(),
 }))

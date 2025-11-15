@@ -13,11 +13,11 @@ import {
   upgradePrompt,
   createOrUpdateSubscription,
   cancelSubscription,
-} from './subscription'
-import { supabaseService } from './supabase'
+} from './subscriptionService'
+import { supabaseService } from '@/lib/supabase'
 
 // Mock supabaseService
-vi.mock('./supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabaseService: {
     from: vi.fn(),
   },

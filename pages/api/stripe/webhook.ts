@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { buffer } from 'stream/consumers'
 import Stripe from 'stripe'
-import { supabaseService } from '../../../lib/supabase'
-import { stripeHelpers } from '../../../lib/stripe'
-import { createOrUpdateSubscription } from '../../../lib/subscription'
+import { supabaseService } from '@/lib/supabase'
+import { stripeHelpers } from '@/features/payments/stripe'
+import { createOrUpdateSubscription } from '@/features/subscriptions/services'
 
 // Guard: Check for required environment variables
 if (!process.env.STRIPE_WEBHOOK_SECRET) {

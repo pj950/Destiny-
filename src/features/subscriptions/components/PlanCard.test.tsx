@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import PlanCard from './PlanCard'
-import { SubscriptionPlan } from '../../lib/subscription'
+import { SubscriptionPlan } from '@/features/subscriptions/services'
 
 const mockPlan: SubscriptionPlan = {
   id: 'premium',

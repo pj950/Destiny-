@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Card from '../components/Card'
-import { SubscriptionStatusCard } from '../components/subscription'
+import { SubscriptionStatusCard } from '@/features/subscriptions/components'
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 

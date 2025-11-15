@@ -1,7 +1,7 @@
 import React from 'react'
-import Card from '../Card'
-import Button from '../ui/Button'
-import { SubscriptionPlan } from '../../lib/subscription'
+import Card from '@/components/Card'
+import Button from '@/components/ui/Button'
+import { SubscriptionPlan } from '@/features/subscriptions/services'
 
 interface PlanCardProps {
   plan: SubscriptionPlan

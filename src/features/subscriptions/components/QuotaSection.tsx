@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import QuotaCard from './QuotaCard'
-import Button from '../ui/Button'
-import { SUBSCRIPTION_PLANS } from '../../lib/subscription'
-import { SubscriptionTier } from '../../types/database'
+import Button from '@/components/ui/Button'
+import { SUBSCRIPTION_PLANS } from '@/features/subscriptions/services'
+import { SubscriptionTier } from '@/types/database'
 
 interface QuotaData {
   tier: SubscriptionTier
