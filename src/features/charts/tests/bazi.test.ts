@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeBazi } from './bazi'
+import { computeBazi } from '../services/bazi'
 
 describe('BaZi Computation', () => {
   it('should compute BaZi for a standard date (noon)', () => {

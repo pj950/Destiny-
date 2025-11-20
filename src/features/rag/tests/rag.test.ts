@@ -5,19 +5,19 @@ import {
   buildContentChunks,
   storeChunks,
   processReportChunks,
-} from './rag'
-import { supabaseService } from './supabase'
-import { getGeminiClient } from './gemini/client'
+} from '../services/rag'
+import { supabaseService } from '@/lib/supabase'
+import { getGeminiClient } from '@/src/features/ai/gemini'
 
 // Mock dependencies
-vi.mock('./supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabaseService: {
     from: vi.fn(),
     rpc: vi.fn(),
   },
 }))
 
-vi.mock('./gemini/client', () => ({
+vi.mock('@/src/features/ai/gemini', () => ({
   getGeminiClient: vi.fn(),
 }))
 
